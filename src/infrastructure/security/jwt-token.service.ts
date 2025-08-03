@@ -81,16 +81,24 @@ export class JWTTokenService {
     };
 
     try {
-      return jwt.sign(fullPayload, this.accessTokenSecret, {
+      const signOptions: jwt.SignOptions = {
         algorithm: tokenOptions.algorithm,
         expiresIn: tokenOptions.expiresIn,
         issuer: tokenOptions.issuer,
         audience: tokenOptions.audience,
-        subject: tokenOptions.subject || payload.sub,
-        jwtid: fullPayload.jti,
-        notBefore: tokenOptions.notBefore,
-        keyid: tokenOptions.keyid,
-      });
+      };
+
+      // Only add notBefore if it's defined
+      if (tokenOptions.notBefore !== undefined) {
+        signOptions.notBefore = tokenOptions.notBefore;
+      }
+
+      // Only add keyid if it's defined
+      if (tokenOptions.keyid !== undefined) {
+        signOptions.keyid = tokenOptions.keyid;
+      }
+
+      return jwt.sign(fullPayload, this.accessTokenSecret, signOptions);
     } catch (error) {
       throw new Error(`Failed to create access token: ${error.message}`);
     }
@@ -121,16 +129,24 @@ export class JWTTokenService {
     };
 
     try {
-      return jwt.sign(fullPayload, this.refreshTokenSecret, {
+      const signOptions: jwt.SignOptions = {
         algorithm: tokenOptions.algorithm,
         expiresIn: tokenOptions.expiresIn,
         issuer: tokenOptions.issuer,
         audience: tokenOptions.audience,
-        subject: tokenOptions.subject || payload.sub,
-        jwtid: fullPayload.jti,
-        notBefore: tokenOptions.notBefore,
-        keyid: tokenOptions.keyid,
-      });
+      };
+
+      // Only add notBefore if it's defined
+      if (tokenOptions.notBefore !== undefined) {
+        signOptions.notBefore = tokenOptions.notBefore;
+      }
+
+      // Only add keyid if it's defined
+      if (tokenOptions.keyid !== undefined) {
+        signOptions.keyid = tokenOptions.keyid;
+      }
+
+      return jwt.sign(fullPayload, this.refreshTokenSecret, signOptions);
     } catch (error) {
       throw new Error(`Failed to create refresh token: ${error.message}`);
     }
@@ -227,14 +243,14 @@ export class JWTTokenService {
     };
 
     try {
-      return jwt.sign(fullPayload, this.accessTokenSecret, {
+      const signOptions: jwt.SignOptions = {
         algorithm: this.defaultSigningOptions.algorithm,
         expiresIn,
         issuer: this.defaultSigningOptions.issuer,
         audience: this.defaultSigningOptions.audience,
-        subject: payload.sub,
-        jwtid: fullPayload.jti,
-      });
+      };
+
+      return jwt.sign(fullPayload, this.accessTokenSecret, signOptions);
     } catch (error) {
       throw new Error(`Failed to create ${type} token: ${error.message}`);
     }
