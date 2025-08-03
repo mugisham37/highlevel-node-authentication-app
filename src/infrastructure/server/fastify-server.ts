@@ -10,6 +10,7 @@ import { errorHandler } from './error-handler';
 import { correlationIdPlugin } from './plugins/correlation-id';
 import { requestLoggingPlugin } from './plugins/request-logging';
 import { createRouteRegistration } from '../../presentation/routes/index';
+import { WebSocketServer } from '../websocket/websocket-server';
 
 // Import new security middleware
 import {
@@ -115,6 +116,9 @@ export async function createServer(): Promise<FastifyInstance> {
   // Register API routes
   await registerApiRoutes(server);
 
+  // Initialize WebSocket server
+  await initializeWebSocketServer(server);
+
   // Register error handler
   server.setErrorHandler(errorHandler);
 
@@ -156,6 +160,28 @@ async function registerApiRoutes(server: FastifyInstance): Promise<void> {
     logger.info('API routes registered successfully');
   } catch (error) {
     logger.error('Failed to register API routes', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    throw error;
+  }
+}
+
+/**
+ * Initialize WebSocket server
+ */
+async function initializeWebSocketServer(
+  server: FastifyInstance
+): Promise<void> {
+  try {
+    const webSocketServer = new WebSocketServer();
+    await webSocketServer.initialize(server);
+
+    // Store WebSocket server instance for graceful shutdown
+    (server as any).webSocketServer = webSocketServer;
+
+    logger.info('WebSocket server initialized successfully');
+  } catch (error) {
+    logger.error('Failed to initialize WebSocket server', {
       error: error instanceof Error ? error.message : 'Unknown error',
     });
     throw error;
