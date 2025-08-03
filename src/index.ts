@@ -42,7 +42,12 @@ process.on('SIGINT', async () => {
 async function gracefulShutdown() {
   try {
     if (server) {
-      // Shutdown WebSocket server first
+      // Shutdown monitoring system first
+      if (server.monitoringSystem) {
+        await server.monitoringSystem.shutdown();
+      }
+
+      // Shutdown WebSocket server
       if (server.webSocketServer) {
         await server.webSocketServer.shutdown();
       }

@@ -11,6 +11,7 @@ import { correlationIdPlugin } from './plugins/correlation-id';
 import { requestLoggingPlugin } from './plugins/request-logging';
 import { createRouteRegistration } from '../../presentation/routes/index';
 import { WebSocketServer } from '../websocket/websocket-server';
+import { monitoringSystem } from '../monitoring';
 
 // Import new security middleware
 import {
@@ -113,6 +114,9 @@ export async function createServer(): Promise<FastifyInstance> {
     });
   }
 
+  // Initialize monitoring system
+  await initializeMonitoringSystem(server);
+
   // Register API routes
   await registerApiRoutes(server);
 
@@ -160,6 +164,27 @@ async function registerApiRoutes(server: FastifyInstance): Promise<void> {
     logger.info('API routes registered successfully');
   } catch (error) {
     logger.error('Failed to register API routes', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    throw error;
+  }
+}
+
+/**
+ * Initialize monitoring system
+ */
+async function initializeMonitoringSystem(
+  server: FastifyInstance
+): Promise<void> {
+  try {
+    await monitoringSystem.initialize(server);
+
+    // Store monitoring system instance for graceful shutdown
+    (server as any).monitoringSystem = monitoringSystem;
+
+    logger.info('Monitoring system initialized successfully');
+  } catch (error) {
+    logger.error('Failed to initialize monitoring system', {
       error: error instanceof Error ? error.message : 'Unknown error',
     });
     throw error;
