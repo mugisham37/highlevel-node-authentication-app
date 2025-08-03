@@ -1,5 +1,38 @@
-import { PrismaClient, User, Prisma } from '../../generated/prisma';
+import { PrismaClient } from '@prisma/client';
 import { Logger } from 'winston';
+
+// Define the types manually since we're using a custom generated client
+interface User {
+  id: string;
+  email: string;
+  emailVerified?: Date | null;
+  name?: string | null;
+  image?: string | null;
+  passwordHash?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  mfaEnabled: boolean;
+  totpSecret?: string | null;
+  backupCodes: string[];
+  failedLoginAttempts: number;
+  lockedUntil?: Date | null;
+  lastLoginAt?: Date | null;
+  lastLoginIP?: string | null;
+  riskScore: number;
+}
+
+// Define Prisma namespace types
+namespace Prisma {
+  export interface UserWhereInput {
+    id?: string;
+    email?: { contains?: string; mode?: string };
+    name?: { contains?: string; mode?: string };
+    mfaEnabled?: boolean;
+    lockedUntil?: { gt?: Date };
+    createdAt?: { gte?: Date; lte?: Date };
+    OR?: UserWhereInput[];
+  }
+}
 
 export interface UserWithRelations extends User {
   accounts?: any[];
@@ -36,7 +69,7 @@ export class PrismaUserRepository {
   constructor(
     private prisma: PrismaClient,
     private logger: Logger
-  ) {}
+  ) { }
 
   async createUser(data: CreateUserData): Promise<User> {
     try {
@@ -68,26 +101,26 @@ export class PrismaUserRepository {
         where: { id },
         include: includeRelations
           ? {
-              accounts: true,
-              sessions: {
-                where: { isActive: true },
-                orderBy: { lastActivity: 'desc' },
-              },
-              roles: {
-                include: {
-                  role: {
-                    include: {
-                      permissions: {
-                        include: {
-                          permission: true,
-                        },
+            accounts: true,
+            sessions: {
+              where: { isActive: true },
+              orderBy: { lastActivity: 'desc' },
+            },
+            roles: {
+              include: {
+                role: {
+                  include: {
+                    permissions: {
+                      include: {
+                        permission: true,
                       },
                     },
                   },
                 },
               },
-              webAuthnCredentials: true,
-            }
+            },
+            webAuthnCredentials: true,
+          }
           : undefined,
       });
 
@@ -107,26 +140,26 @@ export class PrismaUserRepository {
         where: { email },
         include: includeRelations
           ? {
-              accounts: true,
-              sessions: {
-                where: { isActive: true },
-                orderBy: { lastActivity: 'desc' },
-              },
-              roles: {
-                include: {
-                  role: {
-                    include: {
-                      permissions: {
-                        include: {
-                          permission: true,
-                        },
+            accounts: true,
+            sessions: {
+              where: { isActive: true },
+              orderBy: { lastActivity: 'desc' },
+            },
+            roles: {
+              include: {
+                role: {
+                  include: {
+                    permissions: {
+                      include: {
+                        permission: true,
                       },
                     },
                   },
                 },
               },
-              webAuthnCredentials: true,
-            }
+            },
+            webAuthnCredentials: true,
+          }
           : undefined,
       });
 

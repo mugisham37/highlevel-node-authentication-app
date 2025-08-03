@@ -5,8 +5,6 @@ import { Logger } from 'winston';
 import * as authSessionsSchema from './drizzle/schema/auth-sessions';
 import * as oauthCacheSchema from './drizzle/schema/oauth-cache';
 import { PrismaClient } from '@prisma/client';
-import { PrismaClient } from '@prisma/client';
-import { PrismaClient } from '@prisma/client';
 
 export interface DatabaseConfig {
   primary: {
@@ -385,7 +383,7 @@ class CircuitBreaker {
   constructor(
     private readonly failureThreshold: number,
     private readonly recoveryTimeout: number
-  ) {}
+  ) { }
 
   async execute<T>(operation: () => Promise<T>): Promise<T> {
     if (this.state === 'OPEN') {

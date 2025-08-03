@@ -3,6 +3,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { createDatabaseConfig } from './config';
 import { activeSessions } from './drizzle/schema/auth-sessions';
 import { nanoid } from 'nanoid';
+import { sql } from 'drizzle-orm';
 
 export async function testDatabaseConnection() {
   try {
@@ -48,20 +49,18 @@ export async function testDatabaseConnection() {
     };
 
     await db.execute(
-      `
+      sql`
       INSERT INTO test_sessions (id, user_id, token) 
-      VALUES ($1, $2, $3)
-    `,
-      [testSession.id, testSession.userId, testSession.token]
+      VALUES (${testSession.id}, ${testSession.userId}, ${testSession.token})
+    `
     );
     console.log('✓ Insert operation successful');
 
     // Test select
     const result = await db.execute(
-      `
-      SELECT * FROM test_sessions WHERE id = $1
-    `,
-      [testSession.id]
+      sql`
+      SELECT * FROM test_sessions WHERE id = ${testSession.id}
+    `
     );
     console.log('✓ Select operation successful', result.rows[0]);
 
