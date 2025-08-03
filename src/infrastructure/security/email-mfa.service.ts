@@ -198,6 +198,67 @@ export class EmailMFAService {
   }
 
   /**
+   * Send magic link for passwordless authentication
+   */
+  async sendMagicLink(
+    email: string,
+    magicLinkUrl: string,
+    expiresAt: Date
+  ): Promise<EmailResult> {
+    try {
+      this.logger.info('Sending magic link email', {
+        email: this.maskEmail(email),
+        expiresAt,
+      });
+
+      // Validate email format
+      if (!this.isValidEmail(email)) {
+        return {
+          success: false,
+          error: 'Invalid email format',
+        };
+      }
+
+      // Validate magic link URL
+      if (!this.isValidUrl(magicLinkUrl)) {
+        return {
+          success: false,
+          error: 'Invalid magic link URL',
+        };
+      }
+
+      const template = this.getMagicLinkTemplate(magicLinkUrl, expiresAt);
+
+      const result = await this.sendEmail({
+        to: email,
+        subject: template.subject,
+        htmlBody: template.htmlBody,
+        textBody: template.textBody,
+      });
+
+      if (result.success) {
+        this.logger.info('Magic link email sent successfully', {
+          messageId: result.messageId,
+          email: this.maskEmail(email),
+        });
+      }
+
+      return result;
+    } catch (error) {
+      this.logger.error('Magic link email sending failed', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        email: this.maskEmail(email),
+      });
+
+      return {
+        success: false,
+        error: 'Failed to send magic link',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
    * Send generic email
    */
   private async sendEmail(params: {
@@ -506,6 +567,92 @@ This is an automated message. Please do not reply to this email.
   }
 
   /**
+   * Get magic link email template
+   */
+  private getMagicLinkTemplate(
+    magicLinkUrl: string,
+    expiresAt: Date
+  ): EmailTemplate {
+    const subject = `${this.serviceName} - Sign in with Magic Link`;
+    const expirationMinutes = Math.ceil(
+      (expiresAt.getTime() - Date.now()) / (1000 * 60)
+    );
+
+    const htmlBody = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${subject}</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: #6f42c1; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+          .content { background-color: #ffffff; padding: 30px; border: 1px solid #dee2e6; }
+          .button { display: inline-block; padding: 15px 30px; background-color: #6f42c1; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 20px 0; text-align: center; }
+          .button:hover { background-color: #5a2d91; }
+          .footer { background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; font-size: 14px; color: #6c757d; }
+          .warning { background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 4px; margin: 20px 0; }
+          .link-text { word-break: break-all; background-color: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>${this.serviceName}</h1>
+            <h2>🔗 Magic Link Sign In</h2>
+          </div>
+          <div class="content">
+            <p>Hello,</p>
+            <p>You requested to sign in to your ${this.serviceName} account. Click the button below to sign in instantly:</p>
+            <div style="text-align: center;">
+              <a href="${magicLinkUrl}" class="button">Sign In Now</a>
+            </div>
+            <p><strong>This link will expire in ${expirationMinutes} minutes.</strong></p>
+            <div class="warning">
+              <strong>Security Notice:</strong> If you didn't request this sign-in link, please ignore this email. This link can only be used once and will expire automatically.
+            </div>
+            <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
+            <div class="link-text">${magicLinkUrl}</div>
+            <p>For your security, this link will only work from the same device and browser where you requested it.</p>
+            <p>Best regards,<br>The ${this.serviceName} Team</p>
+          </div>
+          <div class="footer">
+            <p>This is an automated message. Please do not reply to this email.</p>
+            <p>&copy; ${new Date().getFullYear()} ${this.serviceName}. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const textBody = `
+${this.serviceName} - Sign in with Magic Link
+
+Hello,
+
+You requested to sign in to your ${this.serviceName} account. Click the link below to sign in instantly:
+
+${magicLinkUrl}
+
+This link will expire in ${expirationMinutes} minutes.
+
+SECURITY NOTICE: If you didn't request this sign-in link, please ignore this email. This link can only be used once and will expire automatically.
+
+For your security, this link will only work from the same device and browser where you requested it.
+
+Best regards,
+The ${this.serviceName} Team
+
+This is an automated message. Please do not reply to this email.
+© ${new Date().getFullYear()} ${this.serviceName}. All rights reserved.
+    `;
+
+    return { subject, htmlBody, textBody };
+  }
+
+  /**
    * Validate email format
    */
   private isValidEmail(email: string): boolean {
@@ -519,6 +666,18 @@ This is an automated message. Please do not reply to this email.
   private isValidCode(code: string): boolean {
     // Should be 6 digits
     return /^\d{6}$/.test(code);
+  }
+
+  /**
+   * Validate URL format
+   */
+  private isValidUrl(url: string): boolean {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /**
