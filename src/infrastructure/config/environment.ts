@@ -6,7 +6,9 @@ dotenvConfig();
 
 const environmentSchema = z.object({
   // Server Configuration
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  NODE_ENV: z
+    .enum(['development', 'production', 'test'])
+    .default('development'),
   SERVER_HOST: z.string().default('localhost'),
   SERVER_PORT: z.coerce.number().default(3000),
 
@@ -17,8 +19,17 @@ const environmentSchema = z.object({
 
   // Redis Configuration
   REDIS_URL: z.string().default('redis://localhost:6379'),
+  REDIS_HOST: z.string().default('localhost'),
+  REDIS_PORT: z.coerce.number().default(6379),
   REDIS_PASSWORD: z.string().optional(),
   REDIS_DB: z.coerce.number().default(0),
+  REDIS_CLUSTER_ENABLED: z.coerce.boolean().default(false),
+  REDIS_CLUSTER_NODES: z.string().optional(),
+  REDIS_RETRY_DELAY: z.coerce.number().default(100),
+  REDIS_MAX_RETRIES: z.coerce.number().default(3),
+  REDIS_CONNECT_TIMEOUT: z.coerce.number().default(10000),
+  REDIS_COMMAND_TIMEOUT: z.coerce.number().default(5000),
+  REDIS_KEEP_ALIVE: z.coerce.number().default(30000),
 
   // JWT Configuration
   JWT_SECRET: z.string().min(32, 'JWT secret must be at least 32 characters'),
@@ -86,8 +97,25 @@ export const config = {
 
   redis: {
     url: env.REDIS_URL,
+    host: env.REDIS_HOST,
+    port: env.REDIS_PORT,
     password: env.REDIS_PASSWORD,
     db: env.REDIS_DB,
+    cluster: {
+      enabled: env.REDIS_CLUSTER_ENABLED,
+      nodes: env.REDIS_CLUSTER_NODES
+        ? env.REDIS_CLUSTER_NODES.split(',').map((node) => {
+            const [host, port] = node.trim().split(':');
+            return { host, port: parseInt(port) || 6379 };
+          })
+        : [],
+    },
+    retryDelayOnFailover: env.REDIS_RETRY_DELAY,
+    maxRetriesPerRequest: env.REDIS_MAX_RETRIES,
+    lazyConnect: true,
+    keepAlive: env.REDIS_KEEP_ALIVE,
+    connectTimeout: env.REDIS_CONNECT_TIMEOUT,
+    commandTimeout: env.REDIS_COMMAND_TIMEOUT,
   },
 
   jwt: {
