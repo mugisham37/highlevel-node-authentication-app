@@ -33,6 +33,7 @@ import { userManagementRoutes } from './user-management.routes';
 import { adminRoutes } from './admin.routes';
 import { passwordlessAuthRoutes } from './passwordless-auth.routes';
 import { roleManagementRoutes } from './role-management.routes';
+import { securityComplianceRoutes } from './security-compliance.routes';
 
 // Middleware
 import { validationPlugin } from '../middleware/validation.middleware';
@@ -162,6 +163,11 @@ export async function registerRoutes(
       await fastifyInstance.register(roleManagementRoutes, {
         roleManagementController,
         authorizationService,
+        ...routeOptions,
+      });
+
+      // Security compliance routes
+      await fastifyInstance.register(securityComplianceRoutes, {
         ...routeOptions,
       });
     },

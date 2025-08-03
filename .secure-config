@@ -1,0 +1,161 @@
+{
+  "configurations": {
+    "test_config_key": {
+      "key": "test_config_key",
+      "value": "test_config_value",
+      "encrypted": false,
+      "lastModified": "2025-08-03T18:01:44.865Z",
+      "modifiedBy": "test-user",
+      "version": 4,
+      "environment": "test",
+      "sensitive": false,
+      "checksum": "bdde2f638ed7ab33c31566887927c1fbae88419d01b4e231c0d8662b1975df83"
+    },
+    "sensitive_key": {
+      "key": "sensitive_key",
+      "value": "cVPkBrcum2opICYdGQ8yZQ==:/NyYf36u8kpotT+Xx8hv:a9UxSRHOGRSR8UXw67QQ5Q==",
+      "encrypted": true,
+      "lastModified": "2025-08-03T18:01:44.867Z",
+      "modifiedBy": "test-user",
+      "version": 2,
+      "environment": "test",
+      "sensitive": true,
+      "checksum": "ef8fb6ac754360fb35e6ced0e55ffcd3f7ae78b34f0c7e379c64047818a03f64"
+    },
+    "GDPR_DATA_RETENTION_DAYS": {
+      "key": "GDPR_DATA_RETENTION_DAYS",
+      "value": 2555,
+      "encrypted": false,
+      "lastModified": "2025-08-03T18:01:45.036Z",
+      "modifiedBy": "compliance-officer",
+      "version": 2,
+      "environment": "test",
+      "sensitive": false,
+      "checksum": "4bb6c33147c6a67247d1bcd99587f7ad5f72fdef5f5c69005e688a2840f636b3"
+    }
+  },
+  "auditLog": [
+    {
+      "timestamp": "2025-08-03T18:00:18.074Z",
+      "action": "create",
+      "key": "test_config_key",
+      "newValue": "test_config_value",
+      "actor": "test-user",
+      "environment": "test",
+      "reason": "Testing configuration"
+    },
+    {
+      "timestamp": "2025-08-03T18:00:18.077Z",
+      "action": "update",
+      "key": "test_config_key",
+      "oldValue": "test_config_value",
+      "newValue": "test_config_value",
+      "actor": "test-user",
+      "environment": "test"
+    },
+    {
+      "timestamp": "2025-08-03T18:00:18.080Z",
+      "action": "create",
+      "key": "sensitive_key",
+      "newValue": "[REDACTED]",
+      "actor": "test-user",
+      "environment": "test"
+    },
+    {
+      "timestamp": "2025-08-03T18:00:18.081Z",
+      "action": "access",
+      "key": "sensitive_key",
+      "actor": "test-user",
+      "environment": "test"
+    },
+    {
+      "timestamp": "2025-08-03T18:00:18.083Z",
+      "action": "create",
+      "key": "delete_test_key",
+      "newValue": "[REDACTED]",
+      "actor": "test-user",
+      "environment": "test"
+    },
+    {
+      "timestamp": "2025-08-03T18:00:18.085Z",
+      "action": "delete",
+      "key": "delete_test_key",
+      "oldValue": "[REDACTED]",
+      "actor": "test-user",
+      "environment": "test",
+      "reason": "Testing deletion"
+    },
+    {
+      "timestamp": "2025-08-03T18:00:18.243Z",
+      "action": "create",
+      "key": "GDPR_DATA_RETENTION_DAYS",
+      "newValue": 2555,
+      "actor": "compliance-officer",
+      "environment": "test",
+      "reason": "GDPR compliance requirement"
+    },
+    {
+      "timestamp": "2025-08-03T18:01:44.862Z",
+      "action": "update",
+      "key": "test_config_key",
+      "oldValue": "test_config_value",
+      "newValue": "test_config_value",
+      "actor": "test-user",
+      "environment": "test",
+      "reason": "Testing configuration"
+    },
+    {
+      "timestamp": "2025-08-03T18:01:44.865Z",
+      "action": "update",
+      "key": "test_config_key",
+      "oldValue": "test_config_value",
+      "newValue": "test_config_value",
+      "actor": "test-user",
+      "environment": "test"
+    },
+    {
+      "timestamp": "2025-08-03T18:01:44.867Z",
+      "action": "update",
+      "key": "sensitive_key",
+      "oldValue": "[REDACTED]",
+      "newValue": "[REDACTED]",
+      "actor": "test-user",
+      "environment": "test"
+    },
+    {
+      "timestamp": "2025-08-03T18:01:44.868Z",
+      "action": "access",
+      "key": "sensitive_key",
+      "actor": "test-user",
+      "environment": "test"
+    },
+    {
+      "timestamp": "2025-08-03T18:01:44.869Z",
+      "action": "create",
+      "key": "delete_test_key",
+      "newValue": "[REDACTED]",
+      "actor": "test-user",
+      "environment": "test"
+    },
+    {
+      "timestamp": "2025-08-03T18:01:44.870Z",
+      "action": "delete",
+      "key": "delete_test_key",
+      "oldValue": "[REDACTED]",
+      "actor": "test-user",
+      "environment": "test",
+      "reason": "Testing deletion"
+    },
+    {
+      "timestamp": "2025-08-03T18:01:45.036Z",
+      "action": "update",
+      "key": "GDPR_DATA_RETENTION_DAYS",
+      "oldValue": 2555,
+      "newValue": 2555,
+      "actor": "compliance-officer",
+      "environment": "test",
+      "reason": "GDPR compliance requirement"
+    }
+  ],
+  "lastUpdated": "2025-08-03T18:01:45.037Z"
+}
