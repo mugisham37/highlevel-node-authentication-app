@@ -2,9 +2,8 @@ import Fastify, { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
-import swagger from '@fastify/swagger';
-import swaggerUi from '@fastify/swagger-ui';
 import { config } from '../config/environment';
+import { documentationPlugin } from '../documentation';
 import { logger } from '../logging/winston-logger';
 import { errorHandler } from './error-handler';
 import { correlationIdPlugin } from './plugins/correlation-id';
@@ -81,38 +80,12 @@ export async function createServer(): Promise<FastifyInstance> {
   // Note: This is registered but will only affect routes that require authentication
   await server.register(standardZeroTrust);
 
-  // Swagger documentation
-  if (config.isDevelopment) {
-    await server.register(swagger, {
-      swagger: {
-        info: {
-          title: 'Enterprise Authentication API',
-          description: 'Enterprise-grade authentication backend API',
-          version: '1.0.0',
-        },
-        host: `${config.server.host}:${config.server.port}`,
-        schemes: ['http', 'https'],
-        consumes: ['application/json'],
-        produces: ['application/json'],
-        securityDefinitions: {
-          Bearer: {
-            type: 'apiKey',
-            name: 'Authorization',
-            in: 'header',
-            description: 'Enter JWT token in format: Bearer <token>',
-          },
-        },
-      },
-    });
-
-    await server.register(swaggerUi, {
-      routePrefix: '/docs',
-      uiConfig: {
-        docExpansion: 'list',
-        deepLinking: false,
-      },
-    });
-  }
+  // Comprehensive API documentation
+  await server.register(documentationPlugin, {
+    enableDocs: config.isDevelopment || config.env === 'staging',
+    enableSwaggerUi: true,
+    environment: config.env,
+  });
 
   // Initialize monitoring system
   await initializeMonitoringSystem(server);
