@@ -2,7 +2,7 @@ import { Pool } from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { PrismaClient } from '@prisma/client';
 import { createDatabaseConfig } from '../config';
-import { logger } from '../../logging/logger';
+import { logger } from '../../logging/winston-logger';
 import fs from 'fs/promises';
 import path from 'path';
 

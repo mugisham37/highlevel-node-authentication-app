@@ -2,8 +2,8 @@ import { PrismaClient } from '@prisma/client';
 import { Pool } from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { createDatabaseConfig } from '../config';
-import { logger } from '../../logging/logger';
-import { CryptographicService } from '../../security/cryptographic-service';
+import { logger } from '../../logging/winston-logger';
+import { CryptographicService } from '../../security/cryptographic.service';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -50,7 +50,9 @@ export class SeedManager {
     });
     this.drizzleDb = drizzle(this.pool);
     this.prisma = new PrismaClient();
-    this.crypto = new CryptographicService();
+    this.crypto = new CryptographicService(
+      CryptographicService.generateSecureConfig()
+    );
     this.environment = environment;
   }
 

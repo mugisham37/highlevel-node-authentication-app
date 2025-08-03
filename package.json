@@ -15,7 +15,15 @@
     "db:setup": "tsx src/infrastructure/database/setup.ts",
     "db:test": "tsx src/infrastructure/database/example.ts",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "db:cli": "tsx src/infrastructure/database/cli/db-cli.ts",
+    "db:migrate:up": "npm run db:cli migrate up",
+    "db:migrate:down": "npm run db:cli migrate down",
+    "db:migrate:status": "npm run db:cli migrate status",
+    "db:seed": "npm run db:cli seed run",
+    "db:seed:status": "npm run db:cli seed status",
+    "db:validate": "npm run db:cli validate",
+    "db:reset": "npm run db:cli reset --confirm"
   },
   "keywords": [
     "authentication",
@@ -40,6 +48,7 @@
     "argon2": "^0.43.1",
     "axios": "^1.11.0",
     "chokidar": "^4.0.3",
+    "commander": "^12.1.0",
     "crypto-js": "^4.2.0",
     "dotenv": "^16.3.1",
     "drizzle-kit": "^0.31.4",
