@@ -39,6 +39,8 @@ model User {
   roles               UserRole[]
   auditLogs           AuditLog[]
   webAuthnCredentials WebAuthnCredential[]
+  webhooks            Webhook[]
+  Webhook             Webhook[]
 
   @@map("users")
 }
@@ -169,4 +171,75 @@ model AuditLog {
   @@index([action])
   @@index([timestamp])
   @@map("audit_logs")
+}
+
+model Webhook {
+  id             String    @id @default(cuid())
+  userId         String
+  name           String
+  description    String
+  url            String
+  secret         String
+  events         String[]
+  active         Boolean   @default(true)
+  headers        Json?
+  timeout        Int       @default(10000)
+  retryConfig    Json
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  lastDeliveryAt DateTime?
+
+  // Delivery statistics
+  totalDeliveries      Int @default(0)
+  successfulDeliveries Int @default(0)
+  failedDeliveries     Int @default(0)
+  averageResponseTime  Int @default(0)
+
+  user             User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveryAttempts WebhookDeliveryAttempt[]
+
+  @@index([userId])
+  @@index([active])
+  @@map("webhooks")
+}
+
+model WebhookEvent {
+  id            String   @id @default(cuid())
+  type          String
+  data          Json
+  userId        String?
+  sessionId     String?
+  timestamp     DateTime @default(now())
+  metadata      Json?
+  correlationId String?
+
+  deliveryAttempts WebhookDeliveryAttempt[]
+
+  @@index([type])
+  @@index([userId])
+  @@index([timestamp])
+  @@map("webhook_events")
+}
+
+model WebhookDeliveryAttempt {
+  id           String    @id @default(cuid())
+  webhookId    String
+  eventId      String
+  attempt      Int
+  status       String // 'pending', 'success', 'failed', 'timeout'
+  httpStatus   Int?
+  responseBody String?   @db.Text
+  errorMessage String?   @db.Text
+  deliveredAt  DateTime?
+  nextRetryAt  DateTime?
+  createdAt    DateTime  @default(now())
+
+  webhook Webhook      @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  event   WebhookEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId])
+  @@index([eventId])
+  @@index([status])
+  @@index([nextRetryAt])
+  @@map("webhook_delivery_attempts")
 }
