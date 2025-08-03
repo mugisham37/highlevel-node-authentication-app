@@ -7,6 +7,17 @@ import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import { UserManagementController } from '../controllers/user-management.controller';
 import { createAuthorizationMiddleware } from '../../infrastructure/server/middleware/authorization';
 import { AuthorizationService } from '../../application/services/authorization.service';
+import { validate } from '../middleware/validation.middleware';
+import {
+  CreateUserSchema,
+  UpdateUserSchema,
+  UserQuerySchema,
+  UserSearchSchema,
+  RoleAssignmentSchema,
+  BulkCreateUsersSchema,
+  UserLockSchema,
+  UserExportQuerySchema,
+} from '../schemas/user-management.schemas';
 
 export interface UserManagementRoutesOptions extends FastifyPluginOptions {
   userManagementController: UserManagementController;
@@ -30,6 +41,7 @@ export async function userManagementRoutes(
         resource: 'users',
         action: 'create',
       }),
+      validate({ body: CreateUserSchema }),
     ],
     schema: {
       tags: ['User Management'],
@@ -137,6 +149,7 @@ export async function userManagementRoutes(
           targetUserId: (request.params as any).userId,
         }),
       }),
+      validate({ body: UpdateUserSchema }),
     ],
     schema: {
       tags: ['User Management'],
@@ -193,6 +206,7 @@ export async function userManagementRoutes(
         resource: 'users',
         action: 'list',
       }),
+      validate({ querystring: UserQuerySchema }),
     ],
     schema: {
       tags: ['User Management'],
@@ -233,6 +247,7 @@ export async function userManagementRoutes(
         resource: 'users',
         action: 'search',
       }),
+      validate({ querystring: UserSearchSchema }),
     ],
     schema: {
       tags: ['User Management'],
@@ -262,6 +277,7 @@ export async function userManagementRoutes(
           roleId: (request.body as any)?.roleId,
         }),
       }),
+      validate({ body: RoleAssignmentSchema }),
     ],
     schema: {
       tags: ['User Management'],
@@ -317,6 +333,7 @@ export async function userManagementRoutes(
         resource: 'users',
         action: 'bulk_create',
       }),
+      validate({ body: BulkCreateUsersSchema }),
     ],
     schema: {
       tags: ['User Management'],
@@ -358,6 +375,7 @@ export async function userManagementRoutes(
         resource: 'users',
         action: 'export',
       }),
+      validate({ querystring: UserExportQuerySchema }),
     ],
     schema: {
       tags: ['User Management'],
@@ -395,6 +413,7 @@ export async function userManagementRoutes(
           targetUserId: (request.params as any).userId,
         }),
       }),
+      validate({ body: UserLockSchema }),
     ],
     schema: {
       tags: ['User Management'],

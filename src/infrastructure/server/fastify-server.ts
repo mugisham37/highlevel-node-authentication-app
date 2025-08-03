@@ -9,6 +9,7 @@ import { logger } from '../logging/winston-logger';
 import { errorHandler } from './error-handler';
 import { correlationIdPlugin } from './plugins/correlation-id';
 import { requestLoggingPlugin } from './plugins/request-logging';
+import { createRouteRegistration } from '../../presentation/routes/index';
 
 // Import new security middleware
 import {
@@ -111,62 +112,8 @@ export async function createServer(): Promise<FastifyInstance> {
     });
   }
 
-  // Health check endpoint
-  server.get(
-    '/health',
-    {
-      schema: {
-        description: 'Health check endpoint',
-        tags: ['Health'],
-        response: {
-          200: {
-            type: 'object',
-            properties: {
-              status: { type: 'string' },
-              timestamp: { type: 'string' },
-              uptime: { type: 'number' },
-              environment: { type: 'string' },
-            },
-          },
-        },
-      },
-    },
-    async (_request, _reply) => {
-      return {
-        status: 'healthy',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        environment: config.env,
-      };
-    }
-  );
-
-  // Ready check endpoint (for Kubernetes readiness probes)
-  server.get(
-    '/ready',
-    {
-      schema: {
-        description: 'Readiness check endpoint',
-        tags: ['Health'],
-        response: {
-          200: {
-            type: 'object',
-            properties: {
-              status: { type: 'string' },
-              timestamp: { type: 'string' },
-            },
-          },
-        },
-      },
-    },
-    async (_request, _reply) => {
-      // Add database and Redis connectivity checks here in future tasks
-      return {
-        status: 'ready',
-        timestamp: new Date().toISOString(),
-      };
-    }
-  );
+  // Register API routes
+  await registerApiRoutes(server);
 
   // Register error handler
   server.setErrorHandler(errorHandler);
@@ -182,4 +129,35 @@ export async function createServer(): Promise<FastifyInstance> {
   });
 
   return server;
+}
+
+/**
+ * Register API routes with dependency injection
+ */
+async function registerApiRoutes(server: FastifyInstance): Promise<void> {
+  try {
+    // Import service factory
+    const { createServicesForRoutes } = await import(
+      '../../presentation/factories/service.factory'
+    );
+
+    // Create service instances
+    const services = createServicesForRoutes({
+      logger,
+      // In a real application, you would pass actual database connections here
+      // prismaClient: prismaClient,
+      // drizzleDb: drizzleDb,
+    });
+
+    // Register routes
+    const routeRegistration = createRouteRegistration(services);
+    await server.register(routeRegistration);
+
+    logger.info('API routes registered successfully');
+  } catch (error) {
+    logger.error('Failed to register API routes', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    throw error;
+  }
 }

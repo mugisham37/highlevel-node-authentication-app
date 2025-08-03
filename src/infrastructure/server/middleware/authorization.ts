@@ -138,6 +138,17 @@ export class AuthorizationMiddleware {
     });
   }
 
+  /**
+   * Create middleware to require authentication
+   */
+  requireAuthentication(): FastifyPluginAsync {
+    return async (fastify) => {
+      fastify.addHook('preHandler', async (request, reply) => {
+        await this.checkAuthentication(request, reply);
+      });
+    };
+  }
+
   private async checkPermission(
     request: FastifyRequest,
     reply: FastifyReply,
@@ -329,13 +340,47 @@ export class AuthorizationMiddleware {
     }
   }
 
+  private async checkAuthentication(
+    request: FastifyRequest,
+    reply: FastifyReply
+  ): Promise<void> {
+    try {
+      // Check if user is authenticated
+      if (!request.user) {
+        return reply.status(401).send({
+          success: false,
+          error: 'UNAUTHORIZED',
+          message: 'Authentication required',
+          correlationId: request.correlationId,
+        });
+      }
+
+      logger.debug('Authentication check successful', {
+        correlationId: request.correlationId,
+        userId: request.user.id,
+      });
+    } catch (error) {
+      logger.error('Authentication check middleware error', {
+        correlationId: request.correlationId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      return reply.status(500).send({
+        success: false,
+        error: 'INTERNAL_SERVER_ERROR',
+        message: 'Authentication system error',
+        correlationId: request.correlationId,
+      });
+    }
+  }
+
   private async addHelpers(
     request: FastifyRequest,
     reply: FastifyReply
   ): Promise<void> {
     try {
       // Only add helpers if user is authenticated
-      if (!request.isAuthenticated || !request.user) {
+      if (!request.user) {
         return;
       }
 

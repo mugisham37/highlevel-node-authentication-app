@@ -7,6 +7,15 @@ import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import { RoleManagementController } from '../controllers/role-management.controller';
 import { createAuthorizationMiddleware } from '../../infrastructure/server/middleware/authorization';
 import { AuthorizationService } from '../../application/services/authorization.service';
+import { validate } from '../middleware/validation.middleware';
+import {
+  CreateRoleSchema,
+  UpdateRoleSchema,
+  RoleQuerySchema,
+  RoleSearchSchema,
+  PermissionAssignmentSchema,
+  RoleValidationSchema,
+} from '../schemas/role-management.schemas';
 
 export interface RoleManagementRoutesOptions extends FastifyPluginOptions {
   roleManagementController: RoleManagementController;
@@ -30,6 +39,7 @@ export async function roleManagementRoutes(
         resource: 'roles',
         action: 'create',
       }),
+      validate({ body: CreateRoleSchema }),
     ],
     schema: {
       tags: ['Role Management'],
@@ -123,6 +133,7 @@ export async function roleManagementRoutes(
           targetRoleId: (request.params as any).roleId,
         }),
       }),
+      validate({ body: UpdateRoleSchema }),
     ],
     schema: {
       tags: ['Role Management'],
@@ -176,6 +187,7 @@ export async function roleManagementRoutes(
         resource: 'roles',
         action: 'list',
       }),
+      validate({ querystring: RoleQuerySchema }),
     ],
     schema: {
       tags: ['Role Management'],
@@ -208,6 +220,7 @@ export async function roleManagementRoutes(
         resource: 'roles',
         action: 'search',
       }),
+      validate({ querystring: RoleSearchSchema }),
     ],
     schema: {
       tags: ['Role Management'],
@@ -237,6 +250,7 @@ export async function roleManagementRoutes(
           permissionId: (request.body as any)?.permissionId,
         }),
       }),
+      validate({ body: PermissionAssignmentSchema }),
     ],
     schema: {
       tags: ['Role Management'],
@@ -352,6 +366,7 @@ export async function roleManagementRoutes(
         resource: 'roles',
         action: 'validate',
       }),
+      validate({ body: RoleValidationSchema }),
     ],
     schema: {
       tags: ['Role Management'],
