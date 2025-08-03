@@ -253,7 +253,7 @@ export class JWTToken {
 
     // Parse string format like "1h", "30m", "7d"
     const match = expiresIn.match(/^(\d+)([smhd])$/);
-    if (!match) {
+    if (!match || !match[1] || !match[2]) {
       throw new Error(
         'Invalid expiresIn format. Use format like "1h", "30m", "7d"'
       );
@@ -318,8 +318,8 @@ export class JWTToken {
       {
         sub: this._payload.sub,
         type: 'refresh',
-        sessionId: this._payload.sessionId,
-        deviceId: this._payload.deviceId,
+        ...(this._payload.sessionId !== undefined && { sessionId: this._payload.sessionId }),
+        ...(this._payload.deviceId !== undefined && { deviceId: this._payload.deviceId }),
         scope: 'refresh',
       },
       secret,

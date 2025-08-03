@@ -31,7 +31,7 @@ export interface TokenPair {
   tokenType: 'Bearer';
   expiresIn: number;
   refreshExpiresIn: number;
-  scope?: string;
+  scope?: string | undefined;
 }
 
 export class JWTTokenService {
@@ -73,9 +73,9 @@ export class JWTTokenService {
       expiresIn: options.expiresIn || '15m', // Default 15 minutes
     };
 
-    const fullPayload: JWTPayload = {
+    const fullPayload = {
       ...payload,
-      type: 'access',
+      type: 'access' as const,
       jti: this.generateJTI(),
       iat: Math.floor(Date.now() / 1000),
     };
@@ -100,7 +100,8 @@ export class JWTTokenService {
 
       return jwt.sign(fullPayload, this.accessTokenSecret, signOptions);
     } catch (error) {
-      throw new Error(`Failed to create access token: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to create access token: ${errorMessage}`);
     }
   }
 
@@ -118,11 +119,11 @@ export class JWTTokenService {
       expiresIn: options.expiresIn || '7d', // Default 7 days
     };
 
-    const fullPayload: JWTPayload = {
+    const fullPayload = {
       sub: payload.sub,
       sessionId: payload.sessionId,
       deviceId: payload.deviceId,
-      type: 'refresh',
+      type: 'refresh' as const,
       jti: this.generateJTI(),
       iat: Math.floor(Date.now() / 1000),
       scope: 'refresh',
@@ -148,7 +149,8 @@ export class JWTTokenService {
 
       return jwt.sign(fullPayload, this.refreshTokenSecret, signOptions);
     } catch (error) {
-      throw new Error(`Failed to create refresh token: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to create refresh token: ${errorMessage}`);
     }
   }
 
@@ -216,11 +218,11 @@ export class JWTTokenService {
     // Create new token pair with updated payload
     const updatedPayload = {
       sub: payload.sub,
-      sessionId: payload.sessionId,
-      deviceId: payload.deviceId,
-      riskScore: payload.riskScore,
-      permissions: payload.permissions,
-      roles: payload.roles,
+      sessionId: payload.sessionId || '',
+      deviceId: payload.deviceId || '',
+      riskScore: payload.riskScore || 0,
+      permissions: payload.permissions || [],
+      roles: payload.roles || [],
       ...newPayload,
     };
 
@@ -235,7 +237,7 @@ export class JWTTokenService {
     payload: Omit<JWTPayload, 'iat' | 'exp' | 'jti' | 'type'>,
     expiresIn: string = '1h'
   ): string {
-    const fullPayload: JWTPayload = {
+    const fullPayload = {
       ...payload,
       type,
       jti: this.generateJTI(),
@@ -252,7 +254,8 @@ export class JWTTokenService {
 
       return jwt.sign(fullPayload, this.accessTokenSecret, signOptions);
     } catch (error) {
-      throw new Error(`Failed to create ${type} token: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to create ${type} token: ${errorMessage}`);
     }
   }
 
@@ -414,9 +417,10 @@ export class JWTTokenService {
       } else if (error instanceof jwt.NotBeforeError) {
         return { valid: false, error: 'Token not active yet', notBefore: true };
       } else {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         return {
           valid: false,
-          error: `Token validation failed: ${error.message}`,
+          error: `Token validation failed: ${errorMessage}`,
         };
       }
     }
@@ -435,7 +439,7 @@ export class JWTTokenService {
     }
 
     const match = expiresIn.match(/^(\d+)([smhd])$/);
-    if (!match) {
+    if (!match || !match[1]) {
       throw new Error('Invalid expiresIn format');
     }
 

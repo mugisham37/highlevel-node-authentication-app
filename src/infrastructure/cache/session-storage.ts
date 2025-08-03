@@ -22,6 +22,7 @@ export interface SessionData {
 
 export interface DeviceInfo {
   fingerprint: string;
+  userAgent: string;
   platform: string;
   browser: string;
   version: string;

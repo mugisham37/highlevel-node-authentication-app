@@ -54,7 +54,7 @@
   - Implement device tracking and suspicious activity detection
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6_
 
-- [ ] 8. Multi-Factor Authentication (MFA) System
+- [x] 8. Multi-Factor Authentication (MFA) System
   - Implement TOTP (Time-based One-Time Password) generation and verification
   - Create SMS-based MFA with secure code generation and validation
   - Implement email-based MFA as fallback mechanism
@@ -63,7 +63,7 @@
   - Generate and manage backup codes for MFA recovery
   - _Requirements: 3.2, 3.3, 9.1, 9.2, 9.3, 9.5, 9.6_
 
-- [ ] 9. OAuth2/OpenID Connect Integration System
+- [-] 9. OAuth2/OpenID Connect Integration System
   - Implement OAuth2 client for Google, GitHub, and Microsoft providers
   - Create OAuth2 server functionality for acting as identity provider
   - Implement authorization code flow with PKCE support

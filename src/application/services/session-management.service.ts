@@ -7,7 +7,7 @@
 
 import { Logger } from 'winston';
 import { Session } from '../../domain/entities/session';
-import { User, DeviceInfo } from '../../domain/entities/user';
+import { DeviceInfo } from '../../domain/entities/user';
 import { DrizzleSessionRepository } from '../../infrastructure/database/repositories/drizzle-session-repository';
 import { SessionStorage } from '../../infrastructure/cache/session-storage';
 import { SecureIdGenerator } from '../../infrastructure/security/secure-id-generator.service';
@@ -16,6 +16,7 @@ import { DeviceFingerprintingService } from '../../infrastructure/security/devic
 import {
   SecurityContext,
   RiskAssessment,
+  DeviceFingerprint,
 } from '../../infrastructure/security/types';
 
 export interface SessionCreationRequest {
@@ -177,7 +178,8 @@ export class SessionManagementService {
       };
 
       // Store in database (persistent storage)
-      const dbSession = await this.sessionRepository.createSession(sessionData);
+      // Create session in database
+      await this.sessionRepository.createSession(sessionData);
 
       // Store in Redis cache (fast access)
       await this.sessionStorage.createSession(
@@ -255,12 +257,26 @@ export class SessionManagementService {
 
         // Convert database session to cache format and store in Redis
         sessionData = this.convertDbSessionToCacheFormat(dbValidation.session);
-        await this.sessionStorage.createSession(
-          sessionData.userId,
-          sessionData.deviceInfo,
-          sessionData.ipAddress,
-          sessionData.userAgent
-        );
+        if (sessionData) {
+          await this.sessionStorage.createSession(
+            sessionData.userId,
+            sessionData.deviceInfo,
+            sessionData.ipAddress,
+            sessionData.userAgent
+          );
+        }
+      }
+
+      // Ensure sessionData is not null before proceeding
+      if (!sessionData) {
+        this.logger.warn('Session data is null after validation', {
+          correlationId,
+          sessionId,
+        });
+        return {
+          valid: false,
+          reason: 'Session data unavailable',
+        };
       }
 
       // Create domain entity
@@ -429,9 +445,16 @@ export class SessionManagementService {
         refreshExpiresAt: session.refreshExpiresAt,
         createdAt: session.createdAt,
         lastActivity: new Date(),
-        deviceInfo: session.deviceInfo,
-        ipAddress: session.ipAddress,
-        userAgent: session.userAgent,
+        deviceInfo: session.deviceInfo || {
+          fingerprint: '',
+          userAgent: '',
+          platform: '',
+          browser: '',
+          version: '',
+          isMobile: false,
+        },
+        ipAddress: session.ipAddress || '',
+        userAgent: session.userAgent || '',
         riskScore: riskAssessment.overallScore,
         isActive: session.isActive,
       });
@@ -553,9 +576,16 @@ export class SessionManagementService {
                   version: '',
                   isMobile: false,
                 }
-              : undefined,
-            ipAddress: session.ipAddress,
-            userAgent: session.userAgent,
+              : {
+                  fingerprint: '',
+                  userAgent: '',
+                  platform: '',
+                  browser: '',
+                  version: '',
+                  isMobile: false,
+                },
+            ipAddress: session.ipAddress || '',
+            userAgent: session.userAgent || '',
             riskScore: session.riskScore || 0,
             isActive: session.isActive,
           })
@@ -681,7 +711,8 @@ export class SessionManagementService {
   async getSessionAnalytics(): Promise<SessionAnalytics> {
     try {
       // Get basic stats from database
-      const stats = await this.sessionRepository.getSessionStats();
+      // Get stats for logging/monitoring if needed
+      await this.sessionRepository.getSessionStats();
 
       // Get all active sessions for detailed analysis
       const allSessions = await this.getAllActiveSessions();
@@ -853,9 +884,20 @@ export class SessionManagementService {
     correlationId: string
   ): Promise<RiskAssessment> {
     try {
+      const deviceFingerprint: DeviceFingerprint = {
+        id: request.deviceInfo.fingerprint,
+        userAgent: request.userAgent,
+        ipAddress: request.ipAddress,
+        platform: request.deviceInfo.platform,
+        createdAt: new Date(),
+        lastSeen: new Date(),
+        trustScore: 50,
+      };
+
       const securityContext: SecurityContext = {
         userId: request.userId,
-        deviceFingerprint: request.deviceInfo.fingerprint,
+        sessionId: '', // Will be set later
+        deviceFingerprint,
         ipAddress: request.ipAddress,
         userAgent: request.userAgent,
         timestamp: new Date(),
@@ -890,9 +932,20 @@ export class SessionManagementService {
     correlationId: string
   ): Promise<RiskAssessment> {
     try {
+      const deviceFingerprint: DeviceFingerprint = {
+        id: request.deviceInfo.fingerprint,
+        userAgent: request.userAgent,
+        ipAddress: request.ipAddress,
+        platform: request.deviceInfo.platform,
+        createdAt: new Date(),
+        lastSeen: new Date(),
+        trustScore: 50,
+      };
+
       const securityContext: SecurityContext = {
         userId: session.userId,
-        deviceFingerprint: request.deviceInfo.fingerprint,
+        sessionId: session.id,
+        deviceFingerprint,
         ipAddress: request.ipAddress,
         userAgent: request.userAgent,
         timestamp: new Date(),
@@ -908,6 +961,7 @@ export class SessionManagementService {
         assessment.overallScore += 15;
         assessment.factors.push({
           type: 'ip_change',
+          severity: 'medium',
           score: 15,
           description: 'IP address changed during refresh',
         });
@@ -917,6 +971,7 @@ export class SessionManagementService {
         assessment.overallScore += 25;
         assessment.factors.push({
           type: 'device_change',
+          severity: 'high',
           score: 25,
           description: 'Device fingerprint changed during refresh',
         });
@@ -1035,8 +1090,9 @@ export class SessionManagementService {
         )[0];
 
         if (
+          latestDifferentDevice &&
           Date.now() - latestDifferentDevice.createdAt.getTime() <
-          this.suspiciousActivityThresholds.deviceChangeWindow
+            this.suspiciousActivityThresholds.deviceChangeWindow
         ) {
           alerts.push({
             type: 'device_change',

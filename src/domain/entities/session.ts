@@ -14,9 +14,9 @@ export interface SessionProps {
   refreshExpiresAt: Date;
   createdAt: Date;
   lastActivity: Date;
-  deviceInfo?: DeviceInfo;
-  ipAddress?: string;
-  userAgent?: string;
+  deviceInfo: DeviceInfo;
+  ipAddress: string;
+  userAgent: string;
   riskScore: number;
   isActive: boolean;
 }
@@ -30,9 +30,9 @@ export class Session {
   private readonly _refreshExpiresAt: Date;
   private readonly _createdAt: Date;
   private _lastActivity: Date;
-  private readonly _deviceInfo: DeviceInfo | undefined;
-  private readonly _ipAddress: string | undefined;
-  private readonly _userAgent: string | undefined;
+  private readonly _deviceInfo: DeviceInfo;
+  private readonly _ipAddress: string;
+  private readonly _userAgent: string;
   private _riskScore: number;
   private _isActive: boolean;
 

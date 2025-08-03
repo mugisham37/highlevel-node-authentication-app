@@ -34,7 +34,7 @@ export interface DeviceFingerprint {
 }
 
 export interface RiskFactor {
-  type: 'location' | 'device' | 'behavior' | 'temporal' | 'network';
+  type: 'location' | 'device' | 'behavior' | 'temporal' | 'network' | 'ip_change' | 'device_change';
   severity: 'low' | 'medium' | 'high' | 'critical';
   score: number; // 0-100
   description: string;
@@ -52,8 +52,8 @@ export interface RiskAssessment {
 }
 
 export interface SecurityContext {
-  userId?: string;
-  sessionId?: string;
+  userId: string;
+  sessionId: string;
   deviceFingerprint: DeviceFingerprint;
   ipAddress: string;
   userAgent: string;
@@ -99,7 +99,7 @@ export interface PasswordHashingOptions {
 
 export interface JWTSigningOptions {
   algorithm?: 'HS256' | 'HS384' | 'HS512' | 'RS256' | 'RS384' | 'RS512';
-  expiresIn: string | number;
+  expiresIn?: string | number;
   issuer?: string;
   audience?: string;
   subject?: string;

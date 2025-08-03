@@ -315,7 +315,11 @@ export class SecureTokenGenerator {
       return { valid: false };
     }
 
-    return { valid: true, payload, token };
+    return { 
+      valid: true, 
+      payload: payload || undefined, 
+      token: token || undefined 
+    };
   }
 
   /**
@@ -342,6 +346,7 @@ export class SecureTokenGenerator {
       if (parts.length < 2) return true;
 
       const expirationHex = parts[0];
+      if (!expirationHex) return true;
       const expiresAt = parseInt(expirationHex, 16);
 
       return Date.now() > expiresAt;
