@@ -421,11 +421,19 @@ export class SessionManagementService {
 
       // Create updated session entity
       const updatedSession = new Session({
-        ...session,
+        id: session.id,
+        userId: session.userId,
         token: newAccessToken,
         refreshToken: newRefreshToken,
+        expiresAt: session.expiresAt,
+        refreshExpiresAt: session.refreshExpiresAt,
+        createdAt: session.createdAt,
         lastActivity: new Date(),
+        deviceInfo: session.deviceInfo,
+        ipAddress: session.ipAddress,
+        userAgent: session.userAgent,
         riskScore: riskAssessment.overallScore,
+        isActive: session.isActive,
       });
 
       this.logger.info('Session refreshed successfully', {

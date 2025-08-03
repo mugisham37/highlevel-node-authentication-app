@@ -9,13 +9,13 @@ export interface JWTPayload {
   sub: string; // Subject (user ID)
   iat: number; // Issued at
   exp: number; // Expiration time
-  iss?: string; // Issuer
-  aud?: string; // Audience
-  jti?: string; // JWT ID
+  iss?: string | undefined; // Issuer
+  aud?: string | undefined; // Audience
+  jti?: string | undefined; // JWT ID
   scope?: string; // Token scope
   type?: 'access' | 'refresh' | 'reset' | 'verification';
-  sessionId?: string;
-  deviceId?: string;
+  sessionId?: string | undefined;
+  deviceId?: string | undefined;
   riskScore?: number;
 }
 
@@ -54,9 +54,9 @@ export class JWTToken {
       ...payload,
       iat: now,
       exp: this.calculateExpiration(now, options.expiresIn),
-      iss: options.issuer,
-      aud: options.audience,
-      jti: options.jwtid,
+      ...(options.issuer !== undefined && { iss: options.issuer }),
+      ...(options.audience !== undefined && { aud: options.audience }),
+      ...(options.jwtid !== undefined && { jti: options.jwtid }),
     };
 
     try {
@@ -67,7 +67,8 @@ export class JWTToken {
 
       return new JWTToken(token, fullPayload);
     } catch (error) {
-      throw new Error(`Failed to create JWT token: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to create JWT token: ${errorMessage}`);
     }
   }
 
@@ -97,7 +98,8 @@ export class JWTToken {
       } else if (error instanceof jwt.NotBeforeError) {
         throw new Error('Token not active yet');
       } else {
-        throw new Error(`Token validation failed: ${error.message}`);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        throw new Error(`Token validation failed: ${errorMessage}`);
       }
     }
   }
@@ -116,7 +118,8 @@ export class JWTToken {
         payload: decoded.payload as JWTPayload,
       };
     } catch (error) {
-      throw new Error(`Failed to parse token: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to parse token: ${errorMessage}`);
     }
   }
 

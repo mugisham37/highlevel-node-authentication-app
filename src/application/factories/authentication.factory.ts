@@ -12,8 +12,6 @@ import { DrizzleSessionRepository } from '../../infrastructure/database/reposito
 import { PasswordHashingService } from '../../infrastructure/security/password-hashing.service';
 import { JWTTokenService } from '../../infrastructure/security/jwt-token.service';
 import { RiskScoringService } from '../../infrastructure/security/risk-scoring.service';
-import { DeviceFingerprintingService } from '../../infrastructure/security/device-fingerprinting.service';
-import { SecureIdGenerator } from '../../infrastructure/security/secure-id-generator.service';
 
 export interface AuthenticationServiceDependencies {
   prismaClient: PrismaClient;
@@ -46,7 +44,6 @@ export class AuthenticationServiceFactory {
       jwtRefreshSecret
     );
     const riskScoringService = new RiskScoringService();
-    const deviceFingerprintingService = new DeviceFingerprintingService();
 
     // Create and return authentication service
     return new AuthenticationService(
@@ -55,7 +52,6 @@ export class AuthenticationServiceFactory {
       passwordHashingService,
       jwtTokenService,
       riskScoringService,
-      deviceFingerprintingService,
       logger
     );
   }
@@ -105,8 +101,8 @@ export class AuthenticationServiceFactory {
       jwtAccessSecret,
       jwtRefreshSecret,
       {
-        issuer: config.jwt?.issuer,
-        audience: config.jwt?.audience,
+        ...(config.jwt?.issuer !== undefined && { issuer: config.jwt.issuer }),
+        ...(config.jwt?.audience !== undefined && { audience: config.jwt.audience }),
       }
     );
 
@@ -130,15 +126,12 @@ export class AuthenticationServiceFactory {
         : undefined
     );
 
-    const deviceFingerprintingService = new DeviceFingerprintingService();
-
     return new AuthenticationService(
       userRepository,
       sessionRepository,
       passwordHashingService,
       jwtTokenService,
       riskScoringService,
-      deviceFingerprintingService,
       logger
     );
   }

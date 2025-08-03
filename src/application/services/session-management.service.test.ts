@@ -604,34 +604,33 @@ describe('SessionManagementService', () => {
         userAgent: 'test-user-agent',
       };
 
-      const expiredRefreshSession = {
+      // Create a session with expired refresh token
+      const createdAt = new Date(Date.now() - 7200000); // 2 hours ago
+      const expiresAt = new Date(Date.now() - 3600000); // Expired session (1 hour ago)
+      const refreshExpiresAt = new Date(Date.now() - 1800000); // Refresh token expired (30 minutes ago, but after session expiration)
+      const expiredRefreshSession = new Session({
         id: request.sessionId,
         userId: 'user-123',
         token: 'test-token',
         refreshToken: 'test-refresh-token',
-        expiresAt: Date.now() + 1800000,
-        refreshExpiresAt: Date.now() - 3600000, // Refresh token expired
-        createdAt: Date.now() - 1800000,
-        lastActivity: Date.now() - 300000,
+        expiresAt: expiresAt,
+        refreshExpiresAt: refreshExpiresAt,
+        createdAt: createdAt,
+        lastActivity: new Date(Date.now() - 300000),
         deviceInfo: mockDeviceInfo,
         ipAddress: '192.168.1.1',
         userAgent: 'test-user-agent',
         riskScore: 25,
         isActive: true,
-      };
-
-      // Mock validation to pass first, then return the expired refresh session
-      mockSessionStorage.getSession.mockResolvedValueOnce({
-        ...expiredRefreshSession,
-        expiresAt: Date.now() + 1800000, // Valid session
       });
-      mockSessionStorage.updateSessionActivity.mockResolvedValue(true);
-      mockSessionRepository.updateLastActivity.mockResolvedValue();
 
-      // Mock the second call for refresh logic
-      mockSessionStorage.getSession.mockResolvedValueOnce(
-        expiredRefreshSession
-      );
+      // Mock validateSession to return the expired refresh session
+      const validateSessionSpy = vi
+        .spyOn(service, 'validateSession')
+        .mockResolvedValue({
+          valid: true,
+          session: expiredRefreshSession,
+        });
 
       // Act
       const result = await service.refreshSession(request);
@@ -639,6 +638,9 @@ describe('SessionManagementService', () => {
       // Assert
       expect(result.success).toBe(false);
       expect(result.error).toBe('Session cannot be refreshed');
+
+      // Cleanup
+      validateSessionSpy.mockRestore();
     });
 
     it('should validate device consistency when requested', async () => {

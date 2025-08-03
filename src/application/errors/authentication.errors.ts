@@ -7,7 +7,7 @@ export abstract class AuthenticationError extends Error {
   abstract readonly code: string;
   abstract readonly statusCode: number;
   readonly timestamp: Date = new Date();
-  readonly correlationId?: string;
+  readonly correlationId: string | undefined;
 
   constructor(message: string, correlationId?: string) {
     super(message);
@@ -40,7 +40,7 @@ export class InvalidCredentialsError extends AuthenticationError {
 export class AccountLockedError extends AuthenticationError {
   readonly code = 'ACCOUNT_LOCKED';
   readonly statusCode = 423;
-  readonly lockedUntil?: Date;
+  readonly lockedUntil: Date | undefined;
   readonly failedAttempts: number;
 
   constructor(
@@ -56,7 +56,7 @@ export class AccountLockedError extends AuthenticationError {
     this.failedAttempts = failedAttempts;
   }
 
-  toJSON() {
+  override toJSON() {
     return {
       ...super.toJSON(),
       lockedUntil: this.lockedUntil,
@@ -93,7 +93,7 @@ export class MFARequiredError extends AuthenticationError {
     this.challengeType = challengeType;
   }
 
-  toJSON() {
+  override toJSON() {
     return {
       ...super.toJSON(),
       challengeId: this.challengeId,
@@ -118,7 +118,7 @@ export class HighRiskBlockedError extends AuthenticationError {
     this.recommendations = recommendations;
   }
 
-  toJSON() {
+  override toJSON() {
     return {
       ...super.toJSON(),
       riskScore: this.riskScore,
@@ -141,7 +141,7 @@ export class InvalidTokenError extends AuthenticationError {
     this.requiresRefresh = requiresRefresh;
   }
 
-  toJSON() {
+  override toJSON() {
     return {
       ...super.toJSON(),
       requiresRefresh: this.requiresRefresh,
@@ -186,7 +186,7 @@ export class ValidationError extends AuthenticationError {
     this.details = details;
   }
 
-  toJSON() {
+  override toJSON() {
     return {
       ...super.toJSON(),
       details: this.details,
@@ -216,7 +216,7 @@ export class UnsupportedAuthTypeError extends AuthenticationError {
     this.authType = authType;
   }
 
-  toJSON() {
+  override toJSON() {
     return {
       ...super.toJSON(),
       authType: this.authType,
@@ -234,7 +234,7 @@ export class RateLimitExceededError extends AuthenticationError {
     this.retryAfter = retryAfter;
   }
 
-  toJSON() {
+  override toJSON() {
     return {
       ...super.toJSON(),
       retryAfter: this.retryAfter,

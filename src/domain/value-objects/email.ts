@@ -16,11 +16,13 @@ export class Email {
   }
 
   get domain(): string {
-    return this._value.split('@')[1];
+    const parts = this._value.split('@');
+    return parts[1] || '';
   }
 
   get localPart(): string {
-    return this._value.split('@')[0];
+    const parts = this._value.split('@');
+    return parts[0] || '';
   }
 
   private validate(email: string): void {
@@ -46,8 +48,13 @@ export class Email {
     }
 
     // Additional business rules
-    const localPart = trimmed.split('@')[0];
-    if (localPart.length > 64) {
+    const emailParts = trimmed.split('@');
+    if (emailParts.length !== 2) {
+      throw new Error('Invalid email format');
+    }
+    
+    const localPart = emailParts[0];
+    if (!localPart || localPart.length > 64) {
       throw new Error('Email local part too long (max 64 characters)');
     }
 
