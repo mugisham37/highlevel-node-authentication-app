@@ -154,7 +154,7 @@ export class User {
    * Check if email is verified
    */
   isEmailVerified(): boolean {
-    return this._emailVerified !== undefined;
+    return this._emailVerified !== undefined && this._emailVerified !== null;
   }
 
   /**
