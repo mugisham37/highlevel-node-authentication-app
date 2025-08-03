@@ -11,6 +11,7 @@ import { requestLoggingPlugin } from './plugins/request-logging';
 import { createRouteRegistration } from '../../presentation/routes/index';
 import { WebSocketServer } from '../websocket/websocket-server';
 import { monitoringSystem } from '../monitoring';
+import { scalingSystem } from '../scaling';
 
 // Import new security middleware
 import {
@@ -96,6 +97,9 @@ export async function createServer(): Promise<FastifyInstance> {
   // Initialize WebSocket server
   await initializeWebSocketServer(server);
 
+  // Initialize scaling system
+  await initializeScalingSystem(server);
+
   // Register error handler
   server.setErrorHandler(errorHandler);
 
@@ -180,6 +184,25 @@ async function initializeWebSocketServer(
     logger.info('WebSocket server initialized successfully');
   } catch (error) {
     logger.error('Failed to initialize WebSocket server', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    throw error;
+  }
+}
+
+/**
+ * Initialize scaling system
+ */
+async function initializeScalingSystem(server: FastifyInstance): Promise<void> {
+  try {
+    await scalingSystem.initialize(server);
+
+    // Store scaling system instance for graceful shutdown
+    (server as any).scalingSystem = scalingSystem;
+
+    logger.info('Scaling system initialized successfully');
+  } catch (error) {
+    logger.error('Failed to initialize scaling system', {
       error: error instanceof Error ? error.message : 'Unknown error',
     });
     throw error;

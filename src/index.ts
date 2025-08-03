@@ -22,45 +22,20 @@ async function bootstrap() {
     logger.info(
       `🔌 WebSocket server available at ws://${config.server.host}:${config.server.port}/ws/events`
     );
+    logger.info(
+      `⚖️ Load balancing and scaling endpoints available at /scaling/*`
+    );
+    logger.info(
+      `🏥 Health check endpoints: /health/ready, /health/live, /health/startup`
+    );
   } catch (error) {
     logger.error('Failed to start server:', error);
     process.exit(1);
   }
 }
 
-// Graceful shutdown
-process.on('SIGTERM', async () => {
-  logger.info('SIGTERM received, shutting down gracefully');
-  await gracefulShutdown();
-});
-
-process.on('SIGINT', async () => {
-  logger.info('SIGINT received, shutting down gracefully');
-  await gracefulShutdown();
-});
-
-async function gracefulShutdown() {
-  try {
-    if (server) {
-      // Shutdown monitoring system first
-      if (server.monitoringSystem) {
-        await server.monitoringSystem.shutdown();
-      }
-
-      // Shutdown WebSocket server
-      if (server.webSocketServer) {
-        await server.webSocketServer.shutdown();
-      }
-
-      // Close HTTP server
-      await server.close();
-      logger.info('Server shutdown complete');
-    }
-  } catch (error) {
-    logger.error('Error during shutdown:', error);
-  } finally {
-    process.exit(0);
-  }
-}
+// Note: Graceful shutdown is now handled by the GracefulShutdownManager
+// which is automatically initialized in the scaling system.
+// The signal handlers are set up in the graceful-shutdown.ts module.
 
 bootstrap();
