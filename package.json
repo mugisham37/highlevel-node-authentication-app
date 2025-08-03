@@ -39,6 +39,7 @@
     "@types/redis": "^4.0.10",
     "argon2": "^0.43.1",
     "axios": "^1.11.0",
+    "chokidar": "^4.0.3",
     "crypto-js": "^4.2.0",
     "dotenv": "^16.3.1",
     "drizzle-kit": "^0.31.4",
@@ -62,6 +63,7 @@
   "devDependencies": {
     "@rollup/rollup-win32-x64-msvc": "^4.46.2",
     "@types/argon2": "^0.14.1",
+    "@types/chokidar": "^1.7.5",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20.9.0",
     "@types/pg": "^8.15.5",
