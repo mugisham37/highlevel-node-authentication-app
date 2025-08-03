@@ -233,6 +233,17 @@ export class SecureIdGenerator {
   }
 
   /**
+   * Generate generic secure ID
+   */
+  static generateSecureId(): string {
+    return this.generateCustomId({
+      length: 21,
+      alphabet: this.ALPHABETS.urlSafe,
+      entropy: 128,
+    });
+  }
+
+  /**
    * Generate secure random bytes as hex string
    */
   static generateRandomHex(bytes: number = 32): string {

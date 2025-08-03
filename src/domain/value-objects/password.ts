@@ -8,8 +8,12 @@ import * as argon2 from 'argon2';
 export class Password {
   private readonly _hashedValue: string;
 
-  private constructor(hashedValue: string) {
-    this._hashedValue = hashedValue;
+  constructor(hashedValue: string, isHashed: boolean = false) {
+    if (isHashed) {
+      this._hashedValue = hashedValue;
+    } else {
+      throw new Error('Use fromPlainText() or fromHash() to create Password instances');
+    }
   }
 
   /**
@@ -18,7 +22,7 @@ export class Password {
   static async fromPlainText(plainText: string): Promise<Password> {
     this.validatePlainText(plainText);
     const hashedValue = await this.hashPassword(plainText);
-    return new Password(hashedValue);
+    return new Password(hashedValue, true);
   }
 
   /**
@@ -28,7 +32,7 @@ export class Password {
     if (!hashedValue || typeof hashedValue !== 'string') {
       throw new Error('Hashed password must be a non-empty string');
     }
-    return new Password(hashedValue);
+    return new Password(hashedValue, true);
   }
 
   get hashedValue(): string {

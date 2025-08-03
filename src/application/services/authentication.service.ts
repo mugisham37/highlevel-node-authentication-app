@@ -9,7 +9,6 @@ import { User } from '../../domain/entities/user';
 import { Session } from '../../domain/entities/session';
 import { Email } from '../../domain/value-objects/email';
 import { Password } from '../../domain/value-objects/password';
-import { JWTToken } from '../../domain/value-objects/jwt-token';
 import { DeviceInfo } from '../../domain/entities/user';
 import { PrismaUserRepository } from '../../infrastructure/database/repositories/prisma-user-repository';
 import { DrizzleSessionRepository } from '../../infrastructure/database/repositories/drizzle-session-repository';
@@ -25,21 +24,6 @@ import {
   SecurityContext,
   RiskAssessment,
 } from '../../infrastructure/security/types';
-import {
-  AuthenticationError,
-  InvalidCredentialsError,
-  AccountLockedError,
-  AccountNotVerifiedError,
-  HighRiskBlockedError,
-  InvalidTokenError,
-  InvalidSessionError,
-  SessionExpiredError,
-  UserNotFoundError,
-  ValidationError,
-  InternalAuthenticationError,
-  UnsupportedAuthTypeError,
-  createAuthenticationError,
-} from '../errors/authentication.errors';
 
 export interface AuthCredentials {
   type: 'email_password' | 'oauth' | 'passwordless' | 'mfa';
@@ -100,7 +84,6 @@ export class AuthenticationService {
     private readonly passwordHashingService: PasswordHashingService,
     private readonly jwtTokenService: JWTTokenService,
     private readonly riskScoringService: RiskScoringService,
-    private readonly deviceFingerprintingService: DeviceFingerprintingService,
     private readonly logger: Logger
   ) {}
 
@@ -145,10 +128,12 @@ export class AuthenticationService {
           );
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
       this.logger.error('Authentication error', {
         correlationId,
-        error: error.message,
-        stack: error.stack,
+        error: errorMessage,
+        stack: errorStack,
         credentials: {
           type: credentials.type,
           email: credentials.email,
@@ -364,11 +349,16 @@ export class AuthenticationService {
 
     // Update user login information
     userEntity.updateLastLogin(credentials.ipAddress, credentials.deviceInfo);
-    await this.userRepository.updateUser(user.id, {
-      lastLoginAt: userEntity.lastLoginAt,
-      lastLoginIP: userEntity.lastLoginIP,
+    const updateData: any = {
       riskScore: userEntity.riskScore,
-    });
+    };
+    if (userEntity.lastLoginAt) {
+      updateData.lastLoginAt = userEntity.lastLoginAt;
+    }
+    if (userEntity.lastLoginIP) {
+      updateData.lastLoginIP = userEntity.lastLoginIP;
+    }
+    await this.userRepository.updateUser(user.id, updateData);
 
     // Record successful authentication attempt
     await this.recordAuthAttempt({
@@ -396,8 +386,8 @@ export class AuthenticationService {
    * MFA authentication implementation
    */
   private async authenticateMFA(
-    credentials: AuthCredentials,
-    correlationId: string
+    _credentials: AuthCredentials,
+    _correlationId: string
   ): Promise<AuthResult> {
     // MFA implementation would go here
     // For now, return not implemented
@@ -407,7 +397,7 @@ export class AuthenticationService {
         message: 'MFA authentication is not yet implemented',
       },
       0,
-      correlationId
+      _correlationId
     );
   }
 
@@ -437,7 +427,7 @@ export class AuthenticationService {
             code: 'INVALID_TOKEN',
             message: tokenResult.error || 'Token is invalid',
           },
-          requiresRefresh: tokenResult.expired,
+          requiresRefresh: tokenResult.expired || false,
         };
       }
 
@@ -512,10 +502,12 @@ export class AuthenticationService {
         user: userEntity,
       };
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
       this.logger.error('Token validation error', {
         correlationId,
-        error: error.message,
-        stack: error.stack,
+        error: errorMessage,
+        stack: errorStack,
       });
 
       return {
@@ -642,10 +634,12 @@ export class AuthenticationService {
         riskAssessment,
       };
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
       this.logger.error('Token refresh error', {
         correlationId,
-        error: error.message,
-        stack: error.stack,
+        error: errorMessage,
+        stack: errorStack,
       });
 
       return this.createFailureResult(
@@ -681,7 +675,7 @@ export class AuthenticationService {
       this.logger.error('Logout error', {
         correlationId,
         sessionId,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }
@@ -751,15 +745,15 @@ export class AuthenticationService {
   ): Promise<RiskAssessment> {
     try {
       // Get device fingerprint
-      const deviceFingerprint =
-        await this.deviceFingerprintingService.createFingerprint({
-          userAgent: credentials.userAgent,
-          ipAddress: credentials.ipAddress,
-          acceptLanguage: credentials.deviceInfo.browser,
-          platform: credentials.deviceInfo.platform,
-          screenResolution: credentials.deviceInfo.screenResolution,
-          timezone: credentials.deviceInfo.timezone,
-        });
+      const fingerprintInput = {
+        userAgent: credentials.userAgent,
+        ipAddress: credentials.ipAddress,
+        acceptLanguage: credentials.deviceInfo.browser,
+        platform: credentials.deviceInfo.platform,
+        ...(credentials.deviceInfo.screenResolution && { screenResolution: credentials.deviceInfo.screenResolution }),
+        ...(credentials.deviceInfo.timezone && { timezone: credentials.deviceInfo.timezone }),
+      };
+      const deviceFingerprint = DeviceFingerprintingService.createFingerprint(fingerprintInput);
 
       // Build security context
       const securityContext: SecurityContext = {
@@ -791,7 +785,7 @@ export class AuthenticationService {
       this.logger.error('Risk assessment error', {
         correlationId,
         userId: user.id,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
 
       // Return default medium risk assessment on error
@@ -814,7 +808,7 @@ export class AuthenticationService {
    */
   private async createMFAChallenge(
     user: User,
-    correlationId: string
+    _correlationId: string
   ): Promise<MFAChallenge> {
     const challengeId = SecureIdGenerator.generateSecureId();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
@@ -850,7 +844,7 @@ export class AuthenticationService {
     user: User,
     credentials: AuthCredentials,
     riskAssessment: RiskAssessment,
-    correlationId: string
+    _correlationId: string
   ): Promise<AuthResult> {
     // Generate session ID
     const sessionId = SecureIdGenerator.generateSecureId();
@@ -899,6 +893,7 @@ export class AuthenticationService {
   private createFailureResult(
     error: AuthError,
     riskScore: number,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     correlationId: string
   ): AuthResult {
     this.logger.warn('Authentication failed', {
@@ -932,7 +927,7 @@ export class AuthenticationService {
       await this.sessionRepository.recordAuthAttempt(data);
     } catch (error) {
       this.logger.error('Failed to record auth attempt', {
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
         data,
       });
       // Don't throw as this is not critical for authentication flow
@@ -943,15 +938,12 @@ export class AuthenticationService {
    * Convert database user to domain entity
    */
   private convertToUserEntity(user: any): User {
-    return new User({
+    const userProps: any = {
       id: user.id,
       email: new Email(user.email),
       emailVerified: user.emailVerified,
       name: user.name,
       image: user.image,
-      password: user.passwordHash
-        ? new Password(user.passwordHash, true)
-        : undefined,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       mfaEnabled: user.mfaEnabled,
@@ -962,14 +954,20 @@ export class AuthenticationService {
       lastLoginAt: user.lastLoginAt,
       lastLoginIP: user.lastLoginIP,
       riskScore: user.riskScore,
-    });
+    };
+
+    if (user.passwordHash) {
+      userProps.password = new Password(user.passwordHash, true);
+    }
+
+    return new User(userProps);
   }
 
   /**
    * Convert database session to domain entity
    */
   private convertToSessionEntity(session: any): Session {
-    return new Session({
+    const sessionProps: any = {
       id: session.id,
       userId: session.userId,
       token: session.token,
@@ -978,20 +976,23 @@ export class AuthenticationService {
       refreshExpiresAt: session.refreshExpiresAt,
       createdAt: session.createdAt,
       lastActivity: session.lastActivity,
-      deviceInfo: session.deviceFingerprint
-        ? {
-            fingerprint: session.deviceFingerprint,
-            userAgent: session.userAgent || '',
-            platform: '',
-            browser: '',
-            version: '',
-            isMobile: false,
-          }
-        : undefined,
       ipAddress: session.ipAddress,
       userAgent: session.userAgent,
       riskScore: session.riskScore,
       isActive: session.isActive,
-    });
+    };
+
+    if (session.deviceFingerprint) {
+      sessionProps.deviceInfo = {
+        fingerprint: session.deviceFingerprint,
+        userAgent: session.userAgent || '',
+        platform: '',
+        browser: '',
+        version: '',
+        isMobile: false,
+      };
+    }
+
+    return new Session(sessionProps);
   }
 }

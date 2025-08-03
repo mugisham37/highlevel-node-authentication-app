@@ -5,7 +5,6 @@
 
 import { createHash } from 'crypto';
 import { DeviceFingerprint } from './types';
-import { SecureIdGenerator } from './secure-id-generator.service';
 
 export interface DeviceFingerprintInput {
   userAgent: string;
@@ -120,6 +119,14 @@ export class DeviceFingerprintingService {
       lastSeen: new Date(),
       trustScore,
     };
+  }
+
+  /**
+   * Create device fingerprint from input data (alias for generateFingerprint)
+   * This method is used by the authentication service
+   */
+  static createFingerprint(input: DeviceFingerprintInput): DeviceFingerprint {
+    return this.generateFingerprint(input);
   }
 
   /**
@@ -470,8 +477,10 @@ export class DeviceFingerprintingService {
 
     // Screen resolution reasonableness
     if (input.screenResolution) {
-      const [width, height] = input.screenResolution.split('x').map(Number);
-      if (width >= 800 && height >= 600 && width <= 4000 && height <= 3000) {
+      const parts = input.screenResolution.split('x').map(Number);
+      const width = parts[0];
+      const height = parts[1];
+      if (width && height && width >= 800 && height >= 600 && width <= 4000 && height <= 3000) {
         score += 10;
       }
     }
@@ -543,12 +552,16 @@ export class DeviceFingerprintingService {
 
     // Check screen resolution reasonableness
     if (input.screenResolution) {
-      const [width, height] = input.screenResolution.split('x').map(Number);
-      if (width < 320 || height < 240) {
-        inconsistencies.push('Unusually small screen resolution');
-      }
-      if (width > 8000 || height > 6000) {
-        inconsistencies.push('Unusually large screen resolution');
+      const parts = input.screenResolution.split('x').map(Number);
+      const width = parts[0];
+      const height = parts[1];
+      if (width && height) {
+        if (width < 320 || height < 240) {
+          inconsistencies.push('Unusually small screen resolution');
+        }
+        if (width > 8000 || height > 6000) {
+          inconsistencies.push('Unusually large screen resolution');
+        }
       }
     }
 

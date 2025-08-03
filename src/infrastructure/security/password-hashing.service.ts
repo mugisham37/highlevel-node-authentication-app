@@ -39,7 +39,6 @@ export class PasswordHashingService {
       const salt = randomBytes(config.saltLength);
 
       const hash = await argon2.hash(password, {
-        type: this.getArgon2Type(config.type),
         memoryCost: config.memoryCost,
         timeCost: config.timeCost,
         parallelism: config.parallelism,
@@ -49,7 +48,8 @@ export class PasswordHashingService {
 
       return hash;
     } catch (error) {
-      throw new Error(`Failed to hash password: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to hash password: ${errorMessage}`);
     }
   }
 
@@ -90,11 +90,9 @@ export class PasswordHashingService {
 
       // Check if the hash uses current parameters
       return argon2.needsRehash(hash, {
-        type: this.getArgon2Type(config.type),
         memoryCost: config.memoryCost,
         timeCost: config.timeCost,
         parallelism: config.parallelism,
-        hashLength: config.hashLength,
       });
     } catch (error) {
       // If we can't determine, assume it needs rehashing
@@ -120,22 +118,28 @@ export class PasswordHashingService {
         return null;
       }
 
-      const [, type, version, params, salt, hashPart] = parts;
+      const [, type, , params, salt, hashPart] = parts;
+      if (!params || !salt || !hashPart) {
+        return null;
+      }
+
       const paramPairs = params.split(',');
       const paramMap = new Map<string, number>();
 
       for (const pair of paramPairs) {
         const [key, value] = pair.split('=');
-        paramMap.set(key, parseInt(value, 10));
+        if (key && value) {
+          paramMap.set(key, parseInt(value, 10));
+        }
       }
 
       return {
-        type,
+        type: type || 'unknown',
         memoryCost: paramMap.get('m') || 0,
         timeCost: paramMap.get('t') || 0,
         parallelism: paramMap.get('p') || 0,
-        hashLength: Buffer.from(hashPart, 'base64').length,
-        saltLength: Buffer.from(salt, 'base64').length,
+        hashLength: hashPart ? Buffer.from(hashPart, 'base64').length : 0,
+        saltLength: salt ? Buffer.from(salt, 'base64').length : 0,
       };
     } catch (error) {
       return null;
@@ -224,18 +228,6 @@ export class PasswordHashingService {
       hashLength: 32,
       saltLength: 16,
     };
-  }
-
-  private getArgon2Type(type: string): argon2.Type {
-    switch (type) {
-      case 'argon2i':
-        return argon2.argon2i;
-      case 'argon2d':
-        return argon2.argon2d;
-      case 'argon2id':
-      default:
-        return argon2.argon2id;
-    }
   }
 
   /**
