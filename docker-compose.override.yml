@@ -1,0 +1,81 @@
+# Docker Compose override for development
+# This file is automatically loaded by docker-compose and extends docker-compose.yml
+
+version: '3.8'
+
+services:
+  # Development overrides for the main application
+  app:
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+      - DEBUG=*
+      - NODE_OPTIONS=--inspect=0.0.0.0:9229 --max-old-space-size=1024
+    volumes:
+      # Mount source code for hot reloading
+      - .:/app:cached
+      - /app/node_modules
+      - /app/dist
+    ports:
+      - '9229:9229' # Debug port
+    command: npm run dev
+
+  # Development database with additional logging
+  postgres:
+    environment:
+      - POSTGRES_LOG_STATEMENT=all
+      - POSTGRES_LOG_MIN_DURATION_STATEMENT=0
+    command: >
+      postgres
+      -c log_statement=all
+      -c log_min_duration_statement=0
+      -c log_connections=on
+      -c log_disconnections=on
+      -c log_lock_waits=on
+      -c log_checkpoints=on
+      -c log_autovacuum_min_duration=0
+
+  # Development Redis with additional debugging
+  redis:
+    command: >
+      redis-server
+      --loglevel debug
+      --save 60 1
+      --appendonly yes
+      --appendfsync everysec
+
+  # Additional development services
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: enterprise-auth-redis-commander
+    restart: unless-stopped
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - '8081:8081'
+    networks:
+      - auth-network
+    depends_on:
+      - redis
+
+  # pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: enterprise-auth-pgadmin
+    restart: unless-stopped
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@example.com
+      - PGADMIN_DEFAULT_PASSWORD=admin123
+      - PGADMIN_CONFIG_SERVER_MODE=False
+    ports:
+      - '8080:80'
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    networks:
+      - auth-network
+    depends_on:
+      - postgres
+
+volumes:
+  pgadmin-data:
+    driver: local
