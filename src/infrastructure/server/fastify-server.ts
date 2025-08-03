@@ -5,10 +5,22 @@ import rateLimit from '@fastify/rate-limit';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import { config } from '../config/environment';
-// import { logger } from '../logging/winston-logger'; // Will be used in future tasks
+import { logger } from '../logging/winston-logger';
 import { errorHandler } from './error-handler';
 import { correlationIdPlugin } from './plugins/correlation-id';
 import { requestLoggingPlugin } from './plugins/request-logging';
+
+// Import new security middleware
+import {
+  authenticationRateLimiter,
+  apiRateLimiter,
+} from './middleware/intelligent-rate-limiter';
+import { standardZeroTrust } from './middleware/zero-trust-auth';
+import { standardAuditLogger } from './middleware/audit-logging';
+import {
+  standardSecurityHeaders,
+  developmentSecurityHeaders,
+} from './middleware/security-headers';
 
 export async function createServer(): Promise<FastifyInstance> {
   const server = Fastify({
@@ -28,21 +40,22 @@ export async function createServer(): Promise<FastifyInstance> {
   // Register request logging plugin
   await server.register(requestLoggingPlugin);
 
-  // Security middleware
+  // Register audit logging middleware
+  await server.register(standardAuditLogger);
+
+  // Register enhanced security headers middleware
+  if (config.isDevelopment) {
+    await server.register(developmentSecurityHeaders);
+  } else {
+    await server.register(standardSecurityHeaders);
+  }
+
+  // Basic Helmet for additional protection (complementing our custom security headers)
   await server.register(helmet, {
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        scriptSrc: ["'self'"],
-        imgSrc: ["'self'", 'data:', 'https:'],
-      },
-    },
-    hsts: {
-      maxAge: 31536000,
-      includeSubDomains: true,
-      preload: true,
-    },
+    contentSecurityPolicy: false, // We handle CSP in our custom middleware
+    hsts: false, // We handle HSTS in our custom middleware
+    crossOriginEmbedderPolicy: false, // We handle COEP in our custom middleware
+    crossOriginOpenerPolicy: false, // We handle COOP in our custom middleware
   });
 
   // CORS configuration
@@ -58,23 +71,12 @@ export async function createServer(): Promise<FastifyInstance> {
     ],
   });
 
-  // Rate limiting
-  await server.register(rateLimit, {
-    max: config.security.rateLimit.max,
-    timeWindow: config.security.rateLimit.window,
-    skipOnError: true,
-    keyGenerator: (request) => {
-      return request.ip || 'unknown';
-    },
-    errorResponseBuilder: (_request, context) => {
-      return {
-        code: 'RATE_LIMIT_EXCEEDED',
-        error: 'Too Many Requests',
-        message: `Rate limit exceeded, retry in ${Math.round(context.ttl / 1000)} seconds`,
-        statusCode: 429,
-      };
-    },
-  });
+  // Intelligent rate limiting (replaces basic rate limiting)
+  await server.register(apiRateLimiter);
+
+  // Zero-trust authentication middleware (will be applied to protected routes)
+  // Note: This is registered but will only affect routes that require authentication
+  await server.register(standardZeroTrust);
 
   // Swagger documentation
   if (config.isDevelopment) {
