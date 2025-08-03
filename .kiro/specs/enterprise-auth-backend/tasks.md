@@ -63,7 +63,7 @@
   - Generate and manage backup codes for MFA recovery
   - _Requirements: 3.2, 3.3, 9.1, 9.2, 9.3, 9.5, 9.6_
 
-- [-] 9. OAuth2/OpenID Connect Integration System
+- [x] 9. OAuth2/OpenID Connect Integration System
   - Implement OAuth2 client for Google, GitHub, and Microsoft providers
   - Create OAuth2 server functionality for acting as identity provider
   - Implement authorization code flow with PKCE support
