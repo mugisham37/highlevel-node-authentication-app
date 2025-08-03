@@ -33,13 +33,13 @@ export class Account {
   private readonly _provider: string;
   private readonly _providerAccountId: string;
   private readonly _type: 'oauth' | 'oidc';
-  private _accessToken?: string;
-  private _refreshToken?: string;
-  private _idToken?: string;
-  private _expiresAt?: number;
-  private _tokenType?: string;
-  private _scope?: string;
-  private _sessionState?: string;
+  private _accessToken: string | undefined;
+  private _refreshToken: string | undefined;
+  private _idToken: string | undefined;
+  private _expiresAt: number | undefined;
+  private _tokenType: string | undefined;
+  private _scope: string | undefined;
+  private _sessionState: string | undefined;
 
   constructor(props: AccountProps) {
     this.validateProps(props);
@@ -224,6 +224,8 @@ export class Account {
     try {
       // Simple JWT decode (in production, should verify signature)
       const payload = this._idToken.split('.')[1];
+      if (!payload) return null;
+      
       const decoded = JSON.parse(Buffer.from(payload, 'base64').toString());
 
       // Return provider-specific fields

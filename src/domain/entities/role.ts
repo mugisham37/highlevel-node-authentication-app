@@ -17,7 +17,7 @@ export interface RoleProps {
 export class Role {
   private readonly _id: string;
   private _name: string;
-  private _description?: string;
+  private _description: string | undefined;
   private readonly _createdAt: Date;
   private _updatedAt: Date;
   private _permissions: Permission[];
@@ -207,7 +207,7 @@ export class Role {
   getSummary(): {
     id: string;
     name: string;
-    description?: string;
+    description: string | undefined;
     permissionCount: number;
     resources: string[];
     isSystemRole: boolean;

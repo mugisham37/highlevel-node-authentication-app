@@ -43,23 +43,23 @@ export interface UserProps {
 export class User {
   private readonly _id: string;
   private _email: Email;
-  private _emailVerified?: Date;
-  private _name?: string;
-  private _image?: string;
-  private _password?: Password;
+  private _emailVerified: Date | undefined;
+  private _name: string | undefined;
+  private _image: string | undefined;
+  private _password: Password | undefined;
   private readonly _createdAt: Date;
   private _updatedAt: Date;
 
   // MFA Properties
   private _mfaEnabled: boolean;
-  private _totpSecret?: string;
+  private _totpSecret: string | undefined;
   private _backupCodes: string[];
 
   // Security Properties
   private _failedLoginAttempts: number;
-  private _lockedUntil?: Date;
-  private _lastLoginAt?: Date;
-  private _lastLoginIP?: string;
+  private _lockedUntil: Date | undefined;
+  private _lastLoginAt: Date | undefined;
+  private _lastLoginIP: string | undefined;
   private _riskScore: number;
 
   constructor(props: UserProps) {

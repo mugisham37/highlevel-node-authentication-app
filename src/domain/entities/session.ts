@@ -30,9 +30,9 @@ export class Session {
   private readonly _refreshExpiresAt: Date;
   private readonly _createdAt: Date;
   private _lastActivity: Date;
-  private readonly _deviceInfo?: DeviceInfo;
-  private readonly _ipAddress?: string;
-  private readonly _userAgent?: string;
+  private readonly _deviceInfo: DeviceInfo | undefined;
+  private readonly _ipAddress: string | undefined;
+  private readonly _userAgent: string | undefined;
   private _riskScore: number;
   private _isActive: boolean;
 
@@ -311,7 +311,7 @@ export class Session {
     duration: number;
     riskScore: number;
     deviceType: string;
-    ipAddress?: string;
+    ipAddress: string | undefined;
     isActive: boolean;
   } {
     return {

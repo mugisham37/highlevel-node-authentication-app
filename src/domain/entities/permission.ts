@@ -17,7 +17,7 @@ export class Permission {
   private readonly _name: string;
   private readonly _resource: string;
   private readonly _action: string;
-  private readonly _conditions?: Record<string, any>;
+  private readonly _conditions: Record<string, any> | undefined;
   private readonly _createdAt: Date;
 
   constructor(props: PermissionProps) {
@@ -144,7 +144,7 @@ export class Permission {
     for (const [key, expectedValue] of Object.entries(this._conditions)) {
       const actualValue = context[key];
 
-      if (!this.evaluateCondition(key, expectedValue, actualValue)) {
+      if (!this.evaluateCondition(expectedValue, actualValue)) {
         return false;
       }
     }
@@ -155,7 +155,7 @@ export class Permission {
   /**
    * Evaluate a single condition
    */
-  private evaluateCondition(key: string, expected: any, actual: any): boolean {
+  private evaluateCondition(expected: any, actual: any): boolean {
     // Handle different condition types
     if (typeof expected === 'object' && expected !== null) {
       // Complex condition object
