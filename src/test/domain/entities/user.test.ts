@@ -230,7 +230,7 @@ describe('User Entity', () => {
     });
 
     it('should show secure status for fully configured user', async () => {
-      const password = await Password.fromPlainText('StrongPass123!');
+      const password = await Password.fromPlainText('MyStr0ng!P@ssw0rd');
       const user = new User({
         ...validUserProps,
         password,

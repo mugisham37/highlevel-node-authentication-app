@@ -96,8 +96,10 @@ export class Password {
       '12345678',
       'qwerty123',
       'admin123',
+      'admin159',
       'password123',
       'welcome123',
+      'testpass1!',
     ];
 
     if (commonPasswords.includes(password.toLowerCase())) {

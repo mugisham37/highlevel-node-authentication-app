@@ -40,6 +40,7 @@
     "drizzle-orm": "^0.44.4",
     "fastify": "^4.24.3",
     "ioredis": "^5.7.0",
+    "jsonwebtoken": "^9.0.2",
     "nanoid": "^5.0.4",
     "pg": "^8.16.3",
     "prisma": "^6.13.0",
@@ -49,6 +50,8 @@
   },
   "devDependencies": {
     "@rollup/rollup-win32-x64-msvc": "^4.46.2",
+    "@types/argon2": "^0.14.1",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20.9.0",
     "@types/pg": "^8.15.5",
     "@typescript-eslint/eslint-plugin": "^6.11.0",

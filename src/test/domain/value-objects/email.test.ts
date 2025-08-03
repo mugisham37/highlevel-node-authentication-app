@@ -27,7 +27,7 @@ describe('Email Value Object', () => {
 
   describe('Invalid emails', () => {
     it('should throw error for empty email', () => {
-      expect(() => new Email('')).toThrow('Email cannot be empty');
+      expect(() => new Email('')).toThrow('Email must be a non-empty string');
     });
 
     it('should throw error for invalid format', () => {

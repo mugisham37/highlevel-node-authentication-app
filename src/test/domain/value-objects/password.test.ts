@@ -8,19 +8,19 @@ import { Password } from '../../../domain/value-objects/password';
 describe('Password Value Object', () => {
   describe('Valid passwords', () => {
     it('should create password from valid plain text', async () => {
-      const password = await Password.fromPlainText('StrongPass123!');
+      const password = await Password.fromPlainText('MyStr0ng!P@ssw0rd');
       expect(password.hashedValue).toBeDefined();
       expect(password.hashedValue.length).toBeGreaterThan(0);
     });
 
     it('should verify correct password', async () => {
-      const password = await Password.fromPlainText('StrongPass123!');
-      const isValid = await password.verify('StrongPass123!');
+      const password = await Password.fromPlainText('MyStr0ng!P@ssw0rd');
+      const isValid = await password.verify('MyStr0ng!P@ssw0rd');
       expect(isValid).toBe(true);
     });
 
     it('should not verify incorrect password', async () => {
-      const password = await Password.fromPlainText('StrongPass123!');
+      const password = await Password.fromPlainText('MyStr0ng!P@ssw0rd');
       const isValid = await password.verify('WrongPassword');
       expect(isValid).toBe(false);
     });
@@ -58,7 +58,7 @@ describe('Password Value Object', () => {
     });
 
     it('should throw error for common password', async () => {
-      await expect(Password.fromPlainText('password')).rejects.toThrow(
+      await expect(Password.fromPlainText('Testpass1!')).rejects.toThrow(
         'Password is too common and not allowed'
       );
     });
@@ -70,7 +70,7 @@ describe('Password Value Object', () => {
     });
 
     it('should throw error for repeated characters', async () => {
-      await expect(Password.fromPlainText('Passsword123!')).rejects.toThrow(
+      await expect(Password.fromPlainText('MyPasssword9!')).rejects.toThrow(
         'Password cannot contain more than 2 consecutive identical characters'
       );
     });
@@ -107,12 +107,12 @@ describe('Password Value Object', () => {
 
   describe('Security', () => {
     it('should not expose password in JSON', async () => {
-      const password = await Password.fromPlainText('StrongPass123!');
+      const password = await Password.fromPlainText('MyStr0ng!P@ssw0rd');
       expect(password.toJSON()).toBe('[PROTECTED]');
     });
 
     it('should not expose password in toString', async () => {
-      const password = await Password.fromPlainText('StrongPass123!');
+      const password = await Password.fromPlainText('MyStr0ng!P@ssw0rd');
       expect(password.toString()).toBe('[PROTECTED]');
     });
   });

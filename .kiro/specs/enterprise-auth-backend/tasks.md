@@ -22,7 +22,7 @@
   - Implement cache invalidation strategies and TTL management
   - _Requirements: 4.1, 4.3, 11.3, 6.2_
 
-- [-] 4. Core Domain Entities and Value Objects
+- [x] 4. Core Domain Entities and Value Objects
   - Implement User entity with domain methods and business rules validation
   - Create Session entity with expiration logic and risk scoring
   - Implement Account entity for OAuth provider relationships
