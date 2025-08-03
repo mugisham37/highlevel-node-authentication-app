@@ -75,7 +75,7 @@ export class SessionStorage {
       userAgent,
       riskScore: 0,
       isActive: true,
-      metadata,
+      ...(metadata && { metadata }),
     };
 
     try {

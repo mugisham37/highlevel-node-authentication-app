@@ -1,7 +1,7 @@
 import { RedisClient, createRedisClient } from './redis-client';
 import { RedisCache } from './redis-cache';
 import { MultiLayerCache, MultiLayerCacheConfig } from './multi-layer-cache';
-import { SessionStorage, SessionStorageConfig } from './session-storage';
+import { SessionStorage } from './session-storage';
 import { config } from '../config/environment';
 import { logger } from '../logging/winston-logger';
 
@@ -49,7 +49,7 @@ export class CacheFactory {
   private multiLayerCache: MultiLayerCache | null = null;
   private sessionStorage: SessionStorage | null = null;
 
-  private constructor(private cacheConfig: CacheSystemConfig) {}
+  private constructor(private cacheConfig: CacheSystemConfig) { }
 
   static getInstance(cacheConfig?: CacheSystemConfig): CacheFactory {
     if (!CacheFactory.instance) {
@@ -67,8 +67,25 @@ export class CacheFactory {
     try {
       logger.info('Initializing cache system...');
 
-      // Initialize Redis client
-      this.redisClient = createRedisClient(config.redis);
+      // Initialize Redis client with proper type casting
+      const redisConfig: any = {
+        host: config.redis.host,
+        port: config.redis.port,
+        db: config.redis.db,
+        cluster: config.redis.cluster,
+        maxRetriesPerRequest: config.redis.maxRetriesPerRequest,
+        lazyConnect: config.redis.lazyConnect,
+        keepAlive: config.redis.keepAlive,
+        connectTimeout: config.redis.connectTimeout,
+        commandTimeout: config.redis.commandTimeout,
+      };
+
+      // Only add password if it's defined
+      if (config.redis.password !== undefined) {
+        redisConfig.password = config.redis.password;
+      }
+
+      this.redisClient = createRedisClient(redisConfig);
       await this.redisClient.connect();
 
       // Initialize Redis cache

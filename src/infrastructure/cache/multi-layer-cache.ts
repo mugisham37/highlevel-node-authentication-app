@@ -51,17 +51,47 @@ export class MultiLayerCache {
 
     // Initialize L3 (CDN) Cache if configured
     if (config.l3?.enabled) {
-      this.l3Cache = new CDNCache(config.l3);
+      this.l3Cache = new CDNCache();
     }
 
     // Build layers array for iteration
     this.layers = [
-      { name: 'L1', ...this.l1Cache },
-      { name: 'L2', ...this.l2Cache },
+      {
+        name: 'L1',
+        get: this.l1Cache.get.bind(this.l1Cache),
+        set: this.l1Cache.set.bind(this.l1Cache),
+        delete: this.l1Cache.delete.bind(this.l1Cache),
+        clear: this.l1Cache.clear.bind(this.l1Cache),
+        invalidateByTag: this.l1Cache.invalidateByTag.bind(this.l1Cache),
+        invalidateByTags: this.l1Cache.invalidateByTags.bind(this.l1Cache),
+        has: this.l1Cache.has.bind(this.l1Cache),
+        getStats: this.l1Cache.getStats.bind(this.l1Cache),
+      },
+      {
+        name: 'L2',
+        get: this.l2Cache.get.bind(this.l2Cache),
+        set: this.l2Cache.set.bind(this.l2Cache),
+        delete: this.l2Cache.delete.bind(this.l2Cache),
+        clear: this.l2Cache.clear.bind(this.l2Cache),
+        invalidateByTag: this.l2Cache.invalidateByTag.bind(this.l2Cache),
+        invalidateByTags: this.l2Cache.invalidateByTags.bind(this.l2Cache),
+        has: this.l2Cache.has.bind(this.l2Cache),
+        getStats: this.l2Cache.getStats.bind(this.l2Cache),
+      },
     ];
 
     if (this.l3Cache) {
-      this.layers.push({ name: 'L3', ...this.l3Cache });
+      this.layers.push({
+        name: 'L3',
+        get: this.l3Cache.get.bind(this.l3Cache),
+        set: this.l3Cache.set.bind(this.l3Cache),
+        delete: this.l3Cache.delete.bind(this.l3Cache),
+        clear: this.l3Cache.clear.bind(this.l3Cache),
+        invalidateByTag: this.l3Cache.invalidateByTag.bind(this.l3Cache),
+        invalidateByTags: this.l3Cache.invalidateByTags.bind(this.l3Cache),
+        has: this.l3Cache.has.bind(this.l3Cache),
+        getStats: this.l3Cache.getStats.bind(this.l3Cache),
+      });
     }
 
     logger.info('Multi-layer cache initialized', {
@@ -231,14 +261,16 @@ export class MultiLayerCache {
         // Selective invalidation - start from lowest layer
         for (let i = this.layers.length - 1; i >= 0; i--) {
           const layer = this.layers[i];
-          try {
-            const invalidated = await layer.invalidateByTag(tag);
-            totalInvalidated += invalidated;
-          } catch (error) {
-            logger.warn(`Failed to invalidate tag in ${layer.name}:`, {
-              tag,
-              error,
-            });
+          if (layer) {
+            try {
+              const invalidated = await layer.invalidateByTag(tag);
+              totalInvalidated += invalidated;
+            } catch (error) {
+              logger.warn(`Failed to invalidate tag in ${layer.name}:`, {
+                tag,
+                error,
+              });
+            }
           }
         }
       }
@@ -319,11 +351,13 @@ export class MultiLayerCache {
       // Populate all layers above the hit layer
       for (let i = 0; i < hitIndex; i++) {
         const layer = this.layers[i];
-        try {
-          await layer.set(key, value);
-          logger.debug(`Populated ${layer.name} from ${hitLayer}`, { key });
-        } catch (error) {
-          logger.warn(`Failed to populate ${layer.name}:`, { key, error });
+        if (layer) {
+          try {
+            await layer.set(key, value);
+            logger.debug(`Populated ${layer.name} from ${hitLayer}`, { key });
+          } catch (error) {
+            logger.warn(`Failed to populate ${layer.name}:`, { key, error });
+          }
         }
       }
     } catch (error) {
@@ -343,26 +377,26 @@ class CDNCache implements CacheLayer {
   name = 'L3';
   private metrics = new CacheMetrics();
 
-  constructor(private config: CDNCacheConfig) {}
+  constructor() { }
 
-  async get<T>(key: string): Promise<T | null> {
+  async get<T>(_key: string): Promise<T | null> {
     // CDN cache is typically read-only and managed externally
     // This is a placeholder implementation
     this.metrics.recordMiss();
     return null;
   }
 
-  async set<T>(key: string, value: T, options?: CacheOptions): Promise<void> {
+  async set<T>(_key: string, _value: T, _options?: CacheOptions): Promise<void> {
     // CDN cache writes are typically handled through edge invalidation
     // This is a placeholder implementation
     this.metrics.recordSet();
-    logger.debug('CDN cache set (placeholder)', { key });
+    logger.debug('CDN cache set (placeholder)');
   }
 
-  async delete(key: string): Promise<boolean> {
+  async delete(_key: string): Promise<boolean> {
     // CDN cache deletion is typically handled through purge APIs
     this.metrics.recordDelete();
-    logger.debug('CDN cache delete (placeholder)', { key });
+    logger.debug('CDN cache delete (placeholder)');
     return true;
   }
 
@@ -370,17 +404,17 @@ class CDNCache implements CacheLayer {
     logger.debug('CDN cache clear (placeholder)');
   }
 
-  async invalidateByTag(tag: string): Promise<number> {
-    logger.debug('CDN cache invalidate by tag (placeholder)', { tag });
+  async invalidateByTag(_tag: string): Promise<number> {
+    logger.debug('CDN cache invalidate by tag (placeholder)');
     return 0;
   }
 
-  async invalidateByTags(tags: string[]): Promise<number> {
-    logger.debug('CDN cache invalidate by tags (placeholder)', { tags });
+  async invalidateByTags(_tags: string[]): Promise<number> {
+    logger.debug('CDN cache invalidate by tags (placeholder)');
     return 0;
   }
 
-  async has(key: string): Promise<boolean> {
+  async has(_key: string): Promise<boolean> {
     return false;
   }
 

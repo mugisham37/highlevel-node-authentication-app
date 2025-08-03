@@ -1,8 +1,8 @@
 import { RedisClient } from './redis-client';
 import { CircuitBreaker } from './circuit-breaker';
-import { CacheEntry, CacheOptions, CacheMetrics } from './cache-entry';
+import { CacheOptions, CacheMetrics } from './cache-entry';
 import { logger } from '../logging/winston-logger';
-import { Redis, Cluster } from 'ioredis';
+import { Redis } from 'ioredis';
 
 export interface RedisCacheConfig {
   keyPrefix: string;
@@ -70,7 +70,7 @@ export class RedisCache {
     try {
       await this.executeWithCircuitBreaker(async () => {
         const client = this.redisClient.getClient();
-        const serialized = this.serialize(value, options);
+        const serialized = this.serialize(value);
 
         if (ttl > 0) {
           await client.setex(prefixedKey, ttl, serialized);
@@ -292,7 +292,7 @@ export class RedisCache {
     return await this.circuitBreaker.execute(operation, fallback);
   }
 
-  private serialize<T>(value: T, options: CacheOptions): string {
+  private serialize<T>(value: T): string {
     const data = JSON.stringify(value);
 
     if (

@@ -1,6 +1,5 @@
 import Redis, { Cluster, RedisOptions, ClusterOptions } from 'ioredis';
 import { logger } from '../logging/winston-logger';
-import { config } from '../config/environment';
 
 export interface RedisConfig {
   host: string;
@@ -11,7 +10,6 @@ export interface RedisConfig {
     enabled: boolean;
     nodes: Array<{ host: string; port: number }>;
   };
-  retryDelayOnFailover: number;
   maxRetriesPerRequest: number;
   lazyConnect: boolean;
   keepAlive: number;
@@ -26,7 +24,7 @@ export class RedisClient {
   private readonly maxReconnectAttempts = 10;
   private readonly reconnectDelay = 1000;
 
-  constructor(private readonly redisConfig: RedisConfig) {}
+  constructor(private readonly redisConfig: RedisConfig) { }
 
   async connect(): Promise<void> {
     try {
@@ -55,15 +53,18 @@ export class RedisClient {
     const options: RedisOptions = {
       host: this.redisConfig.host,
       port: this.redisConfig.port,
-      password: this.redisConfig.password,
       db: this.redisConfig.db || 0,
-      retryDelayOnFailover: this.redisConfig.retryDelayOnFailover,
       maxRetriesPerRequest: this.redisConfig.maxRetriesPerRequest,
       lazyConnect: this.redisConfig.lazyConnect,
       keepAlive: this.redisConfig.keepAlive,
       connectTimeout: this.redisConfig.connectTimeout,
       commandTimeout: this.redisConfig.commandTimeout,
     };
+
+    // Only add password if it's defined
+    if (this.redisConfig.password !== undefined) {
+      options.password = this.redisConfig.password;
+    }
 
     this.client = new Redis(options);
     await this.client.connect();
@@ -74,14 +75,19 @@ export class RedisClient {
       throw new Error('Cluster nodes not configured');
     }
 
-    const options: ClusterOptions = {
-      redisOptions: {
-        password: this.redisConfig.password,
-        connectTimeout: this.redisConfig.connectTimeout,
-        commandTimeout: this.redisConfig.commandTimeout,
-      },
-      retryDelayOnFailover: this.redisConfig.retryDelayOnFailover,
+    const redisOptions: RedisOptions = {
+      connectTimeout: this.redisConfig.connectTimeout,
+      commandTimeout: this.redisConfig.commandTimeout,
       maxRetriesPerRequest: this.redisConfig.maxRetriesPerRequest,
+    };
+
+    // Only add password if it's defined
+    if (this.redisConfig.password !== undefined) {
+      redisOptions.password = this.redisConfig.password;
+    }
+
+    const options: ClusterOptions = {
+      redisOptions,
       lazyConnect: this.redisConfig.lazyConnect,
     };
 

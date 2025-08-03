@@ -105,12 +105,11 @@ export const config = {
       enabled: env.REDIS_CLUSTER_ENABLED,
       nodes: env.REDIS_CLUSTER_NODES
         ? env.REDIS_CLUSTER_NODES.split(',').map((node) => {
-            const [host, port] = node.trim().split(':');
-            return { host, port: parseInt(port) || 6379 };
-          })
+          const [host, port] = node.trim().split(':');
+          return { host: host || 'localhost', port: parseInt(port || '6379') || 6379 };
+        })
         : [],
     },
-    retryDelayOnFailover: env.REDIS_RETRY_DELAY,
     maxRetriesPerRequest: env.REDIS_MAX_RETRIES,
     lazyConnect: true,
     keepAlive: env.REDIS_KEEP_ALIVE,

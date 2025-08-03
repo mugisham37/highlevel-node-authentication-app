@@ -260,7 +260,6 @@ export class MemoryCache {
 
   private async cleanupExpired(): Promise<number> {
     let cleaned = 0;
-    const now = Date.now();
 
     for (const [key, entry] of this.cache.entries()) {
       if (entry.isExpired()) {

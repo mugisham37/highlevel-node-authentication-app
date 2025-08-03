@@ -79,7 +79,8 @@ export class CircuitBreaker {
     } catch (error) {
       this.onFailure(error as Error);
 
-      if (fallback && this.state === CircuitBreakerState.OPEN) {
+      // Check if the state became OPEN after the failure
+      if (fallback && (this.state as CircuitBreakerState) === CircuitBreakerState.OPEN) {
         logger.info('Circuit breaker OPEN, executing fallback');
         return await fallback();
       }
