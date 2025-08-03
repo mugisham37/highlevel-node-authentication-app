@@ -1,0 +1,183 @@
+version: '3.8'
+
+services:
+  # Backup service
+  backup-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: enterprise-auth-backup
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://auth_user:auth_password@postgres:5432/enterprise_auth
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - BACKUP_PATH=/backups
+      - BACKUP_SCHEDULE_ENABLED=true
+      - BACKUP_SCHEDULE_INTERVAL=6h
+      - BACKUP_SCHEDULE_TYPE=incremental
+      - BACKUP_COMPRESSION_ENABLED=true
+      - BACKUP_RETENTION_DAYS=30
+      - BACKUP_MAX_COUNT=100
+      - LOG_LEVEL=info
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - auth-network
+    volumes:
+      - backup-data:/backups
+      - backup-logs:/app/logs
+    command: npm run backup:cli backup full
+    healthcheck:
+      test: ['CMD', 'node', '-e', 'process.exit(0)']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Backup scheduler (cron-like service)
+  backup-scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: enterprise-auth-backup-scheduler
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://auth_user:auth_password@postgres:5432/enterprise_auth
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - BACKUP_PATH=/backups
+      - BACKUP_SCHEDULE_ENABLED=true
+      - BACKUP_SCHEDULE_INTERVAL=6h
+      - BACKUP_SCHEDULE_TYPE=incremental
+      - BACKUP_COMPRESSION_ENABLED=true
+      - BACKUP_RETENTION_DAYS=30
+      - BACKUP_MAX_COUNT=100
+      - LOG_LEVEL=info
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - auth-network
+    volumes:
+      - backup-data:/backups
+      - backup-logs:/app/logs
+    command: >
+      sh -c "
+        while true; do
+          echo 'Running scheduled backup...'
+          npm run backup:cli backup incremental
+          echo 'Cleaning up old backups...'
+          npm run backup:cli backup cleanup
+          echo 'Sleeping for 6 hours...'
+          sleep 21600
+        done
+      "
+
+  # Backup monitoring service
+  backup-monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: enterprise-auth-backup-monitor
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://auth_user:auth_password@postgres:5432/enterprise_auth
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - BACKUP_PATH=/backups
+      - LOG_LEVEL=info
+      - METRICS_ENABLED=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - auth-network
+    volumes:
+      - backup-data:/backups
+      - backup-logs:/app/logs
+    ports:
+      - '9091:9091' # Backup metrics port
+    command: >
+      sh -c "
+        while true; do
+          echo 'Checking backup health...'
+          npm run backup:cli backup test
+          echo 'Checking replication status...'
+          npm run backup:cli replication status
+          echo 'Sleeping for 30 minutes...'
+          sleep 1800
+        done
+      "
+
+  # Cross-region replication service (if enabled)
+  backup-replication:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: enterprise-auth-backup-replication
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://auth_user:auth_password@postgres:5432/enterprise_auth
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - BACKUP_PATH=/backups
+      - CROSS_REGION_REPLICATION_ENABLED=true
+      - CROSS_REGION_TARGETS=us-west-2,eu-west-1
+      - CROSS_REGION_DELAY=300
+      - REMOTE_STORAGE_ENABLED=true
+      - REMOTE_STORAGE_TYPE=aws-s3
+      - REMOTE_STORAGE_BUCKET=enterprise-auth-backups
+      - REMOTE_STORAGE_REGION=us-east-1
+      - REMOTE_STORAGE_ACCESS_KEY=${AWS_ACCESS_KEY_ID}
+      - REMOTE_STORAGE_SECRET_KEY=${AWS_SECRET_ACCESS_KEY}
+      - LOG_LEVEL=info
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - auth-network
+    volumes:
+      - backup-data:/backups
+      - backup-logs:/app/logs
+    command: >
+      sh -c "
+        while true; do
+          echo 'Syncing to cross-region targets...'
+          npm run backup:cli replication sync
+          echo 'Sleeping for 5 minutes...'
+          sleep 300
+        done
+      "
+    profiles:
+      - replication
+
+networks:
+  auth-network:
+    external: true
+
+volumes:
+  backup-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./backups
+  backup-logs:
+    driver: local

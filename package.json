@@ -23,7 +23,13 @@
     "db:seed": "npm run db:cli seed run",
     "db:seed:status": "npm run db:cli seed status",
     "db:validate": "npm run db:cli validate",
-    "db:reset": "npm run db:cli reset --confirm"
+    "db:reset": "npm run db:cli reset --confirm",
+    "backup:cli": "tsx src/infrastructure/backup/cli/backup-cli.ts",
+    "backup:full": "npm run backup:cli backup full",
+    "backup:incremental": "npm run backup:cli backup incremental",
+    "backup:list": "npm run backup:cli backup list",
+    "backup:cleanup": "npm run backup:cli backup cleanup",
+    "backup:test": "npm run backup:cli backup test"
   },
   "keywords": [
     "authentication",
