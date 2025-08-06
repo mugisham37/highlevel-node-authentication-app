@@ -6,6 +6,7 @@
 import { PrismaClient } from '@prisma/client';
 import { Logger } from 'winston';
 import { BaseRepository } from '../base/base-repository';
+import { TransactionManager } from '../base/transaction-manager';
 import { MultiLayerCache } from '../../../cache/multi-layer-cache';
 import {
   IUserRepository,
@@ -14,6 +15,7 @@ import {
   UserFilters,
   UserWithRelations,
 } from '../interfaces/user-repository.interface';
+import { ITransactionContext } from '../interfaces/base-repository.interface';
 import { Role } from '../../../../domain/entities/role';
 import { Permission } from '../../../../domain/entities/permission';
 
@@ -24,9 +26,17 @@ export class PrismaUserRepositoryEnhanced
   constructor(
     private prismaClient: PrismaClient,
     logger: Logger,
+    transactionManager: TransactionManager,
     cache?: MultiLayerCache
   ) {
-    super(logger, cache);
+    super(logger, cache, transactionManager);
+  }
+
+  private ensureTransactionManager(): TransactionManager {
+    if (!this.transactionManager) {
+      throw new Error('Transaction manager is required for this operation');
+    }
+    return this.transactionManager;
   }
 
   // Basic CRUD operations
@@ -34,8 +44,8 @@ export class PrismaUserRepositoryEnhanced
     const startTime = Date.now();
 
     try {
-      const result = await this.transactionManager.withTransaction(
-        async (context) => {
+      const result = await this.ensureTransactionManager().withTransaction(
+        async (context: ITransactionContext) => {
           const { roles, ...userData } = data;
 
           // Create user
@@ -155,8 +165,8 @@ export class PrismaUserRepositoryEnhanced
     const startTime = Date.now();
 
     try {
-      const result = await this.transactionManager.withTransaction(
-        async (context) => {
+      const result = await this.ensureTransactionManager().withTransaction(
+        async (context: ITransactionContext) => {
           const user = await context.prisma.user.update({
             where: { id },
             data: {
@@ -188,7 +198,7 @@ export class PrismaUserRepositoryEnhanced
     const startTime = Date.now();
 
     try {
-      await this.transactionManager.withTransaction(async (context) => {
+      await this.ensureTransactionManager().withTransaction(async (context: ITransactionContext) => {
         // Soft delete by marking as inactive or hard delete based on requirements
         await context.prisma.user.delete({
           where: { id },
@@ -214,7 +224,7 @@ export class PrismaUserRepositoryEnhanced
     const startTime = Date.now();
 
     try {
-      const result = await this.transactionManager.withTransaction(
+      const result = await this.ensureTransactionManager().withTransaction(
         async (context) => {
           const user = await context.prisma.user.update({
             where: { id: userId },
@@ -273,7 +283,7 @@ export class PrismaUserRepositoryEnhanced
     const startTime = Date.now();
 
     try {
-      const result = await this.transactionManager.withTransaction(
+      const result = await this.ensureTransactionManager().withTransaction(
         async (context) => {
           return await context.prisma.user.update({
             where: { id: userId },
@@ -318,7 +328,7 @@ export class PrismaUserRepositoryEnhanced
     const startTime = Date.now();
 
     try {
-      await this.transactionManager.withTransaction(async (context) => {
+      await this.ensureTransactionManager().withTransaction(async (context: ITransactionContext) => {
         await context.prisma.user.update({
           where: { id: userId },
           data: {
@@ -353,7 +363,7 @@ export class PrismaUserRepositoryEnhanced
     const startTime = Date.now();
 
     try {
-      await this.transactionManager.withTransaction(async (context) => {
+      await this.ensureTransactionManager().withTransaction(async (context: ITransactionContext) => {
         await context.prisma.user.update({
           where: { id: userId },
           data: {
@@ -394,7 +404,7 @@ export class PrismaUserRepositoryEnhanced
     const startTime = Date.now();
 
     try {
-      await this.transactionManager.withTransaction(async (context) => {
+      await this.ensureTransactionManager().withTransaction(async (context: ITransactionContext) => {
         await context.prisma.userRole.create({
           data: {
             userId,
@@ -438,7 +448,7 @@ export class PrismaUserRepositoryEnhanced
     const startTime = Date.now();
 
     try {
-      await this.transactionManager.withTransaction(async (context) => {
+      await this.ensureTransactionManager().withTransaction(async (context: ITransactionContext) => {
         await context.prisma.userRole.deleteMany({
           where: { userId, roleId },
         });
@@ -579,7 +589,7 @@ export class PrismaUserRepositoryEnhanced
     const startTime = Date.now();
 
     try {
-      const result = await this.transactionManager.withTransaction(
+      const result = await this.ensureTransactionManager().withTransaction(
         async (context) => {
           const users = await Promise.all(
             data.map((userData) =>
@@ -612,7 +622,7 @@ export class PrismaUserRepositoryEnhanced
     const startTime = Date.now();
 
     try {
-      const result = await this.transactionManager.withTransaction(
+      const result = await this.ensureTransactionManager().withTransaction(
         async (context) => {
           const users = await Promise.all(
             updates.map((update) =>
@@ -648,7 +658,7 @@ export class PrismaUserRepositoryEnhanced
     const startTime = Date.now();
 
     try {
-      await this.transactionManager.withTransaction(async (context) => {
+      await this.ensureTransactionManager().withTransaction(async (context: ITransactionContext) => {
         await context.prisma.user.deleteMany({
           where: { id: { in: ids } },
         });

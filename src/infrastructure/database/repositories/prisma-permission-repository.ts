@@ -12,6 +12,14 @@ import {
   UpdatePermissionData,
   PermissionFilters,
 } from '../../../application/interfaces/permission-repository.interface';
+import {
+  jsonValueToRecord,
+  recordToInputJsonValue,
+  isJsonRecord,
+  createUpdateData,
+  JsonValue,
+  InputJsonValue,
+} from '../../../types/prisma-json.types';
 
 export class PrismaPermissionRepository implements IPermissionRepository {
   constructor(
@@ -36,12 +44,8 @@ export class PrismaPermissionRepository implements IPermissionRepository {
     return new Permission(props);
   }
 
-  private parseConditions(conditions: any): Record<string, any> | undefined {
-    if (!conditions) return undefined;
-    if (typeof conditions === 'object' && conditions !== null) {
-      return conditions as Record<string, any>;
-    }
-    return undefined;
+  private parseConditions(conditions: JsonValue | null | undefined): Record<string, any> | undefined {
+    return jsonValueToRecord(conditions);
   }
 
   async create(data: CreatePermissionData): Promise<Permission> {

@@ -10,6 +10,7 @@ import {
   IRepositoryMetrics,
 } from '../interfaces/base-repository.interface';
 import { MultiLayerCache } from '../../../cache/multi-layer-cache';
+import { TransactionManager } from './transaction-manager';
 
 export interface QueryMetric {
   operation: string;
@@ -30,11 +31,15 @@ export abstract class BaseRepository
   protected queryMetrics: QueryMetric[] = [];
   protected cacheMetrics: CacheMetric[] = [];
   protected readonly maxMetricsHistory = 1000;
+  protected transactionManager: TransactionManager | undefined;
 
   constructor(
     protected logger: Logger,
-    protected cache?: MultiLayerCache
-  ) {}
+    protected cache?: MultiLayerCache,
+    transactionManager?: TransactionManager
+  ) {
+    this.transactionManager = transactionManager;
+  }
 
   // Cache operations
   async getCached(key: string): Promise<any | null> {
