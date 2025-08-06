@@ -13,6 +13,9 @@ import {
   getErrorMessage,
 } from './types';
 
+// Re-export types for easier access
+export type { Migration, MigrationRecord } from './types';
+
 export class MigrationManager {
   private pool: Pool;
   private drizzleDb: any;

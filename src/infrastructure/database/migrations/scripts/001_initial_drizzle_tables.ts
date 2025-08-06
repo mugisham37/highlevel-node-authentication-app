@@ -1,7 +1,7 @@
 import { Pool } from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { createDatabaseConfig } from '../../config';
-import { Migration } from '../migration-manager';
+import { Migration } from '../types';
 import crypto from 'crypto';
 
 const migration: Migration = {
