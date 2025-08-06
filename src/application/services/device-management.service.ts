@@ -8,9 +8,8 @@ import { SecureIdGenerator } from '../../infrastructure/security/secure-id-gener
 import { SecureTokenGenerator } from '../../infrastructure/security/secure-token-generator.service';
 import {
   WebAuthnService,
-  WebAuthnCredential,
 } from '../../infrastructure/security/webauthn.service';
-import { PrismaUserRepository } from '../../infrastructure/database/repositories/prisma-user-repository';
+// import { PrismaUserRepository } from '../../infrastructure/database/repositories/prisma-user-repository'; // TODO: Remove if not needed
 import { DeviceInfo } from '../../domain/entities/user';
 
 export interface DeviceRegistration {
@@ -23,21 +22,21 @@ export interface DeviceRegistration {
   browser: string;
   trusted: boolean;
   registeredAt: Date;
-  lastUsedAt?: Date;
-  ipAddress?: string;
-  location?: string;
+  lastUsedAt?: Date | undefined;
+  ipAddress?: string | undefined;
+  location?: string | undefined;
   webAuthnCredentials: string[];
   riskScore: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, any> | undefined;
 }
 
 export interface DeviceRegistrationRequest {
   userId: string;
   deviceInfo: DeviceInfo;
-  deviceName?: string;
-  ipAddress?: string;
-  location?: string;
-  webAuthnCredentialId?: string;
+  deviceName?: string | undefined;
+  ipAddress?: string | undefined;
+  location?: string | undefined;
+  webAuthnCredentialId?: string | undefined;
 }
 
 export interface DeviceTrustAssessment {
@@ -64,7 +63,7 @@ export class DeviceManagementService {
   private authAttempts: Map<string, DeviceAuthenticationAttempt[]> = new Map();
 
   constructor(
-    private readonly userRepository: PrismaUserRepository,
+    // private readonly userRepository: PrismaUserRepository, // TODO: Implement user repository usage
     private readonly webAuthnService: WebAuthnService,
     private readonly logger: Logger
   ) {}
@@ -98,8 +97,12 @@ export class DeviceManagementService {
       if (existingDevice) {
         // Update existing device
         existingDevice.lastUsedAt = new Date();
-        existingDevice.ipAddress = request.ipAddress;
-        existingDevice.location = request.location;
+        if (request.ipAddress !== undefined) {
+          existingDevice.ipAddress = request.ipAddress;
+        }
+        if (request.location !== undefined) {
+          existingDevice.location = request.location;
+        }
 
         if (request.webAuthnCredentialId) {
           if (
@@ -145,8 +148,8 @@ export class DeviceManagementService {
         trusted: trustScore > 70,
         registeredAt: new Date(),
         lastUsedAt: new Date(),
-        ipAddress: request.ipAddress,
-        location: request.location,
+        ipAddress: request.ipAddress || undefined,
+        location: request.location || undefined,
         webAuthnCredentials: request.webAuthnCredentialId
           ? [request.webAuthnCredentialId]
           : [],
@@ -224,7 +227,7 @@ export class DeviceManagementService {
             browser: 'unknown',
             trusted: true, // WebAuthn credentials are considered trusted
             registeredAt: credential.createdAt,
-            lastUsedAt: credential.lastUsed,
+            lastUsedAt: credential.lastUsed || undefined,
             webAuthnCredentials: [credential.credentialId],
             riskScore: 20, // Low risk for WebAuthn
           };
@@ -313,8 +316,8 @@ export class DeviceManagementService {
 
       if (reason) {
         device.metadata = device.metadata || {};
-        device.metadata.trustUpdateReason = reason;
-        device.metadata.trustUpdatedAt = new Date();
+        device.metadata['trustUpdateReason'] = reason;
+        device.metadata['trustUpdatedAt'] = new Date();
       }
 
       this.devices.set(deviceId, device);
@@ -523,8 +526,12 @@ export class DeviceManagementService {
         const device = this.devices.get(attempt.deviceId);
         if (device) {
           device.lastUsedAt = attempt.timestamp;
-          device.ipAddress = attempt.ipAddress;
-          device.location = attempt.location;
+          if (attempt.ipAddress !== undefined) {
+            device.ipAddress = attempt.ipAddress;
+          }
+          if (attempt.location !== undefined) {
+            device.location = attempt.location;
+          }
           this.devices.set(attempt.deviceId, device);
         }
       }
@@ -574,7 +581,7 @@ export class DeviceManagementService {
         return null;
       }
 
-      const secret = process.env.DEVICE_BINDING_SECRET || 'default-secret';
+      const secret = process.env['DEVICE_BINDING_SECRET'] || 'default-secret';
       return SecureTokenGenerator.generateDeviceBindingToken(deviceId, secret);
     } catch (error) {
       this.logger.error('Failed to generate device binding token', {
@@ -593,7 +600,7 @@ export class DeviceManagementService {
     expectedDeviceId: string
   ): Promise<boolean> {
     try {
-      const secret = process.env.DEVICE_BINDING_SECRET || 'default-secret';
+      const secret = process.env['DEVICE_BINDING_SECRET'] || 'default-secret';
       return SecureTokenGenerator.verifyDeviceBindingToken(
         token,
         expectedDeviceId,

@@ -755,9 +755,13 @@ export class AuthenticationService {
       };
       const deviceFingerprint = DeviceFingerprintingService.createFingerprint(fingerprintInput);
 
+      // Generate a temporary session ID for risk assessment
+      const tempSessionId = SecureIdGenerator.generateSecureId();
+
       // Build security context
       const securityContext: SecurityContext = {
         userId: user.id,
+        sessionId: tempSessionId,
         deviceFingerprint,
         ipAddress: credentials.ipAddress,
         userAgent: credentials.userAgent,

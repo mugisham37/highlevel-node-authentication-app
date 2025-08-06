@@ -21,7 +21,7 @@ export interface AuthorizationContext {
 export interface AuthorizationRequest {
   resource: string;
   action: string;
-  context?: Record<string, any>;
+  context?: Record<string, any> | undefined;
   requireAll?: boolean; // If true, all permissions must match
 }
 
@@ -50,7 +50,7 @@ export interface PermissionBasedCheck {
 export interface ResourceAccessCheck {
   resource: string;
   actions: string[];
-  context?: Record<string, any>;
+  context?: Record<string, any> | undefined;
 }
 
 export interface IAuthorizationService {
@@ -95,7 +95,7 @@ export interface IAuthorizationService {
     context: AuthorizationContext,
     resource: string,
     action: string,
-    actionContext?: Record<string, any>
+    actionContext?: Record<string, any> | undefined
   ): Promise<boolean>;
 
   // Administrative checks

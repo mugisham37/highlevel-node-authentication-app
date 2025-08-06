@@ -40,7 +40,6 @@ model User {
   auditLogs           AuditLog[]
   webAuthnCredentials WebAuthnCredential[]
   webhooks            Webhook[]
-  Webhook             Webhook[]
 
   @@map("users")
 }

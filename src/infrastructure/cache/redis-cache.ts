@@ -374,4 +374,130 @@ export class RedisCache {
   private getTagKey(tag: string): string {
     return `${this.config.keyPrefix}tag:${tag}`;
   }
+
+  // Additional Redis operations for Dead Letter Queue Service
+  async sadd(key: string, ...members: string[]): Promise<number> {
+    const prefixedKey = this.getPrefixedKey(key);
+    try {
+      return await this.executeWithCircuitBreaker(async () => {
+        const client = this.redisClient.getClient();
+        return await client.sadd(prefixedKey, ...members);
+      });
+    } catch (error) {
+      logger.error('Redis sadd error:', { key, error });
+      throw error;
+    }
+  }
+
+  async smembers(key: string): Promise<string[]> {
+    const prefixedKey = this.getPrefixedKey(key);
+    try {
+      return await this.executeWithCircuitBreaker(async () => {
+        const client = this.redisClient.getClient();
+        return await client.smembers(prefixedKey);
+      });
+    } catch (error) {
+      logger.error('Redis smembers error:', { key, error });
+      throw error;
+    }
+  }
+
+  async srem(key: string, ...members: string[]): Promise<number> {
+    const prefixedKey = this.getPrefixedKey(key);
+    try {
+      return await this.executeWithCircuitBreaker(async () => {
+        const client = this.redisClient.getClient();
+        return await client.srem(prefixedKey, ...members);
+      });
+    } catch (error) {
+      logger.error('Redis srem error:', { key, error });
+      throw error;
+    }
+  }
+
+  async scard(key: string): Promise<number> {
+    const prefixedKey = this.getPrefixedKey(key);
+    try {
+      return await this.executeWithCircuitBreaker(async () => {
+        const client = this.redisClient.getClient();
+        return await client.scard(prefixedKey);
+      });
+    } catch (error) {
+      logger.error('Redis scard error:', { key, error });
+      throw error;
+    }
+  }
+
+  async hset(key: string, field: string, value: string): Promise<number>;
+  async hset(key: string, hash: Record<string, string>): Promise<number>;
+  async hset(key: string, ...args: (string | Record<string, string>)[]): Promise<number> {
+    const prefixedKey = this.getPrefixedKey(key);
+    try {
+      return await this.executeWithCircuitBreaker(async () => {
+        const client = this.redisClient.getClient();
+        if (args.length === 2 && typeof args[0] === 'string' && typeof args[1] === 'string') {
+          return await client.hset(prefixedKey, args[0], args[1]);
+        } else if (args.length === 1 && typeof args[0] === 'object') {
+          return await client.hset(prefixedKey, args[0]);
+        } else {
+          throw new Error('Invalid hset arguments');
+        }
+      });
+    } catch (error) {
+      logger.error('Redis hset error:', { key, error });
+      throw error;
+    }
+  }
+
+  async hget(key: string, field: string): Promise<string | null> {
+    const prefixedKey = this.getPrefixedKey(key);
+    try {
+      return await this.executeWithCircuitBreaker(async () => {
+        const client = this.redisClient.getClient();
+        return await client.hget(prefixedKey, field);
+      });
+    } catch (error) {
+      logger.error('Redis hget error:', { key, field, error });
+      throw error;
+    }
+  }
+
+  async hgetall(key: string): Promise<Record<string, string>> {
+    const prefixedKey = this.getPrefixedKey(key);
+    try {
+      return await this.executeWithCircuitBreaker(async () => {
+        const client = this.redisClient.getClient();
+        return await client.hgetall(prefixedKey);
+      });
+    } catch (error) {
+      logger.error('Redis hgetall error:', { key, error });
+      throw error;
+    }
+  }
+
+  async del(...keys: string[]): Promise<number> {
+    const prefixedKeys = keys.map(key => this.getPrefixedKey(key));
+    try {
+      return await this.executeWithCircuitBreaker(async () => {
+        const client = this.redisClient.getClient();
+        return await client.del(...prefixedKeys);
+      });
+    } catch (error) {
+      logger.error('Redis del error:', { keys, error });
+      throw error;
+    }
+  }
+
+  async hincrby(key: string, field: string, increment: number): Promise<number> {
+    const prefixedKey = this.getPrefixedKey(key);
+    try {
+      return await this.executeWithCircuitBreaker(async () => {
+        const client = this.redisClient.getClient();
+        return await client.hincrby(prefixedKey, field, increment);
+      });
+    } catch (error) {
+      logger.error('Redis hincrby error:', { key, field, increment, error });
+      throw error;
+    }
+  }
 }

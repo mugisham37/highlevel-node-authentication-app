@@ -5,7 +5,7 @@
 
 import {
   IDeadLetterQueue,
-  IWebhookDeliveryRepository,
+  // IWebhookDeliveryRepository, // TODO: Remove if not needed
 } from '../interfaces/webhook.interface';
 import { WebhookDeliveryAttempt } from '../../domain/entities/webhook';
 import { logger } from '../../infrastructure/logging/winston-logger';
@@ -25,7 +25,7 @@ export class DeadLetterQueueService implements IDeadLetterQueue {
   private isProcessing = false;
 
   constructor(
-    private readonly deliveryRepository: IWebhookDeliveryRepository,
+    // private readonly deliveryRepository: IWebhookDeliveryRepository, // TODO: Implement repository usage
     private readonly cache: RedisCache,
     config?: Partial<DeadLetterQueueConfig>
   ) {
@@ -104,12 +104,12 @@ export class DeadLetterQueueService implements IDeadLetterQueue {
           if (data && Object.keys(data).length > 0) {
             deliveries.push({
               id,
-              webhookId: data.webhookId,
-              eventId: data.eventId,
-              attempt: parseInt(data.attempt, 10),
-              status: data.status as any,
-              errorMessage: data.errorMessage,
-              createdAt: new Date(data.createdAt),
+              webhookId: data['webhookId'] || '',
+              eventId: data['eventId'] || '',
+              attempt: parseInt(String(data['attempt'] || '0'), 10),
+              status: data['status'] as any,
+              errorMessage: data['errorMessage'] || '',
+              createdAt: new Date(data['createdAt'] || Date.now()),
             });
           }
         } catch (error) {
@@ -293,7 +293,7 @@ export class DeadLetterQueueService implements IDeadLetterQueue {
       for (const [key, value] of Object.entries(statsData)) {
         if (key.startsWith('webhook:') && key.endsWith(':failed')) {
           const webhookId = key.replace('webhook:', '').replace(':failed', '');
-          failuresByWebhook[webhookId] = parseInt(value, 10) || 0;
+          failuresByWebhook[webhookId] = parseInt(String(value), 10) || 0;
         }
       }
 

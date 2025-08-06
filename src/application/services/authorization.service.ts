@@ -634,7 +634,7 @@ export class AuthorizationService implements IAuthorizationService {
 
   async getAuthorizationHistory(
     userId: string,
-    limit = 50
+    _limit = 50 // TODO: Implement limit in audit log query
   ): Promise<
     Array<{
       timestamp: Date;
