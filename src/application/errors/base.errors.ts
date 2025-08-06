@@ -24,7 +24,7 @@ export abstract class BaseError extends Error {
   abstract readonly code: string;
   abstract readonly statusCode: number;
   readonly timestamp: Date;
-  readonly correlationId?: string;
+  readonly correlationId: string | undefined;
   readonly context: ErrorContext;
   readonly isOperational: boolean = true;
 
@@ -118,7 +118,7 @@ export class ValidationError extends BaseError {
 export class AuthenticationError extends BaseError {
   readonly code = 'AUTHENTICATION_ERROR';
   readonly statusCode = 401;
-  readonly reason?: string;
+  readonly reason: string | undefined;
 
   constructor(
     message: string = 'Authentication failed',
@@ -143,8 +143,8 @@ export class AuthenticationError extends BaseError {
 export class AuthorizationError extends BaseError {
   readonly code = 'AUTHORIZATION_ERROR';
   readonly statusCode = 403;
-  readonly requiredPermission?: string;
-  readonly userPermissions?: string[];
+  readonly requiredPermission: string | undefined;
+  readonly userPermissions: string[] | undefined;
 
   constructor(
     message: string = 'Access denied',
@@ -172,8 +172,8 @@ export class AuthorizationError extends BaseError {
 export class NotFoundError extends BaseError {
   readonly code = 'NOT_FOUND';
   readonly statusCode = 404;
-  readonly resource?: string;
-  readonly resourceId?: string;
+  readonly resource: string | undefined;
+  readonly resourceId: string | undefined;
 
   constructor(
     message: string = 'Resource not found',
@@ -201,7 +201,7 @@ export class NotFoundError extends BaseError {
 export class ConflictError extends BaseError {
   readonly code = 'CONFLICT';
   readonly statusCode = 409;
-  readonly conflictingResource?: string;
+  readonly conflictingResource: string | undefined;
 
   constructor(
     message: string = 'Resource conflict',
@@ -273,7 +273,7 @@ export class RateLimitError extends BaseError {
 export class InternalServerError extends BaseError {
   readonly code = 'INTERNAL_SERVER_ERROR';
   readonly statusCode = 500;
-  readonly originalError?: Error;
+  readonly originalError: Error | undefined;
 
   constructor(
     message: string = 'Internal server error',
@@ -316,8 +316,8 @@ export class InternalServerError extends BaseError {
 export class ServiceUnavailableError extends BaseError {
   readonly code = 'SERVICE_UNAVAILABLE';
   readonly statusCode = 503;
-  readonly service?: string;
-  readonly retryAfter?: number;
+  readonly service: string | undefined;
+  readonly retryAfter: number | undefined;
 
   constructor(
     message: string = 'Service temporarily unavailable',
@@ -346,8 +346,8 @@ export class ExternalServiceError extends BaseError {
   readonly code = 'EXTERNAL_SERVICE_ERROR';
   readonly statusCode = 502;
   readonly service: string;
-  readonly operation?: string;
-  readonly originalError?: Error;
+  readonly operation: string | undefined;
+  readonly originalError: Error | undefined;
 
   constructor(
     service: string,
@@ -383,8 +383,8 @@ export class ExternalServiceError extends BaseError {
 export class DatabaseError extends BaseError {
   readonly code = 'DATABASE_ERROR';
   readonly statusCode = 500;
-  readonly operation?: string;
-  readonly table?: string;
+  readonly operation: string | undefined;
+  readonly table: string | undefined;
 
   constructor(
     message: string = 'Database operation failed',
@@ -412,8 +412,8 @@ export class DatabaseError extends BaseError {
 export class CacheError extends BaseError {
   readonly code = 'CACHE_ERROR';
   readonly statusCode = 500;
-  readonly operation?: string;
-  readonly key?: string;
+  readonly operation: string | undefined;
+  readonly key: string | undefined;
 
   constructor(
     message: string = 'Cache operation failed',
@@ -441,7 +441,7 @@ export class CacheError extends BaseError {
 export class ConfigurationError extends BaseError {
   readonly code = 'CONFIGURATION_ERROR';
   readonly statusCode = 500;
-  readonly configKey?: string;
+  readonly configKey: string | undefined;
 
   constructor(
     message: string = 'Configuration error',

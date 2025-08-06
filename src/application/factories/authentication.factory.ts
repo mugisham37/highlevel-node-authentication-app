@@ -106,25 +106,23 @@ export class AuthenticationServiceFactory {
       }
     );
 
-    const riskScoringService = new RiskScoringService(
-      config.riskScoring
-        ? {
-            locationWeight: config.riskScoring.locationWeight || 0.25,
-            deviceWeight: config.riskScoring.deviceWeight || 0.25,
-            behaviorWeight: config.riskScoring.behaviorWeight || 0.2,
-            temporalWeight: config.riskScoring.temporalWeight || 0.15,
-            networkWeight: config.riskScoring.networkWeight || 0.15,
-            lowRiskThreshold: 30,
-            mediumRiskThreshold: 60,
-            highRiskThreshold: 85,
-            enableGeoLocationChecks: true,
-            enableDeviceAnalysis: true,
-            enableBehaviorAnalysis: true,
-            enableNetworkAnalysis: true,
-            enableTemporalAnalysis: true,
-          }
-        : undefined
-    );
+    const riskScoringOptions = config.riskScoring
+      ? {
+          enableGeoLocationChecks: true,
+          enableBehavioralAnalysis: true,
+          enableDeviceTracking: true,
+          enableVPNDetection: true,
+          baselineRiskScore: 10,
+          riskThresholds: {
+            low: 30,
+            medium: 60,
+            high: 85,
+            critical: 95,
+          },
+        }
+      : {};
+
+    const riskScoringService = new RiskScoringService(riskScoringOptions);
 
     return new AuthenticationService(
       userRepository,

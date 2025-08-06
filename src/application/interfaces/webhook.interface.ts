@@ -7,7 +7,6 @@ import {
   Webhook,
   WebhookEvent,
   WebhookDeliveryAttempt,
-  WebhookConfig,
 } from '../../domain/entities/webhook';
 
 export interface CreateWebhookRequest {

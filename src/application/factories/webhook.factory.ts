@@ -174,125 +174,15 @@ export class WebhookFactory {
 
   /**
    * Create webhook system for testing with mocked dependencies
+   * Note: Use WebhookTestFactory for Jest-based testing
    */
   static createForTesting(
-    overrides: Partial<WebhookFactoryResult> = {}
+    _overrides: Partial<WebhookFactoryResult> = {}
   ): WebhookFactoryResult {
-    const mockPrisma = {} as PrismaClient;
-    const mockRedisCache = {} as RedisCache;
-
-    // Create minimal mocked services
-    const mockWebhookRepository = {
-      save: jest.fn(),
-      findById: jest.fn(),
-      findByUserId: jest.fn(),
-      findActiveWebhooksForEvent: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      findWithQuery: jest.fn(),
-    } as unknown as IWebhookRepository;
-
-    const mockEventRepository = {
-      save: jest.fn(),
-      findById: jest.fn(),
-      findWithQuery: jest.fn(),
-      deleteOldEvents: jest.fn(),
-    } as unknown as IWebhookEventRepository;
-
-    const mockDeliveryRepository = {
-      save: jest.fn(),
-      update: jest.fn(),
-      findWithQuery: jest.fn(),
-      findPendingRetries: jest.fn(),
-      findFailedDeliveries: jest.fn(),
-      deleteOldAttempts: jest.fn(),
-      cancelPendingDeliveries: jest.fn(),
-    } as unknown as IWebhookDeliveryRepository;
-
-    const mockSignatureService = {
-      generateSignature: jest.fn(),
-      verifySignature: jest.fn(),
-      generateSecret: jest.fn(),
-      validateSecret: jest.fn(),
-      createSignatureHeaders: jest.fn(),
-      verifySignatureWithTimestamp: jest.fn(),
-      generateTestPayload: jest.fn(),
-      createDeliveryHeaders: jest.fn(),
-    } as unknown as IWebhookSignatureService;
-
-    const mockDeadLetterQueue = {
-      addFailedDelivery: jest.fn(),
-      getFailedDeliveries: jest.fn(),
-      removeFailedDelivery: jest.fn(),
-      retryFailedDeliveries: jest.fn(),
-      getStats: jest.fn(),
-    } as unknown as IDeadLetterQueue;
-
-    const mockDeliveryService = {
-      deliverEvent: jest.fn(),
-      retryFailedDeliveries: jest.fn(),
-      getDeliveryAttempts: jest.fn(),
-      cancelPendingDeliveries: jest.fn(),
-    } as unknown as IWebhookDeliveryService;
-
-    const mockEventPublisher = {
-      publishEvent: jest.fn(),
-      publishEvents: jest.fn(),
-      getEvent: jest.fn(),
-      listEvents: jest.fn(),
-      subscribeToEventStream: jest.fn(),
-      unsubscribeFromEventStream: jest.fn(),
-      getActiveSubscriptions: jest.fn(),
-      createEventFromAudit: jest.fn(),
-      publishAuthEvent: jest.fn(),
-      on: jest.fn(),
-      emit: jest.fn(),
-    } as unknown as IEventPublisher;
-
-    const mockWebhookService = {
-      registerWebhook: jest.fn(),
-      updateWebhook: jest.fn(),
-      deleteWebhook: jest.fn(),
-      getWebhook: jest.fn(),
-      listWebhooks: jest.fn(),
-      testWebhook: jest.fn(),
-      getWebhookStats: jest.fn(),
-      getSupportedEventTypes: jest.fn(),
-    } as unknown as IWebhookService;
-
-    const mockWebhookController = {
-      registerWebhook: jest.fn(),
-      updateWebhook: jest.fn(),
-      deleteWebhook: jest.fn(),
-      getWebhook: jest.fn(),
-      listWebhooks: jest.fn(),
-      testWebhook: jest.fn(),
-      getWebhookStats: jest.fn(),
-      getSupportedEventTypes: jest.fn(),
-      listEvents: jest.fn(),
-    } as unknown as WebhookController;
-
-    const mockWebsocketController = {
-      registerRoutes: jest.fn(),
-      broadcastEvent: jest.fn(),
-      getStats: jest.fn(),
-      healthCheck: jest.fn(),
-    } as unknown as WebhookWebSocketController;
-
-    const defaultMocks: WebhookFactoryResult = {
-      webhookService: mockWebhookService,
-      eventPublisher: mockEventPublisher,
-      deliveryService: mockDeliveryService,
-      deadLetterQueue: mockDeadLetterQueue,
-      signatureService: mockSignatureService,
-      webhookRepository: mockWebhookRepository,
-      eventRepository: mockEventRepository,
-      deliveryRepository: mockDeliveryRepository,
-      webhookController: mockWebhookController,
-      websocketController: mockWebsocketController,
-    };
-
-    return { ...defaultMocks, ...overrides };
+    throw new Error(
+      'createForTesting has been moved to WebhookTestFactory. ' +
+      'Import WebhookTestFactory from "./webhook-test.factory" and use WebhookTestFactory.createForTesting() instead.'
+    );
   }
 
   /**

@@ -43,6 +43,12 @@ export class RiskScoringService {
     },
   };
 
+  private readonly options: Required<RiskScoringOptions>;
+
+  constructor(options: RiskScoringOptions = {}) {
+    this.options = { ...RiskScoringService.DEFAULT_OPTIONS, ...options };
+  }
+
   private static readonly SUSPICIOUS_USER_AGENTS = [
     /bot/i,
     /crawler/i,
@@ -76,18 +82,18 @@ export class RiskScoringService {
   /**
    * Assess risk for a given security context
    */
-  static async assessRisk(
+  async assessRisk(
     context: SecurityContext,
-    options: RiskScoringOptions = {}
+    optionOverrides: RiskScoringOptions = {}
   ): Promise<RiskAssessment> {
-    const opts = { ...this.DEFAULT_OPTIONS, ...options };
+    const opts = { ...this.options, ...optionOverrides };
     const factors: RiskFactor[] = [];
     let totalScore = opts.baselineRiskScore;
 
     try {
       // Device-based risk factors
       if (opts.enableDeviceTracking) {
-        const deviceFactors = await this.analyzeDeviceRisk(context);
+        const deviceFactors = await RiskScoringService.analyzeDeviceRisk(context);
         factors.push(...deviceFactors);
         totalScore += deviceFactors.reduce(
           (sum, factor) => sum + factor.score,
@@ -97,7 +103,7 @@ export class RiskScoringService {
 
       // Behavioral risk factors
       if (opts.enableBehavioralAnalysis && context.previousLogins) {
-        const behavioralFactors = this.analyzeBehavioralRisk(context);
+        const behavioralFactors = RiskScoringService.analyzeBehavioralRisk(context);
         factors.push(...behavioralFactors);
         totalScore += behavioralFactors.reduce(
           (sum, factor) => sum + factor.score,
@@ -107,34 +113,34 @@ export class RiskScoringService {
 
       // Geographic risk factors
       if (opts.enableGeoLocationChecks && context.geoLocation) {
-        const geoFactors = this.analyzeGeographicRisk(context);
+        const geoFactors = RiskScoringService.analyzeGeographicRisk(context);
         factors.push(...geoFactors);
-        totalScore += geoFactors.reduce((sum, factor) => sum + factor.score, 0);
+        totalScore += geoFactors.reduce((sum: number, factor: RiskFactor) => sum + factor.score, 0);
       }
 
       // Network-based risk factors
       if (opts.enableVPNDetection) {
-        const networkFactors = this.analyzeNetworkRisk(context);
+        const networkFactors = RiskScoringService.analyzeNetworkRisk(context);
         factors.push(...networkFactors);
         totalScore += networkFactors.reduce(
-          (sum, factor) => sum + factor.score,
+          (sum: number, factor: RiskFactor) => sum + factor.score,
           0
         );
       }
 
       // Temporal risk factors
-      const temporalFactors = this.analyzeTemporalRisk(context);
+      const temporalFactors = RiskScoringService.analyzeTemporalRisk(context);
       factors.push(...temporalFactors);
       totalScore += temporalFactors.reduce(
-        (sum, factor) => sum + factor.score,
+        (sum: number, factor: RiskFactor) => sum + factor.score,
         0
       );
 
       // Account-based risk factors
-      const accountFactors = this.analyzeAccountRisk(context);
+      const accountFactors = RiskScoringService.analyzeAccountRisk(context);
       factors.push(...accountFactors);
       totalScore += accountFactors.reduce(
-        (sum, factor) => sum + factor.score,
+        (sum: number, factor: RiskFactor) => sum + factor.score,
         0
       );
 
@@ -142,10 +148,10 @@ export class RiskScoringService {
       totalScore = Math.max(0, Math.min(100, totalScore));
 
       // Determine risk level
-      const level = this.determineRiskLevel(totalScore, opts.riskThresholds);
+      const level = RiskScoringService.determineRiskLevel(totalScore, opts.riskThresholds);
 
       // Generate recommendations
-      const recommendations = this.generateRecommendations(factors, level);
+      const recommendations = RiskScoringService.generateRecommendations(factors, level);
 
       // Determine if MFA is required
       const requiresMFA =

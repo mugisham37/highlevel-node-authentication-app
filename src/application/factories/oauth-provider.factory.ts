@@ -55,13 +55,13 @@ export class OAuthProviderFactory implements IOAuthProviderFactory {
     // Google OAuth2/OIDC
     this.registerProvider({
       name: 'google',
-      clientId: process.env.GOOGLE_CLIENT_ID || '',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+      clientId: process.env['GOOGLE_CLIENT_ID'] || '',
+      clientSecret: process.env['GOOGLE_CLIENT_SECRET'] || '',
       authorizationUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
       tokenUrl: 'https://oauth2.googleapis.com/token',
       userInfoUrl: 'https://www.googleapis.com/oauth2/v2/userinfo',
       scopes: ['openid', 'email', 'profile'],
-      redirectUri: process.env.GOOGLE_REDIRECT_URI || '',
+      redirectUri: process.env['GOOGLE_REDIRECT_URI'] || '',
       supportsPKCE: true,
       supportsRefresh: true,
     });
@@ -69,13 +69,13 @@ export class OAuthProviderFactory implements IOAuthProviderFactory {
     // GitHub OAuth2
     this.registerProvider({
       name: 'github',
-      clientId: process.env.GITHUB_CLIENT_ID || '',
-      clientSecret: process.env.GITHUB_CLIENT_SECRET || '',
+      clientId: process.env['GITHUB_CLIENT_ID'] || '',
+      clientSecret: process.env['GITHUB_CLIENT_SECRET'] || '',
       authorizationUrl: 'https://github.com/login/oauth/authorize',
       tokenUrl: 'https://github.com/login/oauth/access_token',
       userInfoUrl: 'https://api.github.com/user',
       scopes: ['user:email'],
-      redirectUri: process.env.GITHUB_REDIRECT_URI || '',
+      redirectUri: process.env['GITHUB_REDIRECT_URI'] || '',
       supportsPKCE: false,
       supportsRefresh: false,
     });
@@ -83,14 +83,14 @@ export class OAuthProviderFactory implements IOAuthProviderFactory {
     // Microsoft Azure AD / Office 365
     this.registerProvider({
       name: 'microsoft',
-      clientId: process.env.MICROSOFT_CLIENT_ID || '',
-      clientSecret: process.env.MICROSOFT_CLIENT_SECRET || '',
+      clientId: process.env['MICROSOFT_CLIENT_ID'] || '',
+      clientSecret: process.env['MICROSOFT_CLIENT_SECRET'] || '',
       authorizationUrl:
         'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
       tokenUrl: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
       userInfoUrl: 'https://graph.microsoft.com/v1.0/me',
       scopes: ['openid', 'email', 'profile'],
-      redirectUri: process.env.MICROSOFT_REDIRECT_URI || '',
+      redirectUri: process.env['MICROSOFT_REDIRECT_URI'] || '',
       supportsPKCE: true,
       supportsRefresh: true,
     });
@@ -263,7 +263,7 @@ export class OAuthProviderFactory implements IOAuthProviderFactory {
 
     // Add PKCE code verifier if supported
     if (provider.supportsPKCE && codeVerifier) {
-      params.code_verifier = codeVerifier;
+      params['code_verifier'] = codeVerifier;
     }
 
     return params;
