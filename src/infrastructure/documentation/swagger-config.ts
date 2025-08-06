@@ -700,7 +700,6 @@ The API supports versioning through URL paths:
     },
   },
   hideUntagged: true,
-  exposeRoute: true,
 };
 
 export const swaggerUiConfig: FastifySwaggerUiOptions = {
@@ -717,38 +716,44 @@ export const swaggerUiConfig: FastifySwaggerUiOptions = {
     showExtensions: true,
     showCommonExtensions: true,
     tryItOutEnabled: true,
-    requestSnippetsEnabled: true,
+    requestSnippets: {
+      defaultExpanded: true,
+    },
     syntaxHighlight: {
       activate: true,
       theme: 'agate',
     },
     layout: 'BaseLayout',
     plugins: [
-      {
-        name: 'topbar',
-        version: '1.0.0',
-      },
+      // Remove the plugins array as it's causing type issues
     ],
   },
   uiHooks: {
-    onRequest: async (request, reply) => {
+    onRequest: async (_request, reply) => {
       // Add custom headers for documentation
       reply.header('X-Documentation-Version', '1.0.0');
     },
   },
   staticCSP: true,
   transformStaticCSP: (header) => header,
-  transformSpecification: (swaggerObject, request, reply) => {
+  transformSpecification: (swaggerObject, request, _reply) => {
     // Add request-specific information to the spec
     const host = request.headers.host;
-    if (host && !swaggerObject.servers?.some((s) => s.url.includes(host))) {
-      swaggerObject.servers = swaggerObject.servers || [];
-      swaggerObject.servers.unshift({
-        url: `${request.protocol}://${host}`,
-        description: 'Current server',
-      });
+    
+    // Create a mutable copy of the swagger object
+    const mutableSwagger = { ...swaggerObject };
+    
+    if (host && !(mutableSwagger as any)['servers']?.some((s: any) => s.url.includes(host))) {
+      const servers = (mutableSwagger as any)['servers'] || [];
+      (mutableSwagger as any)['servers'] = [
+        {
+          url: `${request.protocol}://${host}`,
+          description: 'Current server',
+        },
+        ...servers
+      ];
     }
-    return swaggerObject;
+    return mutableSwagger;
   },
   transformSpecificationClone: true,
 };

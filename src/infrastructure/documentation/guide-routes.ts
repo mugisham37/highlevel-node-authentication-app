@@ -28,10 +28,6 @@ export async function registerGuideRoutes(
   // Configure marked for markdown rendering
   if (enableMarkdownRendering) {
     marked.setOptions({
-      highlight: function (code, lang) {
-        // Basic syntax highlighting (you might want to use a proper highlighter)
-        return `<pre><code class="language-${lang}">${code}</code></pre>`;
-      },
       breaks: true,
       gfm: true,
     });
@@ -146,13 +142,14 @@ export async function registerGuideRoutes(
 
         // Default to HTML
         const htmlContent = enableMarkdownRendering
-          ? marked(markdownContent)
+          ? await marked.parse(markdownContent)
           : markdownContent;
         reply.type('text/html');
         return wrapInHTMLTemplate(htmlContent, extractTitle(markdownContent));
-      } catch (error) {
-        if (error.code === 'ENOENT') {
-          reply.status(404).send({
+      } catch (error: unknown) {
+        const errorObj = error as { code?: string };
+        if (errorObj.code === 'ENOENT') {
+          return reply.status(404).send({
             success: false,
             error: 'GUIDE_NOT_FOUND',
             message: `Integration guide '${guide}' not found`,
@@ -240,13 +237,14 @@ export async function registerGuideRoutes(
 
         // Default to HTML
         const htmlContent = enableMarkdownRendering
-          ? marked(markdownContent)
+          ? await marked.parse(markdownContent)
           : markdownContent;
         reply.type('text/html');
         return wrapInHTMLTemplate(htmlContent, extractTitle(markdownContent));
-      } catch (error) {
-        if (error.code === 'ENOENT') {
-          reply.status(404).send({
+      } catch (error: unknown) {
+        const errorObj = error as { code?: string };
+        if (errorObj.code === 'ENOENT') {
+          return reply.status(404).send({
             success: false,
             error: 'GUIDE_NOT_FOUND',
             message: `Troubleshooting guide '${guide}' not found`,
@@ -315,7 +313,7 @@ export async function registerGuideRoutes(
         },
       },
     },
-    async (request, reply) => {
+    async (request, _reply) => {
       const {
         q: query,
         type = 'all',
@@ -381,7 +379,7 @@ export async function registerGuideRoutes(
         },
       },
     },
-    async (request, reply) => {
+    async () => {
       return {
         sections: [
           {
@@ -543,7 +541,7 @@ export async function registerGuideRoutes(
  */
 function extractTitle(markdown: string): string {
   const titleMatch = markdown.match(/^#\s+(.+)$/m);
-  return titleMatch ? titleMatch[1] : 'Documentation';
+  return titleMatch && titleMatch[1] ? titleMatch[1] : 'Documentation';
 }
 
 /**
@@ -553,18 +551,20 @@ function extractTableOfContents(
   markdown: string
 ): Array<{ level: number; title: string; anchor: string }> {
   const headingRegex = /^(#{1,6})\s+(.+)$/gm;
-  const toc = [];
+  const toc: Array<{ level: number; title: string; anchor: string }> = [];
   let match;
 
   while ((match = headingRegex.exec(markdown)) !== null) {
-    const level = match[1].length;
-    const title = match[2];
-    const anchor = title
-      .toLowerCase()
-      .replace(/[^\w\s-]/g, '')
-      .replace(/\s+/g, '-');
+    if (match[1] && match[2]) {
+      const level = match[1].length;
+      const title = match[2];
+      const anchor = title
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/\s+/g, '-');
 
-    toc.push({ level, title, anchor });
+      toc.push({ level, title, anchor });
+    }
   }
 
   return toc;
@@ -576,9 +576,9 @@ function extractTableOfContents(
 function filterContentBySearch(content: string, query: string): string {
   const lines = content.split('\n');
   const searchTerms = query.toLowerCase().split(' ');
-  const filteredLines = [];
+  const filteredLines: string[] = [];
   let inRelevantSection = false;
-  let sectionBuffer = [];
+  let sectionBuffer: string[] = [];
 
   for (const line of lines) {
     const lowerLine = line.toLowerCase();
@@ -680,18 +680,20 @@ async function searchDocumentation(
           if (score > 0) {
             // Extract excerpt around first match
             const firstTerm = searchTerms[0];
-            const matchIndex = lowerContent.indexOf(firstTerm);
-            const excerptStart = Math.max(0, matchIndex - 100);
-            const excerptEnd = Math.min(content.length, matchIndex + 200);
-            const excerpt = content.substring(excerptStart, excerptEnd).trim();
+            if (firstTerm) {
+              const matchIndex = lowerContent.indexOf(firstTerm);
+              const excerptStart = Math.max(0, matchIndex - 100);
+              const excerptEnd = Math.min(content.length, matchIndex + 200);
+              const excerpt = content.substring(excerptStart, excerptEnd).trim();
 
-            results.push({
-              type: searchPath.type,
-              title,
-              url: `${searchPath.urlPrefix}/${file.replace('.md', '')}`,
-              excerpt: excerptStart > 0 ? '...' + excerpt : excerpt,
-              score,
-            });
+              results.push({
+                type: searchPath.type,
+                title,
+                url: `${searchPath.urlPrefix}/${file.replace('.md', '')}`,
+                excerpt: excerptStart > 0 ? '...' + excerpt : excerpt,
+                score,
+              });
+            }
           }
         } catch (error) {
           // Skip files that can't be read

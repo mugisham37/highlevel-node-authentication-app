@@ -44,7 +44,6 @@ function generateJavaScriptSDK(
   spec: any,
   options: SDKGeneratorOptions
 ): string {
-  const packageName = options.packageName || 'enterprise-auth-client';
   const version = options.version || '1.0.0';
   const baseUrl = options.baseUrl || 'https://api.example.com';
 
@@ -381,7 +380,6 @@ try {
  * Generate Python SDK
  */
 function generatePythonSDK(spec: any, options: SDKGeneratorOptions): string {
-  const packageName = options.packageName || 'enterprise_auth_client';
   const version = options.version || '1.0.0';
   const baseUrl = options.baseUrl || 'https://api.example.com';
 
@@ -1207,7 +1205,6 @@ echo "7. Use proper device fingerprinting in production"`;
  * Generate PHP SDK
  */
 function generatePHPSDK(spec: any, options: SDKGeneratorOptions): string {
-  const packageName = options.packageName || 'enterprise-auth-client';
   const version = options.version || '1.0.0';
   const baseUrl = options.baseUrl || 'https://api.example.com';
 
@@ -1869,7 +1866,7 @@ export async function registerSDKRoutes(
       const { language } = request.params as { language: string };
       const { packageName, version, baseUrl } = request.query as any;
 
-      const spec = fastify.swagger();
+      const spec = (fastify as any).swagger();
       const options: SDKGeneratorOptions = {
         language: language as any,
         packageName,
@@ -1881,7 +1878,7 @@ export async function registerSDKRoutes(
         const sdkCode = await generateSDK(spec, options);
 
         // Set appropriate content type and filename
-        const contentTypes = {
+        const contentTypes: Record<string, string> = {
           javascript: 'application/javascript',
           python: 'text/x-python',
           curl: 'text/plain',
@@ -1890,7 +1887,7 @@ export async function registerSDKRoutes(
           csharp: 'text/x-csharp',
         };
 
-        const extensions = {
+        const extensions: Record<string, string> = {
           javascript: 'js',
           python: 'py',
           curl: 'sh',
@@ -1902,15 +1899,16 @@ export async function registerSDKRoutes(
         reply.type(contentTypes[language] || 'text/plain');
         reply.header(
           'Content-Disposition',
-          `attachment; filename="enterprise-auth-client.${extensions[language]}"`
+          `attachment; filename="enterprise-auth-client.${extensions[language] || 'txt'}"`
         );
 
         return sdkCode;
-      } catch (error) {
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         reply.status(400).send({
           success: false,
           error: 'SDK_GENERATION_FAILED',
-          message: error.message,
+          message: errorMessage,
         });
       }
     }
