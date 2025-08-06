@@ -36,9 +36,11 @@ export class RedisBackupService extends EventEmitter {
     this.redis = new Redis({
       host: config.host,
       port: config.port,
-      password: config.password,
-      retryDelayOnFailover: 100,
+      ...(config.password && { password: config.password }),
+      connectTimeout: 10000,
+      lazyConnect: true,
       maxRetriesPerRequest: 3,
+      enableOfflineQueue: false,
     });
   }
 
@@ -143,16 +145,6 @@ export class RedisBackupService extends EventEmitter {
 
       // Wait for background save to complete
       await this.waitForBackgroundSave();
-
-      // Get Redis data directory info
-      const configDir = await this.redis.config('GET', 'dir');
-      const configDbFilename = await this.redis.config('GET', 'dbfilename');
-
-      const redisDataDir = Array.isArray(configDir) ? configDir[1] : '/data';
-      const rdbFilename = Array.isArray(configDbFilename)
-        ? configDbFilename[1]
-        : 'dump.rdb';
-      const rdbPath = path.join(redisDataDir, rdbFilename);
 
       // Create backup using Redis DUMP command for all keys
       const backup = await this.createRedisDataDump();
@@ -278,13 +270,16 @@ export class RedisBackupService extends EventEmitter {
 
     // For now, return all data as we don't have change tracking
     // In a real implementation, you'd compare with previous backup
-    return {
+    const incrementalData = {
       type: 'incremental',
       timestamp: new Date().toISOString(),
+      lastBackupTime: this.lastBackupTime?.toISOString() || null,
       keys: currentData.keys,
       deletedKeys: [], // Would track deleted keys
       metadata: currentData.metadata,
     };
+
+    return incrementalData;
   }
 
   private async waitForBackgroundSave(): Promise<void> {
@@ -292,8 +287,6 @@ export class RedisBackupService extends EventEmitter {
     const maxAttempts = 60; // Wait up to 60 seconds
 
     while (attempts < maxAttempts) {
-      const lastSave = await this.redis.lastsave();
-
       // Check if background save is in progress
       const info = await this.redis.info('persistence');
       const isSaving = info.includes('rdb_bgsave_in_progress:1');
@@ -421,7 +414,7 @@ export class RedisBackupService extends EventEmitter {
 
       readStream
         .pipe(gunzip)
-        .on('data', (chunk) => {
+        .on('data', (chunk: Buffer) => {
           data += chunk.toString();
         })
         .on('end', () => {
@@ -460,6 +453,10 @@ export class RedisBackupService extends EventEmitter {
 
   private sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  public getLastBackupTime(): Date | null {
+    return this.lastBackupTime;
   }
 
   public async shutdown(): Promise<void> {
