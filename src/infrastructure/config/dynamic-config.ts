@@ -131,10 +131,11 @@ export class DynamicConfigManager extends EventEmitter {
 
       return { valid: true, errors: [], warnings: [] };
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('Failed to update configuration:', error);
       return {
         valid: false,
-        errors: [error.message],
+        errors: [errorMessage],
         warnings: [],
       };
     }
@@ -144,7 +145,7 @@ export class DynamicConfigManager extends EventEmitter {
     current: Partial<AppConfig>,
     updates: Partial<AppConfig>
   ): Partial<AppConfig> {
-    const merged = { ...current };
+    const merged = { ...current } as any;
 
     for (const [key, value] of Object.entries(updates)) {
       if (value && typeof value === 'object' && !Array.isArray(value)) {
@@ -261,7 +262,8 @@ export class DynamicConfigManager extends EventEmitter {
         warnings.push('Debug logging enabled in production environment');
       }
     } catch (error) {
-      errors.push(`Validation error: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      errors.push(`Validation error: ${errorMessage}`);
     }
 
     return {
@@ -299,7 +301,7 @@ export class DynamicConfigManager extends EventEmitter {
         await this.updateConfig(configData.config, 'file');
       }
     } catch (error) {
-      if (error.code !== 'ENOENT') {
+      if (error && typeof error === 'object' && 'code' in error && (error as any).code !== 'ENOENT') {
         throw error;
       }
       // File doesn't exist, which is fine
@@ -423,10 +425,11 @@ export class DynamicConfigManager extends EventEmitter {
       console.log(`Importing configuration from: ${inputPath}`);
       return this.updateConfig(importData.config, 'file', userId);
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('Failed to import configuration:', error);
       return {
         valid: false,
-        errors: [`Import failed: ${error.message}`],
+        errors: [`Import failed: ${errorMessage}`],
         warnings: [],
       };
     }

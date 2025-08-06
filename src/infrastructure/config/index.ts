@@ -28,7 +28,8 @@ export function createSecretsManager(
   secretsPath?: string,
   masterPassword?: string
 ) {
-  return new SecretsManager(secretsPath, masterPassword);
+  const { SecretsManager: SM } = require('./secrets-manager');
+  return new SM(secretsPath, masterPassword);
 }
 
 // Configuration validation helpers

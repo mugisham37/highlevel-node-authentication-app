@@ -41,7 +41,7 @@ if (process.env.NODE_ENV !== 'test') {
 
 // Export legacy config interface for backward compatibility
 export const config = new Proxy({} as any, {
-  get(target, prop) {
+  get(_target, prop) {
     if (!configInitialized) {
       // In test environment, try to initialize synchronously
       if (process.env.NODE_ENV === 'test') {
@@ -104,7 +104,7 @@ export const config = new Proxy({} as any, {
           file: appConfig.logging.file.path,
         };
       default:
-        return appConfig[prop];
+        return (appConfig as any)[prop];
     }
   },
 });

@@ -300,6 +300,11 @@ export type MonitoringConfig = z.infer<typeof MonitoringConfigSchema>;
 export type WebhookConfig = z.infer<typeof WebhookConfigSchema>;
 export type AppConfig = z.infer<typeof ConfigSchema>;
 
+// Add index signature for dynamic access
+export type PartialAppConfig = Partial<AppConfig> & {
+  [key: string]: any;
+};
+
 // Configuration change event types
 export interface ConfigChangeEvent {
   timestamp: Date;
@@ -307,7 +312,7 @@ export interface ConfigChangeEvent {
   oldValue: any;
   newValue: any;
   source: 'file' | 'api' | 'env';
-  userId?: string;
+  userId?: string | undefined;
 }
 
 // Configuration validation result

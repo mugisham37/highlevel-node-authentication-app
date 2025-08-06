@@ -5,7 +5,7 @@ import * as path from 'path';
 export interface SecretMetadata {
   id: string;
   name: string;
-  description?: string;
+  description: string;
   createdAt: Date;
   updatedAt: Date;
   version: number;
@@ -33,7 +33,6 @@ export interface SecretValue {
 export class SecretsManager {
   private readonly secretsPath: string;
   private readonly masterKey: Buffer;
-  private readonly algorithm = 'aes-256-gcm';
   private readonly keyDerivationIterations = 100000;
   private secretsCache = new Map<string, SecretValue>();
   private cacheExpiry = new Map<string, number>();
@@ -49,13 +48,13 @@ export class SecretsManager {
 
   private getDefaultMasterPassword(): string {
     // In production, this should come from a secure source like AWS KMS, HashiCorp Vault, etc.
-    const envPassword = process.env.SECRETS_MASTER_PASSWORD;
+    const envPassword = process.env['SECRETS_MASTER_PASSWORD'];
     if (envPassword) {
       return envPassword;
     }
 
     // For development, generate a consistent key based on machine characteristics
-    const machineId = process.env.MACHINE_ID || 'default-dev-machine';
+    const machineId = process.env['MACHINE_ID'] || 'default-dev-machine';
     return crypto.createHash('sha256').update(machineId).digest('hex');
   }
 
@@ -110,17 +109,16 @@ export class SecretsManager {
         value,
         this.masterKey.toString('hex')
       );
-      const authTag = Buffer.alloc(0);
 
       const metadata: SecretMetadata = {
         id: secretId,
         name,
-        description: options.description,
+        description: options.description || `Secret for ${name}`,
         createdAt: new Date(),
         updatedAt: new Date(),
         version: 1,
         tags: options.tags || [],
-        rotationPolicy: options.rotationPolicy,
+        ...(options.rotationPolicy && { rotationPolicy: options.rotationPolicy }),
       };
 
       // Check if secret already exists and increment version
@@ -155,7 +153,8 @@ export class SecretsManager {
       return secretId;
     } catch (error) {
       console.error(`Failed to store secret ${name}:`, error);
-      throw new Error(`Failed to store secret: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to store secret: ${errorMessage}`);
     }
   }
 
@@ -212,7 +211,8 @@ export class SecretsManager {
         metadata: encryptedSecret.metadata,
       };
     } catch (error) {
-      throw new Error(`Failed to decrypt secret: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to decrypt secret: ${errorMessage}`);
     }
   }
 
