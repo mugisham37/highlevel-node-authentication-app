@@ -7,6 +7,7 @@ import { createHash, createHmac, randomBytes } from 'crypto';
 import { correlationIdManager } from '../tracing/correlation-id';
 import { loggers } from './structured-logger';
 import { metricsManager } from './prometheus-metrics';
+import { ENV } from '../utils/env-utils';
 
 export interface AuditEvent {
   id: string;
@@ -16,12 +17,12 @@ export interface AuditEvent {
   resource: AuditResource;
   outcome: AuditOutcome;
   context: AuditContext;
-  changes?: AuditChanges;
+  changes?: AuditChanges | undefined;
   metadata: Record<string, any>;
-  correlationId?: string;
-  sessionId?: string;
-  ipAddress?: string;
-  userAgent?: string;
+  correlationId?: string | undefined;
+  sessionId?: string | undefined;
+  ipAddress?: string | undefined;
+  userAgent?: string | undefined;
   integrity: AuditIntegrity;
 }
 
@@ -85,7 +86,7 @@ export interface AuditIntegrity {
   signature: string;
   algorithm: string;
   keyId: string;
-  previousHash?: string;
+  previousHash?: string | undefined;
   chainIndex: number;
 }
 
@@ -181,18 +182,18 @@ export class AuditTrailManager {
         operation: eventData.action,
         component: 'audit',
         service: 'auth-backend',
-        version: process.env.APP_VERSION || '1.0.0',
-        environment: process.env.NODE_ENV || 'development',
+        version: ENV.APP_VERSION,
+        environment: ENV.NODE_ENV,
         requestId: correlationId,
         ...eventData.context,
-      },
-      changes: eventData.changes,
+      } as AuditContext,
+      ...(eventData.changes !== undefined && { changes: eventData.changes }),
       metadata: eventData.metadata || {},
-      correlationId,
-      sessionId,
-      ipAddress: eventData.ipAddress,
-      userAgent: eventData.userAgent,
-      integrity: this.generateIntegrity(eventData),
+      ...(correlationId !== undefined && { correlationId }),
+      ...(sessionId !== undefined && { sessionId }),
+      ...(eventData.ipAddress !== undefined && { ipAddress: eventData.ipAddress }),
+      ...(eventData.userAgent !== undefined && { userAgent: eventData.userAgent }),
+      integrity: this.generateIntegrity(),
     };
 
     // Add to chain
@@ -425,6 +426,7 @@ export class AuditTrailManager {
       const calculatedHash = this.calculateEventHash(event);
       if (calculatedHash !== event.integrity.hash) {
         loggers.audit.error('Audit event hash verification failed', {
+          errorType: 'AUDIT_HASH_VERIFICATION_FAILED',
           eventId: event.id,
           expectedHash: event.integrity.hash,
           calculatedHash,
@@ -436,6 +438,7 @@ export class AuditTrailManager {
       const calculatedSignature = this.signEvent(event);
       if (calculatedSignature !== event.integrity.signature) {
         loggers.audit.error('Audit event signature verification failed', {
+          errorType: 'AUDIT_SIGNATURE_VERIFICATION_FAILED',
           eventId: event.id,
           expectedSignature: event.integrity.signature,
           calculatedSignature,
@@ -446,6 +449,7 @@ export class AuditTrailManager {
       return true;
     } catch (error) {
       loggers.audit.error('Audit event integrity verification error', {
+        errorType: 'AUDIT_INTEGRITY_VERIFICATION_ERROR',
         eventId: event.id,
         error: (error as Error).message,
       });
@@ -469,6 +473,14 @@ export class AuditTrailManager {
 
     for (let i = 0; i < this.events.length; i++) {
       const event = this.events[i];
+
+      if (!event) {
+        return {
+          valid: false,
+          brokenAt: i,
+          details: `Missing event at index ${i}`,
+        };
+      }
 
       // Verify individual event integrity
       if (!this.verifyEventIntegrity(event)) {
@@ -520,7 +532,7 @@ export class AuditTrailManager {
   /**
    * Generate integrity data
    */
-  private generateIntegrity(eventData: any): AuditIntegrity {
+  private generateIntegrity(): AuditIntegrity {
     return {
       hash: '', // Will be calculated after event is complete
       signature: '', // Will be calculated after event is complete
@@ -625,6 +637,7 @@ export class AuditTrailManager {
       const result = this.verifyChainIntegrity();
       if (!result.valid) {
         loggers.audit.error('Audit chain integrity check failed', {
+          errorType: 'AUDIT_CHAIN_INTEGRITY_FAILED',
           brokenAt: result.brokenAt,
           details: result.details,
         });
@@ -677,15 +690,28 @@ export class AuditHelpers {
       impersonatedBy?: string;
     }
   ): AuditActor {
-    return {
+    const actor: AuditActor = {
       type: userType,
       id: userId,
-      name: additionalData?.name,
-      email: additionalData?.email,
-      roles: additionalData?.roles,
-      permissions: additionalData?.permissions,
-      impersonatedBy: additionalData?.impersonatedBy,
     };
+
+    if (additionalData?.name !== undefined) {
+      actor.name = additionalData.name;
+    }
+    if (additionalData?.email !== undefined) {
+      actor.email = additionalData.email;
+    }
+    if (additionalData?.roles !== undefined) {
+      actor.roles = additionalData.roles;
+    }
+    if (additionalData?.permissions !== undefined) {
+      actor.permissions = additionalData.permissions;
+    }
+    if (additionalData?.impersonatedBy !== undefined) {
+      actor.impersonatedBy = additionalData.impersonatedBy;
+    }
+
+    return actor;
   }
 
   /**
@@ -712,23 +738,39 @@ export class AuditHelpers {
     attributes?: Record<string, any>,
     parent?: { type: string; id: string }
   ): AuditResource {
-    return {
+    const resource: AuditResource = {
       type,
-      id,
-      name,
-      attributes,
-      parent,
     };
+
+    if (id !== undefined) {
+      resource.id = id;
+    }
+    if (name !== undefined) {
+      resource.name = name;
+    }
+    if (attributes !== undefined) {
+      resource.attributes = attributes;
+    }
+    if (parent !== undefined) {
+      resource.parent = parent;
+    }
+
+    return resource;
   }
 
   /**
    * Create successful outcome
    */
   static createSuccessOutcome(riskScore?: number): AuditOutcome {
-    return {
+    const outcome: AuditOutcome = {
       result: 'success',
-      riskScore,
     };
+
+    if (riskScore !== undefined) {
+      outcome.riskScore = riskScore;
+    }
+
+    return outcome;
   }
 
   /**
@@ -740,13 +782,22 @@ export class AuditHelpers {
     errorMessage?: string,
     riskScore?: number
   ): AuditOutcome {
-    return {
+    const outcome: AuditOutcome = {
       result: 'failure',
       reason,
-      errorCode,
-      errorMessage,
-      riskScore,
     };
+
+    if (errorCode !== undefined) {
+      outcome.errorCode = errorCode;
+    }
+    if (errorMessage !== undefined) {
+      outcome.errorMessage = errorMessage;
+    }
+    if (riskScore !== undefined) {
+      outcome.riskScore = riskScore;
+    }
+
+    return outcome;
   }
 
   /**
@@ -756,7 +807,14 @@ export class AuditHelpers {
     before?: Record<string, any>,
     after?: Record<string, any>
   ): AuditChanges {
-    const changes: AuditChanges = { before, after };
+    const changes: AuditChanges = {};
+
+    if (before !== undefined) {
+      changes.before = before;
+    }
+    if (after !== undefined) {
+      changes.after = after;
+    }
 
     if (before && after) {
       changes.delta = [];
@@ -793,5 +851,5 @@ export class AuditHelpers {
 
 // Export singleton instance
 export const auditTrailManager = new AuditTrailManager(
-  process.env.AUDIT_SECRET_KEY
+  ENV.AUDIT_SECRET_KEY
 );

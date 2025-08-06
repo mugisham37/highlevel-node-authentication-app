@@ -67,9 +67,9 @@ export interface SecurityLogContext extends LogContext {
  */
 export interface AuditLogContext extends LogContext {
   action: string;
-  resource?: string | undefined;
+  resource?: AuditResource | string | undefined;
   resourceId?: string | undefined;
-  changes?: Record<string, { before: any; after: any }> | undefined;
+  changes?: AuditChanges | Record<string, { before: any; after: any }> | undefined;
   [key: string]: any;
 }
 
@@ -138,6 +138,7 @@ export enum AlertType {
  */
 export enum AlertStatus {
   ACTIVE = 'active',
+  ACKNOWLEDGED = 'acknowledged',
   RESOLVED = 'resolved',
   SUPPRESSED = 'suppressed',
   ESCALATED = 'escalated',
@@ -172,10 +173,15 @@ export interface Alert {
   title: string;
   description: string;
   source: string;
-  correlationId: string;
+  correlationId?: string | undefined;
   metadata: Record<string, any>;
   status: AlertStatus;
   escalationLevel: number;
+  acknowledgedBy?: string | undefined;
+  acknowledgedAt?: Date | undefined;
+  resolvedBy?: string | undefined;
+  resolvedAt?: Date | undefined;
+  suppressUntil?: Date | undefined;
 }
 
 /**
@@ -189,8 +195,20 @@ export interface PerformanceAlert {
   threshold: PerformanceThreshold;
   actualDuration: number;
   severity: 'warning' | 'error' | 'critical';
-  correlationId: string;
+  correlationId?: string | undefined;
   metadata: Record<string, any>;
+}
+
+/**
+ * Alert Threshold interface
+ */
+export interface AlertThreshold {
+  warning?: number;
+  error?: number;
+  critical?: number;
+  warningThreshold?: number;
+  errorThreshold?: number;
+  criticalThreshold?: number;
 }
 
 /**
@@ -200,6 +218,9 @@ export interface PerformanceThreshold {
   warning: number;
   error: number;
   critical: number;
+  warningThreshold: number;
+  errorThreshold: number;
+  criticalThreshold: number;
 }
 
 /**
@@ -214,7 +235,7 @@ export interface PerformanceMetric {
   duration?: number | undefined;
   status: 'pending' | 'completed' | 'error';
   metadata: Record<string, any>;
-  correlationId: string;
+  correlationId?: string | undefined;
   spanId: string;
   resourceUsage: {
     memory: number;
@@ -245,16 +266,16 @@ export interface ServiceStatus {
   status: 'healthy' | 'degraded' | 'unhealthy';
   responseTime: number;
   lastCheck: Date;
-  details: Record<string, any>;
+  details?: Record<string, any> | undefined;
 }
 
 /**
  * Audit Event interfaces
  */
 export interface AuditActor {
-  type: 'admin' | 'user';
+  type: 'user' | 'system' | 'service' | 'admin' | 'api_client';
   id: string;
-  name: string;
+  name?: string | undefined;
   email?: string | undefined;
   roles?: string[] | undefined;
   permissions?: string[] | undefined;
@@ -263,7 +284,7 @@ export interface AuditActor {
 
 export interface AuditResource {
   type: string;
-  id: string;
+  id?: string | undefined;
   name?: string | undefined;
   attributes?: Record<string, any> | undefined;
   parent?: {
@@ -273,7 +294,7 @@ export interface AuditResource {
 }
 
 export interface AuditOutcome {
-  result: 'success' | 'failure';
+  result: 'success' | 'failure' | 'partial';
   reason?: string | undefined;
   errorCode?: string | undefined;
   errorMessage?: string | undefined;
@@ -283,6 +304,12 @@ export interface AuditOutcome {
 export interface AuditChanges {
   before?: Record<string, any> | undefined;
   after?: Record<string, any> | undefined;
+  delta?: Array<{
+    field: string;
+    oldValue: any;
+    newValue: any;
+    operation: 'create' | 'update' | 'delete';
+  }> | undefined;
 }
 
 export interface AuditContext {
@@ -291,7 +318,7 @@ export interface AuditContext {
   service: string;
   version: string;
   environment: string;
-  requestId: string;
+  requestId?: string | undefined;
   businessContext?: Record<string, any> | undefined;
   complianceContext?: {
     regulation: string;

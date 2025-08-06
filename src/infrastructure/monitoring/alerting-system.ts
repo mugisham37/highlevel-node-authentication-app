@@ -7,48 +7,17 @@ import { EventEmitter } from 'events';
 import { correlationIdManager } from '../tracing/correlation-id';
 import { loggers } from './structured-logger';
 import { metricsManager } from './prometheus-metrics';
-import { performanceTracker, PerformanceAlert } from './performance-tracker';
-
-export interface Alert {
-  id: string;
-  timestamp: Date;
-  type: AlertType;
-  severity: AlertSeverity;
-  title: string;
-  description: string;
-  source: string;
-  correlationId?: string;
-  metadata: Record<string, any>;
-  status: AlertStatus;
-  acknowledgedBy?: string;
-  acknowledgedAt?: Date;
-  resolvedBy?: string;
-  resolvedAt?: Date;
-  escalationLevel: number;
-  suppressUntil?: Date;
-}
-
-export enum AlertType {
-  SECURITY = 'security',
-  PERFORMANCE = 'performance',
-  SYSTEM = 'system',
-  BUSINESS = 'business',
-  COMPLIANCE = 'compliance',
-}
-
-export enum AlertSeverity {
-  LOW = 'low',
-  MEDIUM = 'medium',
-  HIGH = 'high',
-  CRITICAL = 'critical',
-}
-
-export enum AlertStatus {
-  ACTIVE = 'active',
-  ACKNOWLEDGED = 'acknowledged',
-  RESOLVED = 'resolved',
-  SUPPRESSED = 'suppressed',
-}
+import { performanceTracker } from './performance-tracker';
+import {
+  Alert,
+  AlertType,
+  AlertSeverity,
+  AlertStatus,
+  AlertThreshold,
+  SecurityEvent,
+  SecurityEventType,
+  PerformanceAlert
+} from '../utils/monitoring-types';
 
 export interface AlertRule {
   id: string;
@@ -71,12 +40,6 @@ export interface AlertCondition {
   value: any;
   timeWindow?: number; // milliseconds
   aggregation?: 'count' | 'sum' | 'avg' | 'min' | 'max';
-}
-
-export interface AlertThreshold {
-  warning?: number;
-  error?: number;
-  critical?: number;
 }
 
 export interface EscalationRule {
@@ -103,38 +66,6 @@ export interface NotificationChannel {
     maxPerHour: number;
     maxPerDay: number;
   };
-}
-
-export interface SecurityEvent {
-  id: string;
-  timestamp: Date;
-  type: SecurityEventType;
-  severity: AlertSeverity;
-  source: string;
-  userId?: string;
-  sessionId?: string;
-  ipAddress?: string;
-  userAgent?: string;
-  details: Record<string, any>;
-  riskScore: number;
-  correlationId?: string;
-}
-
-export enum SecurityEventType {
-  FAILED_LOGIN = 'failed_login',
-  ACCOUNT_LOCKOUT = 'account_lockout',
-  SUSPICIOUS_ACTIVITY = 'suspicious_activity',
-  PRIVILEGE_ESCALATION = 'privilege_escalation',
-  DATA_ACCESS_VIOLATION = 'data_access_violation',
-  RATE_LIMIT_EXCEEDED = 'rate_limit_exceeded',
-  INVALID_TOKEN = 'invalid_token',
-  SESSION_HIJACKING = 'session_hijacking',
-  BRUTE_FORCE_ATTACK = 'brute_force_attack',
-  SQL_INJECTION_ATTEMPT = 'sql_injection_attempt',
-  XSS_ATTEMPT = 'xss_attempt',
-  CSRF_ATTEMPT = 'csrf_attempt',
-  UNAUTHORIZED_ACCESS = 'unauthorized_access',
-  ANOMALOUS_BEHAVIOR = 'anomalous_behavior',
 }
 
 /**
@@ -356,19 +287,21 @@ export class AlertingSystem extends EventEmitter {
     ipAddress?: string,
     userAgent?: string
   ): SecurityEvent {
+    const correlationId = correlationIdManager.getCorrelationId();
+    
     const event: SecurityEvent = {
       id: this.generateId(),
       timestamp: new Date(),
       type,
       severity,
       source,
-      userId,
-      sessionId,
-      ipAddress,
-      userAgent,
+      ...(userId !== undefined && { userId }),
+      ...(sessionId !== undefined && { sessionId }),
+      ...(ipAddress !== undefined && { ipAddress }),
+      ...(userAgent !== undefined && { userAgent }),
       details,
       riskScore,
-      correlationId: correlationIdManager.getCorrelationId(),
+      ...(correlationId !== undefined && { correlationId }),
     };
 
     // Store event
@@ -380,17 +313,18 @@ export class AlertingSystem extends EventEmitter {
     // Record metrics
     metricsManager.recordSecurityEvent(type, severity, source, riskScore);
 
-    // Log event
+    // Log event with proper SecurityLogContext
     loggers.security.security(`Security event recorded: ${type}`, {
-      eventType: type,
+      securityEvent: type,
       severity,
       source,
-      userId,
-      sessionId,
-      ipAddress,
-      userAgent,
+      ...(userId !== undefined && { userId }),
+      ...(sessionId !== undefined && { sessionId }),
+      ...(ipAddress !== undefined && { ipAddress }),
+      ...(userAgent !== undefined && { userAgent }),
       riskScore,
       details,
+      correlationId,
     });
 
     // Emit for processing
@@ -412,7 +346,7 @@ export class AlertingSystem extends EventEmitter {
         title: `Security Anomaly Detected: ${event.type}`,
         description: `Anomalous security event detected: ${anomaly.description}`,
         source: event.source,
-        correlationId: event.correlationId,
+        ...(event.correlationId !== undefined && { correlationId: event.correlationId }),
         metadata: {
           securityEvent: event,
           anomaly,
@@ -430,13 +364,29 @@ export class AlertingSystem extends EventEmitter {
   private async handlePerformanceAlert(
     perfAlert: PerformanceAlert
   ): Promise<void> {
+    // Get the appropriate threshold value based on severity
+    let thresholdValue: number;
+    switch (perfAlert.severity) {
+      case 'warning':
+        thresholdValue = perfAlert.threshold.warningThreshold;
+        break;
+      case 'error':
+        thresholdValue = perfAlert.threshold.errorThreshold;
+        break;
+      case 'critical':
+        thresholdValue = perfAlert.threshold.criticalThreshold;
+        break;
+      default:
+        thresholdValue = perfAlert.threshold.criticalThreshold;
+    }
+
     await this.createAlert({
       type: AlertType.PERFORMANCE,
       severity: perfAlert.severity as AlertSeverity,
       title: `Performance Threshold Exceeded: ${perfAlert.operation}`,
-      description: `Operation ${perfAlert.component}.${perfAlert.operation} took ${perfAlert.actualDuration}ms, exceeding ${perfAlert.severity} threshold of ${perfAlert.threshold[`${perfAlert.severity}Threshold` as keyof AlertThreshold]}ms`,
+      description: `Operation ${perfAlert.component}.${perfAlert.operation} took ${perfAlert.actualDuration}ms, exceeding ${perfAlert.severity} threshold of ${thresholdValue}ms`,
       source: perfAlert.component,
-      correlationId: perfAlert.correlationId,
+      ...(perfAlert.correlationId !== undefined && { correlationId: perfAlert.correlationId }),
       metadata: {
         performanceAlert: perfAlert,
       },
@@ -463,7 +413,7 @@ export class AlertingSystem extends EventEmitter {
       title: alertData.title,
       description: alertData.description,
       source: alertData.source,
-      correlationId: alertData.correlationId,
+      ...(alertData.correlationId !== undefined && { correlationId: alertData.correlationId }),
       metadata: alertData.metadata || {},
       status: AlertStatus.ACTIVE,
       escalationLevel: 0,
@@ -478,7 +428,7 @@ export class AlertingSystem extends EventEmitter {
       type: alert.type,
       severity: alert.severity,
       source: alert.source,
-      correlationId: alert.correlationId,
+      ...(alert.correlationId !== undefined && { correlationId: alert.correlationId }),
       metadata: alert.metadata,
     });
 
@@ -496,7 +446,7 @@ export class AlertingSystem extends EventEmitter {
    */
   acknowledgeAlert(alertId: string, acknowledgedBy: string): boolean {
     const alert = this.alerts.get(alertId);
-    if (!alert || alert.status !== AlertStatus.ACTIVE) {
+    if (!alert || alert.status === AlertStatus.RESOLVED) {
       return false;
     }
 
@@ -548,7 +498,7 @@ export class AlertingSystem extends EventEmitter {
 
     alert.status = AlertStatus.SUPPRESSED;
     alert.suppressUntil = new Date(Date.now() + duration);
-    alert.metadata.suppressionReason = reason;
+    alert.metadata['suppressionReason'] = reason;
 
     loggers.security.info(`Alert suppressed`, {
       alertId,
@@ -673,7 +623,7 @@ export class AlertingSystem extends EventEmitter {
           title: rule.name,
           description: `Alert rule triggered: ${rule.name}`,
           source: event.source,
-          correlationId: event.correlationId,
+          ...(event.correlationId !== undefined && { correlationId: event.correlationId }),
           metadata: {
             rule,
             triggeringEvent: event,
@@ -767,6 +717,7 @@ export class AlertingSystem extends EventEmitter {
           await this.sendNotification(channel, alert);
         } catch (error) {
           loggers.security.error(`Failed to send notification`, {
+            errorType: 'notification_failure',
             channelId,
             alertId: alert.id,
             error: (error as Error).message,
@@ -915,16 +866,20 @@ class AnomalyDetector {
         (timestamp) => event.timestamp.getTime() - timestamp < 300000 // 5 minutes
       );
 
-      const averageFrequency =
-        (baseline.length / (baseline[baseline.length - 1] - baseline[0])) *
-        300000;
-      const currentFrequency = recentEvents.length;
+      const firstTimestamp = baseline[0];
+      const lastTimestamp = baseline[baseline.length - 1];
+      
+      if (firstTimestamp !== undefined && lastTimestamp !== undefined) {
+        const averageFrequency =
+          (baseline.length / (lastTimestamp - firstTimestamp)) * 300000;
+        const currentFrequency = recentEvents.length;
 
-      if (currentFrequency > averageFrequency * 3) {
-        return {
-          description: `Unusual frequency of ${event.type} events from ${event.source}`,
-          score: Math.min(currentFrequency / averageFrequency / 3, 1),
-        };
+        if (currentFrequency > averageFrequency * 3) {
+          return {
+            description: `Unusual frequency of ${event.type} events from ${event.source}`,
+            score: Math.min(currentFrequency / averageFrequency / 3, 1),
+          };
+        }
       }
     }
 

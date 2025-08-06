@@ -88,6 +88,10 @@ declare global {
       LOG_LEVEL?: 'error' | 'warn' | 'info' | 'debug';
       LOG_FORMAT?: 'json' | 'simple';
       
+      // Application Version and Audit
+      APP_VERSION?: string;
+      AUDIT_SECRET_KEY?: string;
+      
       // Testing
       TEST_DATABASE_URL?: string;
       TEST_CONFIG_VALUE?: string;
