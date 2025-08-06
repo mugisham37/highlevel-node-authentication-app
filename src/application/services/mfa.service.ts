@@ -16,17 +16,17 @@ import { PrismaUserRepository } from '../../infrastructure/database/repositories
 
 export interface MFASetupResult {
   success: boolean;
-  secret?: string;
-  qrCodeUrl?: string;
-  backupCodes?: string[];
-  error?: MFAError;
+  secret?: string | undefined;
+  qrCodeUrl?: string | undefined;
+  backupCodes?: string[] | undefined;
+  error?: MFAError | undefined;
 }
 
 export interface MFAVerificationResult {
   success: boolean;
-  user?: User;
-  backupCodeUsed?: boolean;
-  error?: MFAError;
+  user?: User | undefined;
+  backupCodeUsed?: boolean | undefined;
+  error?: MFAError | undefined;
 }
 
 export interface MFAChallenge {
@@ -43,7 +43,7 @@ export interface MFAChallenge {
 export interface MFAError {
   code: string;
   message: string;
-  details?: Record<string, any>;
+  details?: Record<string, any> | string | undefined;
 }
 
 export interface WebAuthnCredential {
@@ -420,7 +420,7 @@ export class MFAService {
       await this.challengeRepository.incrementAttempts(challengeId);
 
       // Verify code
-      const storedCode = challenge.metadata?.code;
+      const storedCode = (challenge.metadata as { code?: string } | undefined)?.code;
       if (!storedCode || storedCode !== code) {
         this.logger.warn('SMS MFA verification failed', {
           correlationId,
@@ -615,7 +615,7 @@ export class MFAService {
       await this.challengeRepository.incrementAttempts(challengeId);
 
       // Verify code
-      const storedCode = challenge.metadata?.code;
+      const storedCode = (challenge.metadata as { code?: string } | undefined)?.code;
       if (!storedCode || storedCode !== code) {
         this.logger.warn('Email MFA verification failed', {
           correlationId,
@@ -680,7 +680,7 @@ export class MFAService {
    */
   async registerWebAuthn(
     request: WebAuthnRegistrationRequest
-  ): Promise<{ success: boolean; credentialId?: string; error?: MFAError }> {
+  ): Promise<{ success: boolean; credentialId?: string | undefined; error?: MFAError | undefined }> {
     const correlationId = SecureIdGenerator.generateCorrelationId();
 
     try {
@@ -768,15 +768,33 @@ export class MFAService {
       }
 
       // Verify with WebAuthn service
-      const verificationResult =
-        await this.webAuthnService.verifyAuthentication({
-          userId: request.userId,
-          credentialId: request.credentialId,
+      const expectedChallenge = (challenge.metadata as { challenge?: string } | undefined)?.challenge;
+      if (!expectedChallenge) {
+        return {
+          success: false,
+          error: {
+            code: 'INVALID_CHALLENGE',
+            message: 'Challenge data not found',
+          },
+        };
+      }
+
+      const authResponse = {
+        id: request.credentialId,
+        rawId: request.credentialId,
+        response: {
           authenticatorData: request.authenticatorData,
           clientDataJSON: request.clientDataJSON,
           signature: request.signature,
-          challenge: challenge.metadata?.challenge,
-        });
+        },
+        type: 'public-key' as const,
+        clientExtensionResults: {},
+      };
+
+      const verificationResult = await this.webAuthnService.verifyAuthenticationResponse(
+        authResponse,
+        expectedChallenge
+      );
 
       if (!verificationResult.success) {
         this.logger.warn('WebAuthn verification failed', {

@@ -22,26 +22,26 @@ export interface OAuthProvider {
 export interface OAuthInitiation {
   authorizationUrl: string;
   state: string;
-  codeVerifier?: string; // For PKCE
-  nonce?: string; // For OIDC
+  codeVerifier?: string | undefined; // For PKCE
+  nonce?: string | undefined; // For OIDC
 }
 
 export interface OAuthTokens {
   accessToken: string;
-  refreshToken?: string;
-  idToken?: string;
+  refreshToken?: string | undefined;
+  idToken?: string | undefined;
   tokenType: string;
   expiresIn: number;
-  scope?: string;
+  scope?: string | undefined;
 }
 
 export interface OAuthUserInfo {
   id: string;
-  email?: string;
-  name?: string;
-  picture?: string;
-  emailVerified?: boolean;
-  locale?: string;
+  email?: string | undefined;
+  name?: string | undefined;
+  picture?: string | undefined;
+  emailVerified?: boolean | undefined;
+  locale?: string | undefined;
   [key: string]: any;
 }
 
@@ -58,8 +58,8 @@ export interface OAuthResult {
 export interface OAuthError {
   code: string;
   message: string;
-  description?: string;
-  uri?: string;
+  description?: string | undefined;
+  uri?: string | undefined;
 }
 
 export interface OAuthCallbackRequest {

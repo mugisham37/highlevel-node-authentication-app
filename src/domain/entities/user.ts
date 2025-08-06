@@ -20,23 +20,23 @@ export interface DeviceInfo {
 export interface UserProps {
   id: string;
   email: Email;
-  emailVerified?: Date;
-  name?: string;
-  image?: string;
-  password?: Password;
+  emailVerified?: Date | undefined;
+  name?: string | undefined;
+  image?: string | undefined;
+  password?: Password | undefined;
   createdAt: Date;
   updatedAt: Date;
 
   // MFA Properties
   mfaEnabled: boolean;
-  totpSecret?: string;
+  totpSecret?: string | undefined;
   backupCodes: string[];
 
   // Security Properties
   failedLoginAttempts: number;
-  lockedUntil?: Date;
-  lastLoginAt?: Date;
-  lastLoginIP?: string;
+  lockedUntil?: Date | undefined;
+  lastLoginAt?: Date | undefined;
+  lastLoginIP?: string | undefined;
   riskScore: number;
 }
 

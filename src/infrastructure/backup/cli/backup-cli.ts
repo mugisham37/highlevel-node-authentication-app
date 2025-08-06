@@ -7,9 +7,7 @@ import { CrossRegionReplicationManager } from '../cross-region-replication';
 import { createBackupConfig, validateBackupConfig } from '../config';
 import { DatabaseConnectionManager } from '../../database/connection-manager';
 import { createDatabaseConfig } from '../../database/config';
-import { createLogger } from '../../logging/logger';
-import { promises as fs } from 'fs';
-import path from 'path';
+import { createLogger } from '../../logging';
 
 const program = new Command();
 

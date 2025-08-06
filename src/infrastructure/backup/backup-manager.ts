@@ -5,12 +5,32 @@ import { PostgresBackupService } from './postgres-backup-service';
 import {
   BackupConfig,
   BackupResult,
-  BackupType,
   RestoreOptions,
 } from './types';
 import { EventEmitter } from 'events';
 import { promises as fs } from 'fs';
 import path from 'path';
+
+interface ManifestBackup {
+  type: string;
+  filePath: string;
+  size: number;
+  checksum?: string;
+  compressed: boolean;
+  encrypted: boolean;
+}
+
+interface BackupManifest {
+  backupId: string;
+  createdAt: string;
+  type: string;
+  backups: ManifestBackup[];
+  metadata: {
+    version: string;
+    nodeVersion: string;
+    platform: string;
+  };
+}
 
 export class BackupManager extends EventEmitter {
   private postgresBackup: PostgresBackupService;
@@ -19,7 +39,8 @@ export class BackupManager extends EventEmitter {
 
   constructor(
     private config: BackupConfig,
-    private dbManager: DatabaseConnectionManager,
+    // @ts-ignore - Parameter kept for interface compatibility
+    private _dbManager: DatabaseConnectionManager,
     private logger: Logger
   ) {
     super();
@@ -201,19 +222,24 @@ export class BackupManager extends EventEmitter {
       // Restore PostgreSQL
       if (options.restorePostgres !== false) {
         const postgresBackup = manifest.backups.find(
-          (b) => b.type === 'postgres'
+          (b: ManifestBackup) => b.type === 'postgres'
         );
         if (postgresBackup) {
-          await this.postgresBackup.restoreBackup(postgresBackup.filePath, {
+          const restoreOptions: { dropExisting: boolean; targetDatabase?: string } = {
             dropExisting: options.dropExisting || false,
-            targetDatabase: options.targetDatabase,
-          });
+          };
+          
+          if (options.targetDatabase) {
+            restoreOptions.targetDatabase = options.targetDatabase;
+          }
+          
+          await this.postgresBackup.restoreBackup(postgresBackup.filePath, restoreOptions);
         }
       }
 
       // Restore Redis
       if (options.restoreRedis !== false) {
-        const redisBackup = manifest.backups.find((b) => b.type === 'redis');
+        const redisBackup = manifest.backups.find((b: ManifestBackup) => b.type === 'redis');
         if (redisBackup) {
           await this.redisBackup.restoreBackup(redisBackup.filePath, {
             flushExisting: options.flushExisting || false,
@@ -388,11 +414,11 @@ export class BackupManager extends EventEmitter {
 
   private parseScheduleInterval(interval: string): number {
     const match = interval.match(/^(\d+)([hdm])$/);
-    if (!match) {
+    if (!match || !match[1] || !match[2]) {
       throw new Error(`Invalid schedule interval format: ${interval}`);
     }
 
-    const value = parseInt(match[1]);
+    const value = parseInt(match[1], 10);
     const unit = match[2];
 
     switch (unit) {
@@ -429,7 +455,7 @@ export class BackupManager extends EventEmitter {
         encrypted: result.encrypted,
       })),
       metadata: {
-        version: process.env.npm_package_version || '1.0.0',
+        version: process.env['npm_package_version'] || '1.0.0',
         nodeVersion: process.version,
         platform: process.platform,
       },
@@ -445,7 +471,7 @@ export class BackupManager extends EventEmitter {
     await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2));
   }
 
-  private async loadBackupManifest(backupId: string): Promise<any> {
+  private async loadBackupManifest(backupId: string): Promise<BackupManifest | null> {
     const manifestPath = path.join(
       this.config.storage.localPath,
       backupId,
@@ -454,13 +480,13 @@ export class BackupManager extends EventEmitter {
 
     try {
       const content = await fs.readFile(manifestPath, 'utf-8');
-      return JSON.parse(content);
+      return JSON.parse(content) as BackupManifest;
     } catch (error) {
       return null;
     }
   }
 
-  private async validateBackupIntegrity(manifest: any): Promise<void> {
+  private async validateBackupIntegrity(manifest: BackupManifest): Promise<void> {
     for (const backup of manifest.backups) {
       const stats = await fs.stat(backup.filePath);
 

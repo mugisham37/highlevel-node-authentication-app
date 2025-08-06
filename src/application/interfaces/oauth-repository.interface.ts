@@ -87,10 +87,10 @@ export interface IOAuthStateRepository {
     state: string,
     data: {
       provider: string;
-      codeVerifier?: string;
-      nonce?: string;
-      redirectUri?: string;
-      scopes?: string[];
+      codeVerifier?: string | undefined;
+      nonce?: string | undefined;
+      redirectUri?: string | undefined;
+      scopes?: string[] | undefined;
     },
     expiresIn: number
   ): Promise<void>;
@@ -100,10 +100,10 @@ export interface IOAuthStateRepository {
    */
   consumeState(state: string): Promise<{
     provider: string;
-    codeVerifier?: string;
-    nonce?: string;
-    redirectUri?: string;
-    scopes?: string[];
+    codeVerifier?: string | undefined;
+    nonce?: string | undefined;
+    redirectUri?: string | undefined;
+    scopes?: string[] | undefined;
   } | null>;
 
   /**

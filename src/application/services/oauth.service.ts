@@ -79,10 +79,10 @@ export class OAuthService implements IOAuthService {
         flowState,
         {
           provider,
-          codeVerifier,
+          codeVerifier: codeVerifier || undefined,
           nonce,
           redirectUri,
-          scopes,
+          scopes: scopes || undefined,
         },
         600 // 10 minutes
       );
@@ -107,7 +107,7 @@ export class OAuthService implements IOAuthService {
       return {
         authorizationUrl,
         state: flowState,
-        codeVerifier,
+        codeVerifier: codeVerifier || undefined,
         nonce,
       };
     } catch (error) {
@@ -246,7 +246,7 @@ export class OAuthService implements IOAuthService {
         refreshToken: tokens.refreshToken || account.refreshToken,
         expiresAt: Math.floor(Date.now() / 1000) + tokens.expiresIn,
         tokenType: tokens.tokenType,
-        scope: tokens.scope,
+        scope: tokens.scope || undefined,
       });
 
       // Save updated account
@@ -353,11 +353,11 @@ export class OAuthService implements IOAuthService {
         providerAccountId: userInfo.id,
         type: 'oauth',
         accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-        idToken: tokens.idToken,
+        refreshToken: tokens.refreshToken || undefined,
+        idToken: tokens.idToken || undefined,
         expiresAt: Math.floor(Date.now() / 1000) + tokens.expiresIn,
         tokenType: tokens.tokenType,
-        scope: tokens.scope,
+        scope: tokens.scope || undefined,
       });
 
       return await this.accountRepository.create(account);
@@ -483,21 +483,21 @@ export class OAuthService implements IOAuthService {
         providerAccountId: userInfo.id,
         type: 'oauth',
         accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-        idToken: tokens.idToken,
+        refreshToken: tokens.refreshToken || undefined,
+        idToken: tokens.idToken || undefined,
         expiresAt: Math.floor(Date.now() / 1000) + tokens.expiresIn,
         tokenType: tokens.tokenType,
-        scope: tokens.scope,
+        scope: tokens.scope || undefined,
       });
       account = await this.accountRepository.create(account);
     } else {
       account.updateTokens({
         accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-        idToken: tokens.idToken,
+        refreshToken: tokens.refreshToken || undefined,
+        idToken: tokens.idToken || undefined,
         expiresAt: Math.floor(Date.now() / 1000) + tokens.expiresIn,
         tokenType: tokens.tokenType,
-        scope: tokens.scope,
+        scope: tokens.scope || undefined,
       });
       account = await this.accountRepository.update(account);
     }
@@ -513,8 +513,8 @@ export class OAuthService implements IOAuthService {
       id: nanoid(),
       email: new Email(userInfo.email || ''),
       emailVerified: userInfo.emailVerified ? new Date() : undefined,
-      name: userInfo.name,
-      image: userInfo.picture,
+      name: userInfo.name || undefined,
+      image: userInfo.picture || undefined,
       createdAt: new Date(),
       updatedAt: new Date(),
       mfaEnabled: false,
@@ -579,7 +579,7 @@ export class OAuthService implements IOAuthService {
     return {
       code,
       message,
-      description,
+      description: description || undefined,
     };
   }
 }

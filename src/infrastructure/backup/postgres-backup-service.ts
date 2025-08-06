@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import { Logger } from 'winston';
-import { spawn, ChildProcess } from 'child_process';
+import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import path from 'path';
 import crypto from 'crypto';
@@ -21,7 +21,7 @@ export interface PostgresBackupConfig {
 
 export interface PostgresRestoreOptions {
   dropExisting?: boolean;
-  targetDatabase?: string;
+  targetDatabase?: string | undefined;
 }
 
 export class PostgresBackupService extends EventEmitter {

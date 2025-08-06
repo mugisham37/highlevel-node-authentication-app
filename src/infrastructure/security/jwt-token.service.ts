@@ -1,507 +1,286 @@
 /**
  * JWT Token Service
- * Enterprise-grade JWT token management with signing, verification, and refresh capabilities
+ * Handles JWT token generation, verification, and management
  */
 
-import * as jwt from 'jsonwebtoken';
-import { randomBytes, createHash } from 'crypto';
-import { JWTSigningOptions, TokenValidationResult } from './types';
+import jwt from 'jsonwebtoken';
+import { randomBytes } from 'crypto';
 
 export interface JWTPayload {
-  sub: string; // Subject (user ID)
-  iat: number; // Issued at
-  exp: number; // Expiration time
-  iss?: string; // Issuer
-  aud?: string; // Audience
-  jti?: string; // JWT ID
-  nbf?: number; // Not before
-  scope?: string; // Token scope
-  type?: 'access' | 'refresh' | 'reset' | 'verification' | 'mfa';
-  sessionId?: string;
-  deviceId?: string;
-  riskScore?: number;
-  permissions?: string[];
-  roles?: string[];
-  metadata?: Record<string, any>;
+  sub: string;
+  aud: string;
+  iss?: string;
+  exp?: number;
+  iat?: number;
+  nbf?: number;
+  jti?: string;
+  scope?: string;
+  client_id?: string;
+  token_type?: string;
+  [key: string]: any;
 }
 
-export interface TokenPair {
-  accessToken: string;
-  refreshToken: string;
-  tokenType: 'Bearer';
-  expiresIn: number;
-  refreshExpiresIn: number;
-  scope?: string | undefined;
+export interface TokenOptions {
+  expiresIn?: string | number;
+  audience?: string;
+  issuer?: string;
+  subject?: string;
+  jwtid?: string;
+  notBefore?: string | number;
 }
 
 export class JWTTokenService {
-  private readonly defaultSigningOptions: Partial<JWTSigningOptions> = {
-    algorithm: 'HS256',
-    issuer: 'enterprise-auth-backend',
-    audience: 'enterprise-auth-client',
-  };
+  private readonly secretKey: string;
+  private readonly defaultIssuer: string;
 
-  constructor(
-    private readonly accessTokenSecret: string,
-    private readonly refreshTokenSecret: string,
-    private readonly signingOptions: Partial<JWTSigningOptions> = {}
-  ) {
-    if (!accessTokenSecret || !refreshTokenSecret) {
-      throw new Error('JWT secrets must be provided');
-    }
-
-    if (accessTokenSecret === refreshTokenSecret) {
-      throw new Error('Access and refresh token secrets must be different');
-    }
-
-    // Validate secret strength
-    this.validateSecretStrength(accessTokenSecret, 'access token');
-    this.validateSecretStrength(refreshTokenSecret, 'refresh token');
+  constructor(secretKey?: string, defaultIssuer?: string) {
+    this.secretKey =
+      secretKey || process.env.JWT_SECRET || this.generateSecretKey();
+    this.defaultIssuer =
+      defaultIssuer || process.env.JWT_ISSUER || 'auth-service';
   }
 
   /**
-   * Create an access token
+   * Generate a JWT token
    */
-  createAccessToken(
-    payload: Omit<JWTPayload, 'iat' | 'exp' | 'jti' | 'type'>,
-    options: Partial<JWTSigningOptions> = {}
-  ): string {
-    const tokenOptions = {
-      ...this.defaultSigningOptions,
-      ...this.signingOptions,
-      ...options,
-      expiresIn: options.expiresIn || '15m', // Default 15 minutes
-    };
+  async generateToken(
+    payload: Omit<JWTPayload, 'iat' | 'exp' | 'iss' | 'jti'>,
+    expiresIn: string | number = '1h',
+    options?: TokenOptions
+  ): Promise<string> {
+    const now = Math.floor(Date.now() / 1000);
 
-    const fullPayload = {
+    const tokenPayload: JWTPayload = {
       ...payload,
-      type: 'access' as const,
-      jti: this.generateJTI(),
-      iat: Math.floor(Date.now() / 1000),
+      iss: options?.issuer || this.defaultIssuer,
+      iat: now,
+      jti: options?.jwtid || this.generateJTI(),
     };
 
-    try {
-      const signOptions: jwt.SignOptions = {
-        algorithm: tokenOptions.algorithm,
-        expiresIn: tokenOptions.expiresIn,
-        issuer: tokenOptions.issuer,
-        audience: tokenOptions.audience,
-      };
-
-      // Only add notBefore if it's defined
-      if (tokenOptions.notBefore !== undefined) {
-        signOptions.notBefore = tokenOptions.notBefore;
-      }
-
-      // Only add keyid if it's defined
-      if (tokenOptions.keyid !== undefined) {
-        signOptions.keyid = tokenOptions.keyid;
-      }
-
-      return jwt.sign(fullPayload, this.accessTokenSecret, signOptions);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new Error(`Failed to create access token: ${errorMessage}`);
-    }
-  }
-
-  /**
-   * Create a refresh token
-   */
-  createRefreshToken(
-    payload: Omit<JWTPayload, 'iat' | 'exp' | 'jti' | 'type'>,
-    options: Partial<JWTSigningOptions> = {}
-  ): string {
-    const tokenOptions = {
-      ...this.defaultSigningOptions,
-      ...this.signingOptions,
-      ...options,
-      expiresIn: options.expiresIn || '7d', // Default 7 days
-    };
-
-    const fullPayload = {
-      sub: payload.sub,
-      sessionId: payload.sessionId,
-      deviceId: payload.deviceId,
-      type: 'refresh' as const,
-      jti: this.generateJTI(),
-      iat: Math.floor(Date.now() / 1000),
-      scope: 'refresh',
-    };
-
-    try {
-      const signOptions: jwt.SignOptions = {
-        algorithm: tokenOptions.algorithm,
-        expiresIn: tokenOptions.expiresIn,
-        issuer: tokenOptions.issuer,
-        audience: tokenOptions.audience,
-      };
-
-      // Only add notBefore if it's defined
-      if (tokenOptions.notBefore !== undefined) {
-        signOptions.notBefore = tokenOptions.notBefore;
-      }
-
-      // Only add keyid if it's defined
-      if (tokenOptions.keyid !== undefined) {
-        signOptions.keyid = tokenOptions.keyid;
-      }
-
-      return jwt.sign(fullPayload, this.refreshTokenSecret, signOptions);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new Error(`Failed to create refresh token: ${errorMessage}`);
-    }
-  }
-
-  /**
-   * Create a token pair (access + refresh)
-   */
-  createTokenPair(
-    payload: Omit<JWTPayload, 'iat' | 'exp' | 'jti' | 'type'>,
-    accessTokenOptions: Partial<JWTSigningOptions> = {},
-    refreshTokenOptions: Partial<JWTSigningOptions> = {}
-  ): TokenPair {
-    const accessToken = this.createAccessToken(payload, accessTokenOptions);
-    const refreshToken = this.createRefreshToken(payload, refreshTokenOptions);
-
-    const accessExpiresIn = this.parseExpirationTime(
-      accessTokenOptions.expiresIn || '15m'
-    );
-    const refreshExpiresIn = this.parseExpirationTime(
-      refreshTokenOptions.expiresIn || '7d'
-    );
-
-    return {
-      accessToken,
-      refreshToken,
-      tokenType: 'Bearer',
-      expiresIn: accessExpiresIn,
-      refreshExpiresIn: refreshExpiresIn,
-      scope: payload.scope,
-    };
-  }
-
-  /**
-   * Verify and decode an access token
-   */
-  verifyAccessToken(token: string): TokenValidationResult {
-    return this.verifyToken(token, this.accessTokenSecret, 'access');
-  }
-
-  /**
-   * Verify and decode a refresh token
-   */
-  verifyRefreshToken(token: string): TokenValidationResult {
-    return this.verifyToken(token, this.refreshTokenSecret, 'refresh');
-  }
-
-  /**
-   * Refresh an access token using a refresh token
-   */
-  refreshAccessToken(
-    refreshToken: string,
-    newPayload?: Partial<JWTPayload>
-  ): TokenPair {
-    const refreshResult = this.verifyRefreshToken(refreshToken);
-
-    if (!refreshResult.valid || !refreshResult.payload) {
-      throw new Error('Invalid refresh token');
+    if (options?.audience) {
+      tokenPayload.aud = options.audience;
     }
 
-    const payload = refreshResult.payload as JWTPayload;
-
-    if (payload.type !== 'refresh') {
-      throw new Error('Token is not a refresh token');
+    if (options?.subject) {
+      tokenPayload.sub = options.subject;
     }
 
-    // Create new token pair with updated payload
-    const updatedPayload = {
-      sub: payload.sub,
-      sessionId: payload.sessionId || '',
-      deviceId: payload.deviceId || '',
-      riskScore: payload.riskScore || 0,
-      permissions: payload.permissions || [],
-      roles: payload.roles || [],
-      ...newPayload,
+    if (options?.notBefore) {
+      tokenPayload.nbf =
+        typeof options.notBefore === 'string'
+          ? Math.floor(Date.now() / 1000) +
+            this.parseTimeToSeconds(options.notBefore)
+          : options.notBefore;
+    }
+
+    const jwtOptions: jwt.SignOptions = {
+      expiresIn,
+      algorithm: 'HS256',
     };
 
-    return this.createTokenPair(updatedPayload);
+    return new Promise((resolve, reject) => {
+      jwt.sign(tokenPayload, this.secretKey, jwtOptions, (err, token) => {
+        if (err) {
+          reject(new Error(`Failed to generate JWT token: ${err.message}`));
+        } else {
+          resolve(token!);
+        }
+      });
+    });
   }
 
   /**
-   * Create a special purpose token (reset, verification, MFA)
+   * Verify and decode a JWT token
    */
-  createSpecialToken(
-    type: 'reset' | 'verification' | 'mfa',
-    payload: Omit<JWTPayload, 'iat' | 'exp' | 'jti' | 'type'>,
-    expiresIn: string = '1h'
-  ): string {
-    const fullPayload = {
-      ...payload,
-      type,
-      jti: this.generateJTI(),
-      iat: Math.floor(Date.now() / 1000),
-    };
-
-    try {
-      const signOptions: jwt.SignOptions = {
-        algorithm: this.defaultSigningOptions.algorithm,
-        expiresIn,
-        issuer: this.defaultSigningOptions.issuer,
-        audience: this.defaultSigningOptions.audience,
-      };
-
-      return jwt.sign(fullPayload, this.accessTokenSecret, signOptions);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new Error(`Failed to create ${type} token: ${errorMessage}`);
-    }
-  }
-
-  /**
-   * Verify a special purpose token
-   */
-  verifySpecialToken(
+  async verifyToken(
     token: string,
-    expectedType: 'reset' | 'verification' | 'mfa'
-  ): TokenValidationResult {
-    const result = this.verifyToken(
-      token,
-      this.accessTokenSecret,
-      expectedType
-    );
+    options?: jwt.VerifyOptions
+  ): Promise<JWTPayload> {
+    return new Promise((resolve, reject) => {
+      const verifyOptions: jwt.VerifyOptions = {
+        algorithms: ['HS256'],
+        issuer: this.defaultIssuer,
+        ...options,
+      };
 
-    if (result.valid && result.payload) {
-      const payload = result.payload as JWTPayload;
-      if (payload.type !== expectedType) {
-        return {
-          valid: false,
-          error: `Token type mismatch. Expected ${expectedType}, got ${payload.type}`,
-        };
-      }
-    }
-
-    return result;
+      jwt.verify(token, this.secretKey, verifyOptions, (err, decoded) => {
+        if (err) {
+          reject(new Error(`JWT verification failed: ${err.message}`));
+        } else {
+          resolve(decoded as JWTPayload);
+        }
+      });
+    });
   }
 
   /**
-   * Decode token without verification (for inspection)
+   * Decode JWT token without verification (for debugging)
    */
-  decodeToken(token: string): { header: any; payload: JWTPayload } | null {
+  decodeToken(token: string): JWTPayload | null {
     try {
-      const decoded = jwt.decode(token, { complete: true });
-      if (!decoded) {
-        return null;
-      }
-      return {
-        header: decoded.header,
-        payload: decoded.payload as JWTPayload,
-      };
+      const decoded = jwt.decode(token);
+      return decoded as JWTPayload;
     } catch (error) {
       return null;
     }
   }
 
   /**
-   * Check if token is expired without full verification
+   * Check if token is expired
    */
   isTokenExpired(token: string): boolean {
-    const decoded = this.decodeToken(token);
-    if (!decoded) {
+    try {
+      const decoded = this.decodeToken(token);
+      if (!decoded || !decoded.exp) {
+        return true;
+      }
+      return decoded.exp < Math.floor(Date.now() / 1000);
+    } catch {
       return true;
     }
-
-    const now = Math.floor(Date.now() / 1000);
-    return decoded.payload.exp <= now;
   }
 
   /**
    * Get token expiration time
    */
   getTokenExpiration(token: string): Date | null {
-    const decoded = this.decodeToken(token);
-    if (!decoded) {
+    try {
+      const decoded = this.decodeToken(token);
+      if (!decoded || !decoded.exp) {
+        return null;
+      }
+      return new Date(decoded.exp * 1000);
+    } catch {
       return null;
     }
-
-    return new Date(decoded.payload.exp * 1000);
   }
 
   /**
    * Get remaining token lifetime in seconds
    */
-  getTokenRemainingTime(token: string): number {
-    const decoded = this.decodeToken(token);
-    if (!decoded) {
+  getRemainingTokenTime(token: string): number {
+    try {
+      const decoded = this.decodeToken(token);
+      if (!decoded || !decoded.exp) {
+        return 0;
+      }
+      return Math.max(0, decoded.exp - Math.floor(Date.now() / 1000));
+    } catch {
       return 0;
     }
-
-    const now = Math.floor(Date.now() / 1000);
-    return Math.max(0, decoded.payload.exp - now);
   }
 
   /**
-   * Blacklist a token by storing its JTI
+   * Refresh a token (generate new token with same payload but extended expiration)
    */
-  async blacklistToken(
+  async refreshToken(
     token: string,
-    storage: Set<string> | Map<string, any>
-  ): Promise<void> {
-    const decoded = this.decodeToken(token);
-    if (!decoded || !decoded.payload.jti) {
-      throw new Error('Invalid token or missing JTI');
-    }
+    newExpiresIn: string | number = '1h'
+  ): Promise<string> {
+    try {
+      // Verify the token first (but allow expired tokens for refresh)
+      const decoded = await this.verifyToken(token, { ignoreExpiration: true });
 
-    if (storage instanceof Set) {
-      storage.add(decoded.payload.jti);
-    } else if (storage instanceof Map) {
-      storage.set(decoded.payload.jti, {
-        blacklistedAt: new Date(),
-        expiresAt: new Date(decoded.payload.exp * 1000),
-      });
+      // Remove JWT-specific claims
+      const { iat, exp, nbf, jti, ...payload } = decoded;
+
+      // Generate new token with same payload
+      return await this.generateToken(payload, newExpiresIn);
+    } catch (error) {
+      throw new Error(
+        `Failed to refresh token: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
   /**
-   * Check if token is blacklisted
+   * Generate access and refresh token pair
    */
-  isTokenBlacklisted(
-    token: string,
-    storage: Set<string> | Map<string, any>
-  ): boolean {
-    const decoded = this.decodeToken(token);
-    if (!decoded || !decoded.payload.jti) {
-      return true; // Consider invalid tokens as blacklisted
-    }
+  async generateTokenPair(
+    payload: Omit<JWTPayload, 'iat' | 'exp' | 'iss' | 'jti' | 'token_type'>,
+    accessTokenExpiry: string | number = '15m',
+    refreshTokenExpiry: string | number = '7d'
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    const accessToken = await this.generateToken(
+      { ...payload, token_type: 'access' },
+      accessTokenExpiry
+    );
 
-    if (storage instanceof Set) {
-      return storage.has(decoded.payload.jti);
-    } else if (storage instanceof Map) {
-      return storage.has(decoded.payload.jti);
-    }
+    const refreshToken = await this.generateToken(
+      { ...payload, token_type: 'refresh' },
+      refreshTokenExpiry
+    );
 
-    return false;
+    return { accessToken, refreshToken };
   }
 
-  private verifyToken(
-    token: string,
-    secret: string,
-    expectedType?: string
-  ): TokenValidationResult {
+  /**
+   * Validate token format without verification
+   */
+  isValidTokenFormat(token: string): boolean {
     if (!token || typeof token !== 'string') {
-      return { valid: false, error: 'Token must be a non-empty string' };
+      return false;
+    }
+
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      return false;
     }
 
     try {
-      const payload = jwt.verify(token, secret, {
-        algorithms: [this.defaultSigningOptions.algorithm as jwt.Algorithm],
-        issuer: this.defaultSigningOptions.issuer,
-        audience: this.defaultSigningOptions.audience,
-      }) as JWTPayload;
-
-      // Additional validation
-      if (expectedType && payload.type !== expectedType) {
-        return {
-          valid: false,
-          error: `Token type mismatch. Expected ${expectedType}, got ${payload.type}`,
-        };
-      }
-
-      return { valid: true, payload };
-    } catch (error) {
-      if (error instanceof jwt.TokenExpiredError) {
-        return { valid: false, error: 'Token has expired', expired: true };
-      } else if (error instanceof jwt.JsonWebTokenError) {
-        return { valid: false, error: 'Invalid token signature' };
-      } else if (error instanceof jwt.NotBeforeError) {
-        return { valid: false, error: 'Token not active yet', notBefore: true };
-      } else {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        return {
-          valid: false,
-          error: `Token validation failed: ${errorMessage}`,
-        };
-      }
+      // Try to decode each part
+      JSON.parse(Buffer.from(parts[0], 'base64url').toString());
+      JSON.parse(Buffer.from(parts[1], 'base64url').toString());
+      return true;
+    } catch {
+      return false;
     }
   }
 
+  /**
+   * Extract claims from token without verification
+   */
+  extractClaims(token: string): Partial<JWTPayload> | null {
+    try {
+      const decoded = this.decodeToken(token);
+      return decoded;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Generate a secure secret key
+   */
+  private generateSecretKey(): string {
+    return randomBytes(64).toString('hex');
+  }
+
+  /**
+   * Generate a unique JWT ID
+   */
   private generateJTI(): string {
-    // Generate a unique JWT ID using timestamp + random bytes
-    const timestamp = Date.now().toString(36);
-    const randomPart = randomBytes(8).toString('hex');
-    return `${timestamp}-${randomPart}`;
-  }
-
-  private parseExpirationTime(expiresIn: string | number): number {
-    if (typeof expiresIn === 'number') {
-      return expiresIn;
-    }
-
-    const match = expiresIn.match(/^(\d+)([smhd])$/);
-    if (!match || !match[1]) {
-      throw new Error('Invalid expiresIn format');
-    }
-
-    const value = parseInt(match[1], 10);
-    const unit = match[2];
-
-    switch (unit) {
-      case 's':
-        return value;
-      case 'm':
-        return value * 60;
-      case 'h':
-        return value * 60 * 60;
-      case 'd':
-        return value * 24 * 60 * 60;
-      default:
-        throw new Error('Invalid time unit');
-    }
-  }
-
-  private validateSecretStrength(secret: string, type: string): void {
-    if (secret.length < 32) {
-      throw new Error(`${type} secret must be at least 32 characters long`);
-    }
-
-    // Check for sufficient entropy
-    const uniqueChars = new Set(secret).size;
-    if (uniqueChars < 16) {
-      throw new Error(`${type} secret has insufficient entropy`);
-    }
-
-    // Check for common weak patterns
-    const weakPatterns = [
-      /^(.)\1+$/, // All same character
-      /^(..)\1+$/, // Repeated pairs
-      /^(abc|123|qwe)/i, // Sequential start
-    ];
-
-    for (const pattern of weakPatterns) {
-      if (pattern.test(secret)) {
-        throw new Error(`${type} secret contains weak patterns`);
-      }
-    }
+    return randomBytes(16).toString('hex');
   }
 
   /**
-   * Generate cryptographically secure JWT secrets
+   * Parse time string to seconds
    */
-  static generateSecrets(): {
-    accessTokenSecret: string;
-    refreshTokenSecret: string;
-  } {
-    return {
-      accessTokenSecret: randomBytes(64).toString('hex'),
-      refreshTokenSecret: randomBytes(64).toString('hex'),
+  private parseTimeToSeconds(time: string): number {
+    const units: Record<string, number> = {
+      s: 1,
+      m: 60,
+      h: 3600,
+      d: 86400,
+      w: 604800,
     };
-  }
 
-  /**
-   * Create token fingerprint for additional security
-   */
-  createTokenFingerprint(token: string): string {
-    return createHash('sha256').update(token).digest('hex').substring(0, 16);
+    const match = time.match(/^(\d+)([smhdw])$/);
+    if (!match) {
+      throw new Error(`Invalid time format: ${time}`);
+    }
+
+    const [, value, unit] = match;
+    return parseInt(value, 10) * units[unit];
   }
 }

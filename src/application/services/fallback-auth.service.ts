@@ -28,11 +28,11 @@ export interface FallbackAuthRequest {
 export interface FallbackAuthResult {
   success: boolean;
   method: string;
-  challengeId?: string;
-  message?: string;
-  nextSteps?: string[];
-  estimatedTime?: string;
-  error?: FallbackError;
+  challengeId?: string | undefined;
+  message?: string | undefined;
+  nextSteps?: string[] | undefined;
+  estimatedTime?: string | undefined;
+  error?: FallbackError | undefined;
 }
 
 export interface AccountRecoveryRequest {
@@ -58,16 +58,16 @@ export interface AccountRecoveryResult {
 export interface FallbackError {
   code: string;
   message: string;
-  details?: Record<string, any>;
+  details?: Record<string, any> | string | undefined;
 }
 
 export interface SupportContactInfo {
   email: string;
-  phone?: string;
-  chatUrl?: string;
-  ticketUrl?: string;
-  businessHours?: string;
-  expectedResponseTime?: string;
+  phone?: string | undefined;
+  chatUrl?: string | undefined;
+  ticketUrl?: string | undefined;
+  businessHours?: string | undefined;
+  expectedResponseTime?: string | undefined;
 }
 
 export class FallbackAuthService {
@@ -196,7 +196,7 @@ export class FallbackAuthService {
       return {
         success: true,
         method: 'email_code',
-        challengeId: emailResult.challengeId,
+        challengeId: emailResult.challengeId || undefined,
         message: 'A verification code has been sent to your email address.',
         nextSteps: [
           'Check your email inbox (and spam folder)',
@@ -268,7 +268,7 @@ export class FallbackAuthService {
       });
 
       // Send password reset email
-      const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/reset-password?token=${resetToken}`;
+      const resetUrl = `${process.env['FRONTEND_URL'] || 'http://localhost:3000'}/auth/reset-password?token=${resetToken}`;
 
       // For now, we'll use the email service to send a generic email
       // In a real implementation, you'd have a specific password reset email template
@@ -382,7 +382,7 @@ export class FallbackAuthService {
       });
 
       // Send account recovery email with instructions
-      const recoveryUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/account-recovery?token=${recoveryToken}`;
+      const recoveryUrl = `${process.env['FRONTEND_URL'] || 'http://localhost:3000'}/auth/account-recovery?token=${recoveryToken}`;
 
       const emailResult = await this.emailService.sendSecurityAlert(
         request.email,
@@ -455,14 +455,14 @@ export class FallbackAuthService {
   ): Promise<FallbackAuthResult> {
     try {
       const supportInfo: SupportContactInfo = {
-        email: process.env.SUPPORT_EMAIL || 'support@example.com',
-        phone: process.env.SUPPORT_PHONE,
-        chatUrl: process.env.SUPPORT_CHAT_URL,
-        ticketUrl: process.env.SUPPORT_TICKET_URL,
+        email: process.env['SUPPORT_EMAIL'] || 'support@example.com',
+        phone: process.env['SUPPORT_PHONE'] || undefined,
+        chatUrl: process.env['SUPPORT_CHAT_URL'] || undefined,
+        ticketUrl: process.env['SUPPORT_TICKET_URL'] || undefined,
         businessHours:
-          process.env.SUPPORT_HOURS || 'Monday-Friday, 9 AM - 5 PM EST',
+          process.env['SUPPORT_HOURS'] || 'Monday-Friday, 9 AM - 5 PM EST',
         expectedResponseTime:
-          process.env.SUPPORT_RESPONSE_TIME || '24-48 hours',
+          process.env['SUPPORT_RESPONSE_TIME'] || '24-48 hours',
       };
 
       // Log support contact request for tracking
@@ -496,7 +496,7 @@ export class FallbackAuthService {
         message:
           "Here's how to contact our support team for assistance with authentication issues.",
         nextSteps,
-        estimatedTime: supportInfo.expectedResponseTime,
+        estimatedTime: supportInfo.expectedResponseTime || undefined,
         error: undefined,
       };
     } catch (error) {
@@ -582,12 +582,12 @@ export class FallbackAuthService {
   async verifyFallbackChallenge(
     challengeId: string,
     response: string,
-    deviceInfo: DeviceInfo
+    _deviceInfo: DeviceInfo // Underscore prefix to indicate intentionally unused
   ): Promise<{
     success: boolean;
-    user?: User;
-    nextStep?: string;
-    error?: FallbackError;
+    user?: User | undefined;
+    nextStep?: string | undefined;
+    error?: FallbackError | undefined;
   }> {
     const correlationId = SecureIdGenerator.generateCorrelationId();
 
@@ -623,7 +623,7 @@ export class FallbackAuthService {
       }
 
       // Verify based on challenge type
-      const challengeType = challenge.metadata?.type;
+      const challengeType = (challenge.metadata as { type?: string } | undefined)?.type;
 
       if (challengeType === 'password_reset') {
         return await this.verifyPasswordResetChallenge(
@@ -671,9 +671,9 @@ export class FallbackAuthService {
     correlationId: string
   ): Promise<{
     success: boolean;
-    user?: User;
-    nextStep?: string;
-    error?: FallbackError;
+    user?: User | undefined;
+    nextStep?: string | undefined;
+    error?: FallbackError | undefined;
   }> {
     // Use MFA service to verify email code
     const verificationResult = await this.mfaService.verifyEmailCode(
@@ -689,7 +689,7 @@ export class FallbackAuthService {
 
       return {
         success: true,
-        user: verificationResult.user,
+        user: verificationResult.user || undefined,
         nextStep: 'authentication_complete',
       };
     }
@@ -714,9 +714,9 @@ export class FallbackAuthService {
     correlationId: string
   ): Promise<{
     success: boolean;
-    user?: User;
-    nextStep?: string;
-    error?: FallbackError;
+    user?: User | undefined;
+    nextStep?: string | undefined;
+    error?: FallbackError | undefined;
   }> {
     const storedToken = challenge.metadata?.resetToken;
     if (!storedToken || storedToken !== token) {
@@ -766,9 +766,9 @@ export class FallbackAuthService {
     correlationId: string
   ): Promise<{
     success: boolean;
-    user?: User;
-    nextStep?: string;
-    error?: FallbackError;
+    user?: User | undefined;
+    nextStep?: string | undefined;
+    error?: FallbackError | undefined;
   }> {
     const storedToken = challenge.metadata?.recoveryToken;
     if (!storedToken || storedToken !== token) {
@@ -822,7 +822,7 @@ export class FallbackAuthService {
    */
   private maskEmail(email: string): string {
     const [localPart, domain] = email.split('@');
-    if (!domain) return email;
+    if (!domain || !localPart) return email;
 
     const maskedLocal =
       localPart.length > 2

@@ -29,7 +29,7 @@ export interface MagicLinkRequest {
   email: string;
   redirectUrl?: string;
   deviceInfo: DeviceInfo;
-  ipAddress?: string;
+  ipAddress?: string | undefined;
 }
 
 export interface WebAuthnRegistrationRequest {
@@ -174,7 +174,7 @@ export class PasswordlessAuthService {
             challenge: authOptions.challenge,
             origin: request.origin,
             deviceInfo: request.deviceInfo,
-          },
+          } as Record<string, any>,
         });
 
         this.logger.info('WebAuthn authentication options generated', {
@@ -196,7 +196,7 @@ export class PasswordlessAuthService {
       const magicLinkResult = await this.sendMagicLink({
         email: request.email,
         deviceInfo: request.deviceInfo,
-        ipAddress: request.ipAddress,
+        ipAddress: request.ipAddress || undefined,
       });
 
       if (magicLinkResult.success) {
@@ -274,9 +274,9 @@ export class PasswordlessAuthService {
           magicToken,
           redirectUrl: request.redirectUrl,
           deviceInfo: request.deviceInfo,
-          ipAddress: request.ipAddress,
+          ipAddress: request.ipAddress || undefined,
           type: 'magic_link',
-        },
+        } as Record<string, any>,
       });
 
       // Construct magic link URL
@@ -369,8 +369,8 @@ export class PasswordlessAuthService {
       const challenge = challenges.find(
         (c) =>
           c.type === 'email' &&
-          c.metadata?.type === 'magic_link' &&
-          c.metadata?.magicToken === token
+          (c.metadata as any)?.type === 'magic_link' &&
+          (c.metadata as any)?.magicToken === token
       );
 
       if (!challenge) {

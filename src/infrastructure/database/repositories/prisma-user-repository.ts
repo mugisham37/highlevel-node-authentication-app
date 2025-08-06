@@ -56,10 +56,10 @@ export interface UpdateUserData {
   passwordHash?: string;
   emailVerified?: Date;
   mfaEnabled?: boolean;
-  totpSecret?: string;
+  totpSecret?: string | null;
   backupCodes?: string[];
   failedLoginAttempts?: number;
-  lockedUntil?: Date;
+  lockedUntil?: Date | null;
   lastLoginAt?: Date;
   lastLoginIP?: string;
   riskScore?: number;
@@ -69,7 +69,7 @@ export class PrismaUserRepository {
   constructor(
     private prisma: PrismaClient,
     private logger: Logger
-  ) { }
+  ) {}
 
   async createUser(data: CreateUserData): Promise<User> {
     try {
@@ -101,26 +101,26 @@ export class PrismaUserRepository {
         where: { id },
         include: includeRelations
           ? {
-            accounts: true,
-            sessions: {
-              where: { isActive: true },
-              orderBy: { lastActivity: 'desc' },
-            },
-            roles: {
-              include: {
-                role: {
-                  include: {
-                    permissions: {
-                      include: {
-                        permission: true,
+              accounts: true,
+              sessions: {
+                where: { isActive: true },
+                orderBy: { lastActivity: 'desc' },
+              },
+              roles: {
+                include: {
+                  role: {
+                    include: {
+                      permissions: {
+                        include: {
+                          permission: true,
+                        },
                       },
                     },
                   },
                 },
               },
-            },
-            webAuthnCredentials: true,
-          }
+              webAuthnCredentials: true,
+            }
           : undefined,
       });
 
@@ -140,26 +140,26 @@ export class PrismaUserRepository {
         where: { email },
         include: includeRelations
           ? {
-            accounts: true,
-            sessions: {
-              where: { isActive: true },
-              orderBy: { lastActivity: 'desc' },
-            },
-            roles: {
-              include: {
-                role: {
-                  include: {
-                    permissions: {
-                      include: {
-                        permission: true,
+              accounts: true,
+              sessions: {
+                where: { isActive: true },
+                orderBy: { lastActivity: 'desc' },
+              },
+              roles: {
+                include: {
+                  role: {
+                    include: {
+                      permissions: {
+                        include: {
+                          permission: true,
+                        },
                       },
                     },
                   },
                 },
               },
-            },
-            webAuthnCredentials: true,
-          }
+              webAuthnCredentials: true,
+            }
           : undefined,
       });
 

@@ -4,12 +4,12 @@
  */
 
 export interface OAuthTokens {
-  accessToken?: string;
-  refreshToken?: string;
-  idToken?: string;
-  expiresAt?: number;
-  tokenType?: string;
-  scope?: string;
+  accessToken?: string | undefined;
+  refreshToken?: string | undefined;
+  idToken?: string | undefined;
+  expiresAt?: number | undefined;
+  tokenType?: string | undefined;
+  scope?: string | undefined;
 }
 
 export interface AccountProps {
@@ -18,13 +18,13 @@ export interface AccountProps {
   provider: string;
   providerAccountId: string;
   type: 'oauth' | 'oidc';
-  accessToken?: string;
-  refreshToken?: string;
-  idToken?: string;
-  expiresAt?: number;
-  tokenType?: string;
-  scope?: string;
-  sessionState?: string;
+  accessToken?: string | undefined;
+  refreshToken?: string | undefined;
+  idToken?: string | undefined;
+  expiresAt?: number | undefined;
+  tokenType?: string | undefined;
+  scope?: string | undefined;
+  sessionState?: string | undefined;
 }
 
 export class Account {
@@ -225,7 +225,7 @@ export class Account {
       // Simple JWT decode (in production, should verify signature)
       const payload = this._idToken.split('.')[1];
       if (!payload) return null;
-      
+
       const decoded = JSON.parse(Buffer.from(payload, 'base64').toString());
 
       // Return provider-specific fields

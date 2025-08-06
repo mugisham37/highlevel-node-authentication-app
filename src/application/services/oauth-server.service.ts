@@ -3,8 +3,7 @@
  * Implements OAuth2 server functionality for acting as identity provider
  */
 
-import { nanoid } from 'nanoid';
-import { createHash, randomBytes } from 'crypto';
+import { randomBytes } from 'crypto';
 import {
   IOAuthServer,
   OAuthTokens,
@@ -29,8 +28,8 @@ interface AuthorizationCode {
   userId: string;
   scopes: string[];
   redirectUri: string;
-  codeChallenge?: string;
-  codeChallengeMethod?: string;
+  codeChallenge?: string | undefined;
+  codeChallengeMethod?: string | undefined;
   expiresAt: Date;
   used: boolean;
 }
@@ -196,7 +195,7 @@ export class OAuthServerService implements IOAuthServer {
    * Register OAuth client
    */
   registerClient(client: OAuthClient): void {
-    this.validateClient(client);
+    this.validateClientConfiguration(client);
     this.clients.set(client.clientId, client);
   }
 
@@ -402,7 +401,7 @@ export class OAuthServerService implements IOAuthServer {
   /**
    * Validate OAuth client configuration
    */
-  private validateClient(client: OAuthClient): void {
+  private validateClientConfiguration(client: OAuthClient): void {
     if (!client.clientId || typeof client.clientId !== 'string') {
       throw new Error('Client ID is required and must be a string');
     }
