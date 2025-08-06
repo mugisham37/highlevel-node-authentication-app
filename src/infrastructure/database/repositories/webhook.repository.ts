@@ -35,7 +35,7 @@ export class WebhookRepository implements IWebhookRepository {
         successfulDeliveries: webhook.deliveryStats.successfulDeliveries,
         failedDeliveries: webhook.deliveryStats.failedDeliveries,
         averageResponseTime: webhook.deliveryStats.averageResponseTime,
-        lastDeliveryAt: webhook.lastDeliveryAt,
+        lastDeliveryAt: webhook.lastDeliveryAt || null,
         createdAt: webhook.createdAt,
         updatedAt: webhook.updatedAt,
       };

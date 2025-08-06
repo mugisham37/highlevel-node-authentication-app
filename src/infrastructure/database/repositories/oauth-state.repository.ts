@@ -148,11 +148,14 @@ export class OAuthStateRepository implements IOAuthStateRepository {
       const states: { state: string; data: OAuthStateData; ttl: number }[] = [];
 
       for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
+        if (!key) continue;
+
         const dataResult = results[i * 2];
         const ttlResult = results[i * 2 + 1];
 
         if (dataResult?.[1] && ttlResult?.[1]) {
-          const state = keys[i].replace(this.keyPrefix, '');
+          const state = key.replace(this.keyPrefix, '');
           const data = JSON.parse(dataResult[1] as string) as OAuthStateData;
           const ttl = ttlResult[1] as number;
 

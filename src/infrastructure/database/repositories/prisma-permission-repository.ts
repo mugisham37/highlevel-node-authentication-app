@@ -12,14 +12,7 @@ import {
   UpdatePermissionData,
   PermissionFilters,
 } from '../../../application/interfaces/permission-repository.interface';
-import {
-  jsonValueToRecord,
-  recordToInputJsonValue,
-  isJsonRecord,
-  createUpdateData,
-  JsonValue,
-  InputJsonValue,
-} from '../../../types/prisma-json.types';
+import { jsonValueToRecord, JsonValue } from '../../../types/prisma-json.types';
 
 export class PrismaPermissionRepository implements IPermissionRepository {
   constructor(
@@ -28,38 +21,33 @@ export class PrismaPermissionRepository implements IPermissionRepository {
   ) {}
 
   private mapToPermission(permissionData: any): Permission {
-    const props: any = {
+    const parsedConditions = this.parseConditions(permissionData.conditions);
+
+    return new Permission({
       id: permissionData.id,
       name: permissionData.name,
       resource: permissionData.resource,
       action: permissionData.action,
+      conditions: parsedConditions,
       createdAt: permissionData.createdAt,
-    };
-    
-    const parsedConditions = this.parseConditions(permissionData.conditions);
-    if (parsedConditions) {
-      props.conditions = parsedConditions;
-    }
-    
-    return new Permission(props);
+    });
   }
 
-  private parseConditions(conditions: JsonValue | null | undefined): Record<string, any> | undefined {
+  private parseConditions(
+    conditions: JsonValue | null | undefined
+  ): Record<string, any> | undefined {
     return jsonValueToRecord(conditions);
   }
 
   async create(data: CreatePermissionData): Promise<Permission> {
     try {
-      const createData: any = {
+      const createData = {
         name: data.name,
         resource: data.resource,
         action: data.action,
+        conditions: data.conditions || null,
         createdAt: new Date(),
       };
-      
-      if (data.conditions) {
-        createData.conditions = data.conditions;
-      }
 
       const permissionData = await this.prisma.permission.create({
         data: createData,
@@ -104,14 +92,7 @@ export class PrismaPermissionRepository implements IPermissionRepository {
 
       if (!permissionData) return null;
 
-      return new Permission({
-        id: permissionData.id,
-        name: permissionData.name,
-        resource: permissionData.resource,
-        action: permissionData.action,
-        conditions: permissionData.conditions || undefined,
-        createdAt: permissionData.createdAt,
-      });
+      return this.mapToPermission(permissionData);
     } catch (error) {
       this.logger.error('Failed to find permission by name', { error, name });
       throw error;
@@ -120,25 +101,20 @@ export class PrismaPermissionRepository implements IPermissionRepository {
 
   async update(id: string, data: UpdatePermissionData): Promise<Permission> {
     try {
+      const updateData: any = {};
+
+      if (data.name !== undefined) updateData.name = data.name;
+      if (data.resource !== undefined) updateData.resource = data.resource;
+      if (data.action !== undefined) updateData.action = data.action;
+      if (data.conditions !== undefined)
+        updateData.conditions = data.conditions || null;
+
       const permissionData = await this.prisma.permission.update({
         where: { id },
-        data: {
-          name: data.name,
-          resource: data.resource,
-          action: data.action,
-          conditions:
-            data.conditions !== undefined ? data.conditions : undefined,
-        },
+        data: updateData,
       });
 
-      const permission = new Permission({
-        id: permissionData.id,
-        name: permissionData.name,
-        resource: permissionData.resource,
-        action: permissionData.action,
-        conditions: permissionData.conditions || undefined,
-        createdAt: permissionData.createdAt,
-      });
+      const permission = this.mapToPermission(permissionData);
 
       this.logger.info('Permission updated successfully', { permissionId: id });
       return permission;
@@ -208,16 +184,8 @@ export class PrismaPermissionRepository implements IPermissionRepository {
         this.prisma.permission.count({ where }),
       ]);
 
-      const permissions = permissionsData.map(
-        (permissionData: any) =>
-          new Permission({
-            id: permissionData.id,
-            name: permissionData.name,
-            resource: permissionData.resource,
-            action: permissionData.action,
-            conditions: permissionData.conditions || undefined,
-            createdAt: permissionData.createdAt,
-          })
+      const permissions = permissionsData.map((permissionData: any) =>
+        this.mapToPermission(permissionData)
       );
 
       // Apply additional filters that require domain logic
@@ -263,16 +231,8 @@ export class PrismaPermissionRepository implements IPermissionRepository {
         where: { id: { in: ids } },
       });
 
-      return permissionsData.map(
-        (permissionData: any) =>
-          new Permission({
-            id: permissionData.id,
-            name: permissionData.name,
-            resource: permissionData.resource,
-            action: permissionData.action,
-            conditions: permissionData.conditions || undefined,
-            createdAt: permissionData.createdAt,
-          })
+      return permissionsData.map((permissionData: any) =>
+        this.mapToPermission(permissionData)
       );
     } catch (error) {
       this.logger.error('Failed to find permissions by IDs', { error, ids });
@@ -294,16 +254,8 @@ export class PrismaPermissionRepository implements IPermissionRepository {
         orderBy: { name: 'asc' },
       });
 
-      return permissionsData.map(
-        (permissionData: any) =>
-          new Permission({
-            id: permissionData.id,
-            name: permissionData.name,
-            resource: permissionData.resource,
-            action: permissionData.action,
-            conditions: permissionData.conditions || undefined,
-            createdAt: permissionData.createdAt,
-          })
+      return permissionsData.map((permissionData: any) =>
+        this.mapToPermission(permissionData)
       );
     } catch (error) {
       this.logger.error('Failed to search permissions', { error, query });
@@ -318,16 +270,8 @@ export class PrismaPermissionRepository implements IPermissionRepository {
         orderBy: { action: 'asc' },
       });
 
-      return permissionsData.map(
-        (permissionData: any) =>
-          new Permission({
-            id: permissionData.id,
-            name: permissionData.name,
-            resource: permissionData.resource,
-            action: permissionData.action,
-            conditions: permissionData.conditions || undefined,
-            createdAt: permissionData.createdAt,
-          })
+      return permissionsData.map((permissionData: any) =>
+        this.mapToPermission(permissionData)
       );
     } catch (error) {
       this.logger.error('Failed to find permissions by resource', {
@@ -345,16 +289,8 @@ export class PrismaPermissionRepository implements IPermissionRepository {
         orderBy: { resource: 'asc' },
       });
 
-      return permissionsData.map(
-        (permissionData: any) =>
-          new Permission({
-            id: permissionData.id,
-            name: permissionData.name,
-            resource: permissionData.resource,
-            action: permissionData.action,
-            conditions: permissionData.conditions || undefined,
-            createdAt: permissionData.createdAt,
-          })
+      return permissionsData.map((permissionData: any) =>
+        this.mapToPermission(permissionData)
       );
     } catch (error) {
       this.logger.error('Failed to find permissions by action', {
@@ -375,16 +311,8 @@ export class PrismaPermissionRepository implements IPermissionRepository {
         orderBy: { name: 'asc' },
       });
 
-      return permissionsData.map(
-        (permissionData: any) =>
-          new Permission({
-            id: permissionData.id,
-            name: permissionData.name,
-            resource: permissionData.resource,
-            action: permissionData.action,
-            conditions: permissionData.conditions || undefined,
-            createdAt: permissionData.createdAt,
-          })
+      return permissionsData.map((permissionData: any) =>
+        this.mapToPermission(permissionData)
       );
     } catch (error) {
       this.logger.error('Failed to find permissions by resource and action', {
@@ -457,16 +385,8 @@ export class PrismaPermissionRepository implements IPermissionRepository {
         orderBy: { name: 'asc' },
       });
 
-      return permissionsData.map(
-        (permissionData: any) =>
-          new Permission({
-            id: permissionData.id,
-            name: permissionData.name,
-            resource: permissionData.resource,
-            action: permissionData.action,
-            conditions: permissionData.conditions || undefined,
-            createdAt: permissionData.createdAt,
-          })
+      return permissionsData.map((permissionData: any) =>
+        this.mapToPermission(permissionData)
       );
     } catch (error) {
       this.logger.error('Failed to find system permissions', { error });
@@ -558,16 +478,8 @@ export class PrismaPermissionRepository implements IPermissionRepository {
         orderBy: { name: 'asc' },
       });
 
-      return permissionsData.map(
-        (permissionData: any) =>
-          new Permission({
-            id: permissionData.id,
-            name: permissionData.name,
-            resource: permissionData.resource,
-            action: permissionData.action,
-            conditions: permissionData.conditions || undefined,
-            createdAt: permissionData.createdAt,
-          })
+      return permissionsData.map((permissionData: any) =>
+        this.mapToPermission(permissionData)
       );
     } catch (error) {
       this.logger.error('Failed to find wildcard permissions', { error });
@@ -590,16 +502,8 @@ export class PrismaPermissionRepository implements IPermissionRepository {
         orderBy: { name: 'asc' },
       });
 
-      return permissionsData.map(
-        (permissionData: any) =>
-          new Permission({
-            id: permissionData.id,
-            name: permissionData.name,
-            resource: permissionData.resource,
-            action: permissionData.action,
-            conditions: permissionData.conditions || undefined,
-            createdAt: permissionData.createdAt,
-          })
+      return permissionsData.map((permissionData: any) =>
+        this.mapToPermission(permissionData)
       );
     } catch (error) {
       this.logger.error('Failed to find administrative permissions', { error });
@@ -623,16 +527,8 @@ export class PrismaPermissionRepository implements IPermissionRepository {
         )
       );
 
-      const createdPermissions = result.map(
-        (permissionData: any) =>
-          new Permission({
-            id: permissionData.id,
-            name: permissionData.name,
-            resource: permissionData.resource,
-            action: permissionData.action,
-            conditions: permissionData.conditions || undefined,
-            createdAt: permissionData.createdAt,
-          })
+      const createdPermissions = result.map((permissionData: any) =>
+        this.mapToPermission(permissionData)
       );
 
       this.logger.info('Bulk permission creation completed', {
@@ -704,16 +600,8 @@ export class PrismaPermissionRepository implements IPermissionRepository {
         }),
       ]);
 
-      const permissions = allPermissions.map(
-        (p: any) =>
-          new Permission({
-            id: p.id,
-            name: p.name,
-            resource: p.resource,
-            action: p.action,
-            conditions: p.conditions || undefined,
-            createdAt: p.createdAt,
-          })
+      const permissions = allPermissions.map((p: any) =>
+        this.mapToPermission(p)
       );
 
       const wildcardPermissions = permissions.filter((p) =>

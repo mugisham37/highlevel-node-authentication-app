@@ -245,11 +245,14 @@ export class OAuthAuthorizationCodeRepository
       }[] = [];
 
       for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
+        if (!key) continue;
+
         const dataResult = results[i * 2];
         const ttlResult = results[i * 2 + 1];
 
         if (dataResult?.[1] && ttlResult?.[1]) {
-          const code = keys[i].replace(this.keyPrefix, '');
+          const code = key.replace(this.keyPrefix, '');
           const data = JSON.parse(
             dataResult[1] as string
           ) as AuthorizationCodeData;

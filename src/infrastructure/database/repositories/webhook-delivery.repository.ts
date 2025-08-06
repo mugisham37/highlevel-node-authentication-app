@@ -25,11 +25,11 @@ export class WebhookDeliveryRepository implements IWebhookDeliveryRepository {
         eventId: attempt.eventId,
         attempt: attempt.attempt,
         status: attempt.status,
-        httpStatus: attempt.httpStatus,
-        responseBody: attempt.responseBody,
-        errorMessage: attempt.errorMessage,
-        deliveredAt: attempt.deliveredAt,
-        nextRetryAt: attempt.nextRetryAt,
+        httpStatus: attempt.httpStatus || null,
+        responseBody: attempt.responseBody || null,
+        errorMessage: attempt.errorMessage || null,
+        deliveredAt: attempt.deliveredAt || null,
+        nextRetryAt: attempt.nextRetryAt || null,
         createdAt: attempt.createdAt,
       };
 
@@ -68,7 +68,10 @@ export class WebhookDeliveryRepository implements IWebhookDeliveryRepository {
   /**
    * Find delivery attempts by webhook and event
    */
-  async findByWebhookAndEvent(webhookId: string, eventId: string): Promise<WebhookDeliveryAttempt[]> {
+  async findByWebhookAndEvent(
+    webhookId: string,
+    eventId: string
+  ): Promise<WebhookDeliveryAttempt[]> {
     try {
       const attempts = await this.prisma.webhookDeliveryAttempt.findMany({
         where: {
@@ -80,11 +83,14 @@ export class WebhookDeliveryRepository implements IWebhookDeliveryRepository {
 
       return attempts.map((attempt) => this.mapToEntity(attempt));
     } catch (error) {
-      logger.error('Error finding webhook delivery attempts by webhook and event', {
-        webhookId,
-        eventId,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
+      logger.error(
+        'Error finding webhook delivery attempts by webhook and event',
+        {
+          webhookId,
+          eventId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        }
+      );
       throw error;
     }
   }
@@ -92,7 +98,9 @@ export class WebhookDeliveryRepository implements IWebhookDeliveryRepository {
   /**
    * Find failed delivery attempts
    */
-  async findFailedAttempts(webhookId?: string): Promise<WebhookDeliveryAttempt[]> {
+  async findFailedAttempts(
+    webhookId?: string
+  ): Promise<WebhookDeliveryAttempt[]> {
     try {
       const where: any = {
         status: 'failed',
@@ -121,7 +129,10 @@ export class WebhookDeliveryRepository implements IWebhookDeliveryRepository {
   /**
    * Update delivery attempt status
    */
-  async updateStatus(id: string, status: 'pending' | 'success' | 'failed' | 'timeout'): Promise<WebhookDeliveryAttempt> {
+  async updateStatus(
+    id: string,
+    status: 'pending' | 'success' | 'failed' | 'timeout'
+  ): Promise<WebhookDeliveryAttempt> {
     try {
       const updated = await this.prisma.webhookDeliveryAttempt.update({
         where: { id },
@@ -142,14 +153,21 @@ export class WebhookDeliveryRepository implements IWebhookDeliveryRepository {
   /**
    * Mark delivery attempt as delivered
    */
-  async markAsDelivered(id: string, responseData: { httpStatus?: number; responseBody?: string; deliveredAt?: Date }): Promise<WebhookDeliveryAttempt> {
+  async markAsDelivered(
+    id: string,
+    responseData: {
+      httpStatus?: number;
+      responseBody?: string;
+      deliveredAt?: Date;
+    }
+  ): Promise<WebhookDeliveryAttempt> {
     try {
       const updated = await this.prisma.webhookDeliveryAttempt.update({
         where: { id },
         data: {
           status: 'success',
-          httpStatus: responseData.httpStatus,
-          responseBody: responseData.responseBody,
+          httpStatus: responseData.httpStatus || null,
+          responseBody: responseData.responseBody || null,
           deliveredAt: responseData.deliveredAt || new Date(),
         },
       });
@@ -167,7 +185,10 @@ export class WebhookDeliveryRepository implements IWebhookDeliveryRepository {
   /**
    * Mark delivery attempt as failed
    */
-  async markAsFailed(id: string, errorMessage: string): Promise<WebhookDeliveryAttempt> {
+  async markAsFailed(
+    id: string,
+    errorMessage: string
+  ): Promise<WebhookDeliveryAttempt> {
     try {
       const updated = await this.prisma.webhookDeliveryAttempt.update({
         where: { id },

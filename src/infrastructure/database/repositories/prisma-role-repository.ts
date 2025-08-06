@@ -26,7 +26,7 @@ export class PrismaRoleRepository implements IRoleRepository {
       const roleData = await this.prisma.role.create({
         data: {
           name: data.name,
-          description: data.description,
+          description: data.description || null,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -68,7 +68,7 @@ export class PrismaRoleRepository implements IRoleRepository {
                 },
               },
             }
-          : undefined,
+          : null,
       });
 
       if (!roleData) return null;
@@ -122,7 +122,7 @@ export class PrismaRoleRepository implements IRoleRepository {
                 },
               },
             }
-          : undefined,
+          : null,
       });
 
       if (!roleData) return null;
@@ -163,12 +163,17 @@ export class PrismaRoleRepository implements IRoleRepository {
 
   async update(id: string, data: UpdateRoleData): Promise<Role> {
     try {
+      const updateData: any = {
+        updatedAt: new Date(),
+      };
+
+      if (data.name !== undefined) updateData.name = data.name;
+      if (data.description !== undefined)
+        updateData.description = data.description || null;
+
       const roleData = await this.prisma.role.update({
         where: { id },
-        data: {
-          ...data,
-          updatedAt: new Date(),
-        },
+        data: updateData,
       });
 
       const role = new Role({
@@ -309,7 +314,7 @@ export class PrismaRoleRepository implements IRoleRepository {
                 },
               },
             }
-          : undefined,
+          : null,
       });
 
       return rolesData.map((roleData: any) => {
@@ -682,7 +687,7 @@ export class PrismaRoleRepository implements IRoleRepository {
           this.prisma.role.create({
             data: {
               name: roleData.name,
-              description: roleData.description,
+              description: roleData.description || null,
               createdAt: new Date(),
               updatedAt: new Date(),
             },

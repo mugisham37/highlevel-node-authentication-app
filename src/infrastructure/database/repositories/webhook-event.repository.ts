@@ -20,11 +20,11 @@ export class WebhookEventRepository implements IWebhookEventRepository {
         id: event.id,
         type: event.type,
         data: event.data,
-        userId: event.userId,
-        sessionId: event.sessionId,
+        userId: event.userId || null,
+        sessionId: event.sessionId || null,
         timestamp: event.timestamp,
         metadata: event.metadata,
-        correlationId: event.correlationId,
+        correlationId: event.correlationId || null,
       };
 
       const saved = await this.prisma.webhookEvent.create({ data });
