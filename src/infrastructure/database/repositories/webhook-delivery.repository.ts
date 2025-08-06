@@ -47,6 +47,148 @@ export class WebhookDeliveryRepository implements IWebhookDeliveryRepository {
   }
 
   /**
+   * Find delivery attempt by ID
+   */
+  async findById(id: string): Promise<WebhookDeliveryAttempt | null> {
+    try {
+      const attempt = await this.prisma.webhookDeliveryAttempt.findUnique({
+        where: { id },
+      });
+
+      return attempt ? this.mapToEntity(attempt) : null;
+    } catch (error) {
+      logger.error('Error finding webhook delivery attempt by ID', {
+        attemptId: id,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Find delivery attempts by webhook and event
+   */
+  async findByWebhookAndEvent(webhookId: string, eventId: string): Promise<WebhookDeliveryAttempt[]> {
+    try {
+      const attempts = await this.prisma.webhookDeliveryAttempt.findMany({
+        where: {
+          webhookId,
+          eventId,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      return attempts.map((attempt) => this.mapToEntity(attempt));
+    } catch (error) {
+      logger.error('Error finding webhook delivery attempts by webhook and event', {
+        webhookId,
+        eventId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Find failed delivery attempts
+   */
+  async findFailedAttempts(webhookId?: string): Promise<WebhookDeliveryAttempt[]> {
+    try {
+      const where: any = {
+        status: 'failed',
+      };
+
+      if (webhookId) {
+        where.webhookId = webhookId;
+      }
+
+      const attempts = await this.prisma.webhookDeliveryAttempt.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: 1000, // Limit for performance
+      });
+
+      return attempts.map((attempt) => this.mapToEntity(attempt));
+    } catch (error) {
+      logger.error('Error finding failed delivery attempts', {
+        webhookId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Update delivery attempt status
+   */
+  async updateStatus(id: string, status: 'pending' | 'success' | 'failed' | 'timeout'): Promise<WebhookDeliveryAttempt> {
+    try {
+      const updated = await this.prisma.webhookDeliveryAttempt.update({
+        where: { id },
+        data: { status },
+      });
+
+      return this.mapToEntity(updated);
+    } catch (error) {
+      logger.error('Error updating webhook delivery attempt status', {
+        attemptId: id,
+        status,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Mark delivery attempt as delivered
+   */
+  async markAsDelivered(id: string, responseData: { httpStatus?: number; responseBody?: string; deliveredAt?: Date }): Promise<WebhookDeliveryAttempt> {
+    try {
+      const updated = await this.prisma.webhookDeliveryAttempt.update({
+        where: { id },
+        data: {
+          status: 'success',
+          httpStatus: responseData.httpStatus,
+          responseBody: responseData.responseBody,
+          deliveredAt: responseData.deliveredAt || new Date(),
+        },
+      });
+
+      return this.mapToEntity(updated);
+    } catch (error) {
+      logger.error('Error marking webhook delivery attempt as delivered', {
+        attemptId: id,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Mark delivery attempt as failed
+   */
+  async markAsFailed(id: string, errorMessage: string): Promise<WebhookDeliveryAttempt> {
+    try {
+      const updated = await this.prisma.webhookDeliveryAttempt.update({
+        where: { id },
+        data: {
+          status: 'failed',
+          errorMessage,
+        },
+      });
+
+      return this.mapToEntity(updated);
+    } catch (error) {
+      logger.error('Error marking webhook delivery attempt as failed', {
+        attemptId: id,
+        errorMessage,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Update delivery attempt
    */
   async update(

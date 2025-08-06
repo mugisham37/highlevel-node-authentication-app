@@ -27,8 +27,6 @@ import { WebhookDeliveryService } from '../services/webhook-delivery.service';
 import { WebhookController } from '../../presentation/controllers/webhook.controller';
 import { WebhookWebSocketController } from '../../presentation/controllers/webhook-websocket.controller';
 
-import { logger } from '../../infrastructure/logging/winston-logger';
-
 export interface WebhookTestFactoryResult {
   // Services
   webhookService: IWebhookService;
@@ -91,6 +89,13 @@ export class WebhookTestFactory {
       deleteOldEvents: jest.fn(),
     } as unknown as IWebhookEventRepository;
 
+    const mockDeliveryService = {
+      deliverEvent: jest.fn(),
+      retryFailedDeliveries: jest.fn(),
+      getDeliveryAttempts: jest.fn(),
+      cancelPendingDeliveries: jest.fn(),
+    } as unknown as IWebhookDeliveryService;
+
     const mockDeliveryRepository = {
       save: jest.fn(),
       findById: jest.fn(),
@@ -99,35 +104,39 @@ export class WebhookTestFactory {
       updateStatus: jest.fn(),
       markAsDelivered: jest.fn(),
       markAsFailed: jest.fn(),
+      update: jest.fn(),
+      findWithQuery: jest.fn(),
+      findPendingRetries: jest.fn(),
+      findFailedDeliveries: jest.fn(),
       deleteOldAttempts: jest.fn(),
+      cancelPendingDeliveries: jest.fn(),
     } as unknown as IWebhookDeliveryRepository;
 
     const mockSignatureService = {
       generateSignature: jest.fn(),
       verifySignature: jest.fn(),
-      createHeaders: jest.fn(),
+      generateSecret: jest.fn(),
     } as unknown as IWebhookSignatureService;
 
     const mockDeadLetterQueue = {
-      add: jest.fn(),
-      process: jest.fn(),
-      retry: jest.fn(),
-      remove: jest.fn(),
+      addFailedDelivery: jest.fn(),
+      getFailedDeliveries: jest.fn(),
+      removeFailedDelivery: jest.fn(),
+      retryFailedDeliveries: jest.fn(),
       getStats: jest.fn(),
-      clear: jest.fn(),
     } as unknown as IDeadLetterQueue;
 
     // Create core services with mocked dependencies
     const webhookService = new WebhookService(
       mockWebhookRepository,
-      mockEventRepository,
-      logger
+      mockDeliveryService,
+      mockSignatureService
     );
 
     const eventPublisher = new EventPublisherService(
+      mockWebhookRepository,
       mockEventRepository,
-      mockRedisCache,
-      logger
+      mockDeliveryService
     );
 
     const deliveryService = new WebhookDeliveryService(
@@ -138,15 +147,11 @@ export class WebhookTestFactory {
     // Create controllers
     const webhookController = new WebhookController(
       webhookService,
-      eventPublisher,
-      deliveryService,
-      logger
+      eventPublisher
     );
 
     const websocketController = new WebhookWebSocketController(
-      webhookService,
-      eventPublisher,
-      logger
+      eventPublisher
     );
 
     const result: WebhookTestFactoryResult = {

@@ -264,6 +264,36 @@ export interface IWebhookDeliveryRepository {
   save(attempt: WebhookDeliveryAttempt): Promise<WebhookDeliveryAttempt>;
 
   /**
+   * Find delivery attempt by ID
+   */
+  findById(id: string): Promise<WebhookDeliveryAttempt | null>;
+
+  /**
+   * Find delivery attempt by webhook and event
+   */
+  findByWebhookAndEvent(webhookId: string, eventId: string): Promise<WebhookDeliveryAttempt[]>;
+
+  /**
+   * Find failed delivery attempts
+   */
+  findFailedAttempts(webhookId?: string): Promise<WebhookDeliveryAttempt[]>;
+
+  /**
+   * Update delivery attempt status
+   */
+  updateStatus(id: string, status: 'pending' | 'success' | 'failed' | 'timeout'): Promise<WebhookDeliveryAttempt>;
+
+  /**
+   * Mark delivery attempt as delivered
+   */
+  markAsDelivered(id: string, responseData: { httpStatus?: number; responseBody?: string; deliveredAt?: Date }): Promise<WebhookDeliveryAttempt>;
+
+  /**
+   * Mark delivery attempt as failed
+   */
+  markAsFailed(id: string, errorMessage: string): Promise<WebhookDeliveryAttempt>;
+
+  /**
    * Update delivery attempt
    */
   update(
