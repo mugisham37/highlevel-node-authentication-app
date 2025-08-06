@@ -6,7 +6,7 @@ import {
   ConfigValidationResult,
 } from './types';
 import { SecretsManager } from './secrets-manager';
-import { DynamicConfigManager } from './dynamic-config';
+import { DynamicConfigManager, DynamicConfigOptions } from './dynamic-config';
 import {
   getProfile,
   validateProfileRequirements,
@@ -15,9 +15,9 @@ import {
 
 export class ConfigManager {
   private static instance: ConfigManager;
-  private config: AppConfig;
-  private secretsManager: SecretsManager;
-  private dynamicConfigManager: DynamicConfigManager;
+  private config!: AppConfig;
+  private secretsManager!: SecretsManager;
+  private dynamicConfigManager?: DynamicConfigManager;
   private initialized = false;
 
   private constructor() {
@@ -75,15 +75,20 @@ export class ConfigManager {
 
       // Initialize dynamic configuration manager if enabled
       if (options.enableDynamicConfig !== false) {
+        const dynamicConfigOptions: DynamicConfigOptions = {
+          watchFiles: true,
+          validateOnChange: true,
+          backupOnChange: true,
+        };
+        
+        if (options.configPath) {
+          dynamicConfigOptions.configPath = options.configPath;
+        }
+
         this.dynamicConfigManager = new DynamicConfigManager(
           this.config,
           this.secretsManager,
-          {
-            configPath: options.configPath,
-            watchFiles: true,
-            validateOnChange: true,
-            backupOnChange: true,
-          }
+          dynamicConfigOptions
         );
 
         // Listen for configuration changes
@@ -152,8 +157,9 @@ export class ConfigManager {
   }
 
   private async buildBaseConfiguration(): Promise<Partial<AppConfig>> {
-    const getValue = async (key: string, defaultValue?: any) => {
-      return await this.secretsManager.getConfigValue(key, defaultValue);
+    const getValue = async (key: string, defaultValue: string = ''): Promise<string> => {
+      const value = await this.secretsManager.getConfigValue(key, defaultValue);
+      return value || defaultValue;
     };
 
     return {
@@ -165,6 +171,10 @@ export class ConfigManager {
         cors: {
           origin: this.parseOrigins(await getValue('CORS_ORIGINS', 'true')),
           credentials: (await getValue('CORS_CREDENTIALS', 'true')) === 'true',
+        },
+        helmet: {
+          contentSecurityPolicy: (await getValue('HELMET_CSP', 'true')) === 'true',
+          crossOriginEmbedderPolicy: (await getValue('HELMET_COEP', 'false')) === 'true',
         },
       },
 
@@ -226,41 +236,47 @@ export class ConfigManager {
       },
 
       oauth: {
+        custom: {},
         google: {
-          clientId: await getValue('GOOGLE_CLIENT_ID'),
-          clientSecret: await getValue('GOOGLE_CLIENT_SECRET'),
-          redirectUri: await getValue('GOOGLE_REDIRECT_URI'),
+          clientId: await getValue('GOOGLE_CLIENT_ID', ''),
+          clientSecret: await getValue('GOOGLE_CLIENT_SECRET', ''),
+          redirectUri: await getValue('GOOGLE_REDIRECT_URI', ''),
           scope: this.parseArray(
             await getValue('GOOGLE_SCOPES', 'openid,email,profile')
           ),
-          enabled: !!(await getValue('GOOGLE_CLIENT_ID')),
+          enabled: !!(await getValue('GOOGLE_CLIENT_ID', '')),
         },
         github: {
-          clientId: await getValue('GITHUB_CLIENT_ID'),
-          clientSecret: await getValue('GITHUB_CLIENT_SECRET'),
-          redirectUri: await getValue('GITHUB_REDIRECT_URI'),
+          clientId: await getValue('GITHUB_CLIENT_ID', ''),
+          clientSecret: await getValue('GITHUB_CLIENT_SECRET', ''),
+          redirectUri: await getValue('GITHUB_REDIRECT_URI', ''),
           scope: this.parseArray(await getValue('GITHUB_SCOPES', 'user:email')),
-          enabled: !!(await getValue('GITHUB_CLIENT_ID')),
+          enabled: !!(await getValue('GITHUB_CLIENT_ID', '')),
         },
         microsoft: {
-          clientId: await getValue('MICROSOFT_CLIENT_ID'),
-          clientSecret: await getValue('MICROSOFT_CLIENT_SECRET'),
-          redirectUri: await getValue('MICROSOFT_REDIRECT_URI'),
+          clientId: await getValue('MICROSOFT_CLIENT_ID', ''),
+          clientSecret: await getValue('MICROSOFT_CLIENT_SECRET', ''),
+          redirectUri: await getValue('MICROSOFT_REDIRECT_URI', ''),
           scope: this.parseArray(
             await getValue('MICROSOFT_SCOPES', 'openid,email,profile')
           ),
-          enabled: !!(await getValue('MICROSOFT_CLIENT_ID')),
+          enabled: !!(await getValue('MICROSOFT_CLIENT_ID', '')),
         },
       },
 
       email: {
         smtp: {
-          host: await getValue('SMTP_HOST'),
+          host: await getValue('SMTP_HOST', ''),
           port: parseInt(await getValue('SMTP_PORT', '587')),
           secure: (await getValue('SMTP_SECURE', 'false')) === 'true',
-          user: await getValue('SMTP_USER'),
-          pass: await getValue('SMTP_PASS'),
-          from: await getValue('SMTP_FROM'),
+          user: await getValue('SMTP_USER', ''),
+          pass: await getValue('SMTP_PASS', ''),
+          from: await getValue('SMTP_FROM', ''),
+        },
+        templates: {
+          verification: await getValue('EMAIL_TEMPLATE_VERIFICATION', 'email-verification'),
+          passwordReset: await getValue('EMAIL_TEMPLATE_PASSWORD_RESET', 'password-reset'),
+          mfaCode: await getValue('EMAIL_TEMPLATE_MFA_CODE', 'mfa-code'),
         },
       },
 
@@ -279,6 +295,15 @@ export class ConfigManager {
       },
 
       security: {
+        encryption: {
+          algorithm: await getValue('ENCRYPTION_ALGORITHM', 'aes-256-gcm'),
+          keyDerivation: {
+            algorithm: await getValue('KEY_DERIVATION_ALGORITHM', 'pbkdf2'),
+            iterations: parseInt(await getValue('KEY_DERIVATION_ITERATIONS', '100000')),
+            keyLength: parseInt(await getValue('KEY_DERIVATION_KEY_LENGTH', '32')),
+            digest: await getValue('KEY_DERIVATION_DIGEST', 'sha512'),
+          },
+        },
         hashing: {
           algorithm: (await getValue('HASHING_ALGORITHM', 'argon2')) as any,
           argon2: {
@@ -308,6 +333,11 @@ export class ConfigManager {
             max: parseInt(await getValue('RATE_LIMIT_API_MAX', '100')),
             window: parseInt(await getValue('RATE_LIMIT_API_WINDOW', '900000')),
           },
+        },
+        session: {
+          maxConcurrent: parseInt(await getValue('SESSION_MAX_CONCURRENT', '5')),
+          inactivityTimeout: parseInt(await getValue('SESSION_INACTIVITY_TIMEOUT', '1800000')),
+          absoluteTimeout: parseInt(await getValue('SESSION_ABSOLUTE_TIMEOUT', '86400000')),
         },
       },
 
@@ -341,6 +371,11 @@ export class ConfigManager {
         health: {
           enabled: (await getValue('HEALTH_ENABLED', 'true')) === 'true',
           path: await getValue('HEALTH_PATH', '/health'),
+          checks: {
+            database: (await getValue('HEALTH_CHECK_DATABASE', 'true')) === 'true',
+            redis: (await getValue('HEALTH_CHECK_REDIS', 'true')) === 'true',
+            external: (await getValue('HEALTH_CHECK_EXTERNAL', 'true')) === 'true',
+          },
         },
         tracing: {
           enabled: (await getValue('TRACING_ENABLED', 'false')) === 'true',
@@ -357,6 +392,9 @@ export class ConfigManager {
         maxRetries: parseInt(await getValue('WEBHOOKS_MAX_RETRIES', '3')),
         retryDelay: parseInt(await getValue('WEBHOOKS_RETRY_DELAY', '5000')),
         timeout: parseInt(await getValue('WEBHOOKS_TIMEOUT', '30000')),
+        signatureHeader: await getValue('WEBHOOKS_SIGNATURE_HEADER', 'X-Webhook-Signature'),
+        timestampHeader: await getValue('WEBHOOKS_TIMESTAMP_HEADER', 'X-Webhook-Timestamp'),
+        maxAge: parseInt(await getValue('WEBHOOKS_MAX_AGE', '300')),
       },
     };
   }
@@ -426,7 +464,7 @@ export class ConfigManager {
       const [host, port] = node.split(':');
       return {
         host: host || 'localhost',
-        port: parseInt(port) || 6379,
+        port: parseInt(port || '6379') || 6379,
       };
     });
   }

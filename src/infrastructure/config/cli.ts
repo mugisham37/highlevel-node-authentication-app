@@ -1,9 +1,24 @@
 #!/usr/bin/env node
 
-import * as fs from 'fs/promises';
-import * as path from 'path';
 import { configManager } from './config-manager';
 import { SecretsManager } from './secrets-manager';
+import { EnvironmentProfile } from './types';
+
+// Helper function to extract error message from unknown error
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === 'string') {
+    return error;
+  }
+  return 'Unknown error occurred';
+}
+
+// Helper function to validate environment profile
+function validateEnvironmentProfile(profile: string): profile is EnvironmentProfile {
+  return ['development', 'staging', 'production', 'test'].includes(profile);
+}
 
 interface CLICommand {
   name: string;
@@ -90,12 +105,12 @@ class ConfigCLI {
     try {
       await cmd.handler(commandArgs);
     } catch (error) {
-      console.error(`Error executing command '${command}':`, error.message);
+      console.error(`Error executing command '${command}':`, getErrorMessage(error));
       process.exit(1);
     }
   }
 
-  private async handleInit(args: string[]): Promise<void> {
+  private async handleInit(_args: string[]): Promise<void> {
     console.log('Initializing configuration system...');
 
     try {
@@ -109,7 +124,7 @@ class ConfigCLI {
     } catch (error) {
       console.error(
         '❌ Failed to initialize configuration system:',
-        error.message
+        getErrorMessage(error)
       );
       throw error;
     }
@@ -181,7 +196,7 @@ class ConfigCLI {
     }
   }
 
-  private async handleValidate(args: string[]): Promise<void> {
+  private async handleValidate(_args: string[]): Promise<void> {
     await this.ensureInitialized();
 
     console.log('Validating configuration...');
@@ -325,10 +340,18 @@ class ConfigCLI {
       return;
     }
 
-    const secretId = await secretsManager.storeSecret(name, value, {
-      description,
+    const secretOptions: {
+      description?: string;
+      tags?: string[];
+    } = {
       tags: ['cli-created'],
-    });
+    };
+
+    if (description) {
+      secretOptions.description = description;
+    }
+
+    const secretId = await secretsManager.storeSecret(name, value, secretOptions);
 
     console.log(`✅ Secret stored: ${name} (ID: ${secretId})`);
   }
@@ -417,6 +440,11 @@ class ConfigCLI {
           return;
         }
 
+        if (!validateEnvironmentProfile(profileName)) {
+          console.error(`❌ Invalid profile: ${profileName}. Valid profiles are: development, staging, production, test`);
+          return;
+        }
+
         // Update NODE_ENV environment variable
         process.env.NODE_ENV = profileName;
 
@@ -430,7 +458,7 @@ class ConfigCLI {
     }
   }
 
-  private async handleBackup(args: string[]): Promise<void> {
+  private async handleBackup(_args: string[]): Promise<void> {
     await this.ensureInitialized();
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -475,7 +503,7 @@ class ConfigCLI {
     }
   }
 
-  private async handleHelp(args: string[]): Promise<void> {
+  private async handleHelp(_args: string[]): Promise<void> {
     console.log('Enterprise Auth Configuration CLI\n');
     console.log('Available commands:\n');
 
