@@ -7,7 +7,7 @@ import { PrismaClient } from '@prisma/client';
 import { Logger } from 'winston';
 import { BaseRepository } from '../base/base-repository';
 import { TransactionManager } from '../base/transaction-manager';
-import { MultiLayerCache } from '../../../cache/multi-layer-cache';
+import { ICache } from '../../../types/cache';
 import {
   IUserRepository,
   CreateUserData,
@@ -27,7 +27,7 @@ export class PrismaUserRepositoryEnhanced
     private prismaClient: PrismaClient,
     logger: Logger,
     transactionManager: TransactionManager,
-    cache?: MultiLayerCache
+    cache?: ICache
   ) {
     super(logger, cache, transactionManager);
   }

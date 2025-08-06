@@ -8,7 +8,7 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { Logger } from 'winston';
 import { DatabaseConnectionManager } from '../connection-manager';
 import { TransactionManager } from './base/transaction-manager';
-import { MultiLayerCache } from '../../cache/multi-layer-cache';
+import { SimpleCacheAdapter } from '../../cache/simple-cache-adapter';
 
 // Repository interfaces
 import { IUserRepository } from './interfaces/user-repository.interface';
@@ -17,6 +17,13 @@ import { ISessionRepository } from './interfaces/session-repository.interface';
 // Repository implementations
 import { PrismaUserRepositoryEnhanced } from './prisma/prisma-user-repository-enhanced';
 import { DrizzleSessionRepositoryEnhanced } from './drizzle/drizzle-session-repository-enhanced';
+
+// Types
+import { 
+  HealthStatus, 
+  SystemHealthCheck
+} from '../../types/health';
+
 
 // Schema types
 import * as authSessionsSchema from '../drizzle/schema/auth-sessions';
@@ -38,11 +45,11 @@ export class RepositoryFactory {
     typeof authSessionsSchema & typeof oauthCacheSchema
   >;
   private transactionManager: TransactionManager;
-  private cache?: MultiLayerCache;
+  private cache?: SimpleCacheAdapter | undefined;
 
   // Repository instances (singleton pattern)
-  private userRepository?: IUserRepository;
-  private sessionRepository?: ISessionRepository;
+  private userRepository?: IUserRepository | undefined;
+  private sessionRepository?: ISessionRepository | undefined;
 
   constructor(
     private connectionManager: DatabaseConnectionManager,
@@ -70,8 +77,8 @@ export class RepositoryFactory {
     if (!this.userRepository) {
       this.userRepository = new PrismaUserRepositoryEnhanced(
         this.prismaClient,
-        this.transactionManager,
         this.logger,
+        this.transactionManager,
         this.cache
       );
 
@@ -91,7 +98,6 @@ export class RepositoryFactory {
     if (!this.sessionRepository) {
       this.sessionRepository = new DrizzleSessionRepositoryEnhanced(
         this.drizzleDb,
-        this.transactionManager,
         this.logger,
         this.cache
       );
@@ -122,7 +128,7 @@ export class RepositoryFactory {
       transactionManager: TransactionManager;
     }) => Promise<T>
   ): Promise<T> {
-    return this.transactionManager.withTransaction(async (context) => {
+    return this.transactionManager.withTransaction(async (_context) => {
       // Create transaction-aware repository instances
       const userRepository = this.getUserRepository();
       const sessionRepository = this.getSessionRepository();
@@ -199,7 +205,11 @@ export class RepositoryFactory {
         recentUsers.items.slice(0, 20).map(async (user) => {
           await userRepo.findByIdCached(user.id, 3600);
           if (user.email) {
-            await userRepo.findByEmailCached(user.email, 3600);
+            // Convert Email value object to string if needed
+            const emailValue = typeof user.email === 'string' 
+              ? user.email 
+              : user.email.value || user.email.toString();
+            await userRepo.findByEmailCached(emailValue, 3600);
           }
         })
       );
@@ -238,65 +248,73 @@ export class RepositoryFactory {
   /**
    * Health check for all repositories
    */
-  async healthCheck(): Promise<{
-    status: 'healthy' | 'degraded' | 'unhealthy';
-    repositories: {
-      user: { status: string; responseTime?: number };
-      session: { status: string; responseTime?: number };
-    };
-    database: {
-      prisma: { status: string; responseTime?: number };
-      drizzle: { status: string; responseTime?: number };
-    };
-    cache?: { status: string; responseTime?: number };
-  }> {
-    const results = {
-      status: 'healthy' as const,
+  async healthCheck(): Promise<SystemHealthCheck> {
+    const results: SystemHealthCheck = {
+      status: 'healthy' as HealthStatus,
       repositories: {
-        user: { status: 'unknown' },
-        session: { status: 'unknown' },
+        user: { status: 'unknown' as HealthStatus },
+        session: { status: 'unknown' as HealthStatus },
       },
       database: {
-        prisma: { status: 'unknown' },
-        drizzle: { status: 'unknown' },
+        prisma: { status: 'unknown' as HealthStatus },
+        drizzle: { status: 'unknown' as HealthStatus },
       },
-      cache: undefined as any,
+      timestamp: new Date(),
+      overall: 'healthy' as HealthStatus,
     };
 
     try {
       // Test user repository (Prisma)
       const userStartTime = Date.now();
       await this.getUserRepository().count();
+      const userResponseTime = Date.now() - userStartTime;
+      
       results.repositories.user = {
-        status: 'healthy',
-        responseTime: Date.now() - userStartTime,
+        status: 'healthy' as HealthStatus,
+        responseTime: userResponseTime,
       };
       results.database.prisma = {
-        status: 'healthy',
-        responseTime: Date.now() - userStartTime,
+        status: 'healthy' as HealthStatus,
+        responseTime: userResponseTime,
       };
     } catch (error) {
-      results.repositories.user.status = 'unhealthy';
-      results.database.prisma.status = 'unhealthy';
-      results.status = 'unhealthy';
+      results.repositories.user = { 
+        status: 'unhealthy' as HealthStatus,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+      results.database.prisma = { 
+        status: 'unhealthy' as HealthStatus,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+      results.status = 'unhealthy' as HealthStatus;
     }
 
     try {
       // Test session repository (Drizzle)
       const sessionStartTime = Date.now();
       await this.getSessionRepository().count();
+      const sessionResponseTime = Date.now() - sessionStartTime;
+      
       results.repositories.session = {
-        status: 'healthy',
-        responseTime: Date.now() - sessionStartTime,
+        status: 'healthy' as HealthStatus,
+        responseTime: sessionResponseTime,
       };
       results.database.drizzle = {
-        status: 'healthy',
-        responseTime: Date.now() - sessionStartTime,
+        status: 'healthy' as HealthStatus,
+        responseTime: sessionResponseTime,
       };
     } catch (error) {
-      results.repositories.session.status = 'unhealthy';
-      results.database.drizzle.status = 'unhealthy';
-      results.status = 'unhealthy';
+      results.repositories.session = { 
+        status: 'unhealthy' as HealthStatus,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+      results.database.drizzle = { 
+        status: 'unhealthy' as HealthStatus,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+      if (results.status === 'healthy') {
+        results.status = 'unhealthy' as HealthStatus;
+      }
     }
 
     // Test cache if enabled
@@ -305,16 +323,43 @@ export class RepositoryFactory {
         const cacheStartTime = Date.now();
         await this.cache.set('health_check', 'ok', { ttl: 1 });
         await this.cache.get('health_check');
+        const cacheResponseTime = Date.now() - cacheStartTime;
+        
         results.cache = {
-          status: 'healthy',
-          responseTime: Date.now() - cacheStartTime,
+          status: 'healthy' as HealthStatus,
+          responseTime: cacheResponseTime,
         };
       } catch (error) {
-        results.cache = { status: 'unhealthy' };
+        results.cache = { 
+          status: 'unhealthy' as HealthStatus,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
         if (results.status === 'healthy') {
-          results.status = 'degraded';
+          results.status = 'degraded' as HealthStatus;
         }
       }
+    }
+
+    // Determine overall status
+    const statuses = [
+      results.repositories.user.status,
+      results.repositories.session.status,
+      results.database.prisma.status,
+      results.database.drizzle.status,
+    ];
+
+    if (results.cache) {
+      statuses.push(results.cache.status);
+    }
+
+    // Aggregate results manually since aggregateHealthStatus is not available
+    const failedStatuses = statuses.filter(s => s !== 'healthy');
+    if (failedStatuses.length === 0) {
+      results.overall = 'healthy';
+    } else if (failedStatuses.includes('unhealthy')) {
+      results.overall = 'unhealthy';
+    } else {
+      results.overall = 'degraded';
     }
 
     return results;
@@ -332,7 +377,7 @@ export class RepositoryFactory {
         await this.cache.clear();
       }
 
-      // Reset repository instances
+      // Reset repository instances - explicitly set to undefined
       this.userRepository = undefined;
       this.sessionRepository = undefined;
 
@@ -348,20 +393,18 @@ export class RepositoryFactory {
    */
   private initializeCache(): void {
     try {
-      // This would typically be injected or configured externally
-      // For now, we'll assume MultiLayerCache is available
-      this.cache = new MultiLayerCache({
-        l1: {
-          maxItems: this.config.cacheConfig?.maxMemoryItems || 1000,
-          ttl: this.config.cacheConfig?.defaultTtl || 3600,
-        },
-        l2: {
-          // Redis configuration would be here
-        },
-      });
+      this.cache = new SimpleCacheAdapter(
+        this.logger,
+        {
+          maxSize: this.config.cacheConfig?.maxMemoryItems || 1000,
+          maxMemory: 100 * 1024 * 1024, // 100MB
+          cleanupInterval: 60000, // 1 minute
+          defaultTTL: this.config.cacheConfig?.defaultTtl || 3600,
+        }
+      );
 
       this.logger.debug('Repository cache initialized', {
-        type: 'MultiLayerCache',
+        type: 'SimpleCacheAdapter',
         config: this.config.cacheConfig,
       });
     } catch (error) {

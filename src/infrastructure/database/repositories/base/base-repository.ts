@@ -9,7 +9,7 @@ import {
   IOptimizedRepository,
   IRepositoryMetrics,
 } from '../interfaces/base-repository.interface';
-import { MultiLayerCache } from '../../../cache/multi-layer-cache';
+import { ICache } from '../../../types/cache';
 import { TransactionManager } from './transaction-manager';
 
 export interface QueryMetric {
@@ -35,7 +35,7 @@ export abstract class BaseRepository
 
   constructor(
     protected logger: Logger,
-    protected cache?: MultiLayerCache,
+    protected cache?: ICache,
     transactionManager?: TransactionManager
   ) {
     this.transactionManager = transactionManager;

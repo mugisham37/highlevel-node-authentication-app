@@ -7,7 +7,7 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { eq, and, gt, lt, desc, asc, count, sql, inArray } from 'drizzle-orm';
 import { Logger } from 'winston';
 import { BaseRepository } from '../base/base-repository';
-import { MultiLayerCache } from '../../../cache/multi-layer-cache';
+import { ICache } from '../../../types/cache';
 import {
   ISessionRepository,
   CreateSessionData,
@@ -41,7 +41,7 @@ export class DrizzleSessionRepositoryEnhanced
       typeof authSessionsSchema & typeof oauthCacheSchema
     >,
     logger: Logger,
-    cache?: MultiLayerCache
+    cache?: ICache
   ) {
     super(logger, cache);
   }
