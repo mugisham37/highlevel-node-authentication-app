@@ -6,73 +6,15 @@
 import winston from 'winston';
 import { correlationIdManager } from '../tracing/correlation-id';
 import { config } from '../config/environment';
-
-export interface LogContext {
-  correlationId?: string;
-  requestId?: string;
-  userId?: string;
-  sessionId?: string;
-  operation?: string;
-  component?: string;
-  service?: string;
-  version?: string;
-  environment?: string;
-  timestamp?: string;
-  duration?: number;
-  metadata?: Record<string, any>;
-}
-
-export interface SecurityLogContext extends LogContext {
-  eventType: string;
-  severity: 'low' | 'medium' | 'high' | 'critical';
-  source: string;
-  ipAddress?: string;
-  userAgent?: string;
-  riskScore?: number;
-  actionTaken?: string;
-  affectedResource?: string;
-}
-
-export interface PerformanceLogContext extends LogContext {
-  operationType: string;
-  duration: number;
-  resourceUsage?: {
-    memory?: number;
-    cpu?: number;
-    database?: number;
-    cache?: number;
-  };
-  throughput?: number;
-  errorRate?: number;
-  responseSize?: number;
-  requestSize?: number;
-}
-
-export interface AuditLogContext extends LogContext {
-  actor: string;
-  action: string;
-  resource: string;
-  resourceId?: string;
-  outcome: 'success' | 'failure' | 'partial';
-  reason?: string;
-  changes?: Record<string, { before: any; after: any }>;
-  compliance?: {
-    regulation: string;
-    requirement: string;
-    status: 'compliant' | 'non-compliant';
-  };
-}
-
-export interface ErrorLogContext extends LogContext {
-  errorType: string;
-  errorCode?: string;
-  stackTrace?: string;
-  causedBy?: string;
-  recoveryAction?: string;
-  impact?: 'low' | 'medium' | 'high' | 'critical';
-  affectedUsers?: number;
-  systemState?: Record<string, any>;
-}
+import { 
+  LogContext, 
+  ErrorLogContext, 
+  PerformanceLogContext, 
+  SecurityLogContext, 
+  AuditLogContext 
+} from '../utils/monitoring-types';
+import { ENV } from '../utils/env-utils';
+import { safeGetProperty } from '../utils/monitoring-utils';
 
 /**
  * Log Levels with Numeric Values
@@ -102,7 +44,7 @@ export class StructuredLogger {
     this.defaultContext = {
       component,
       service,
-      version: process.env.APP_VERSION || '1.0.0',
+      version: ENV.APP_VERSION,
       environment: process.env.NODE_ENV || 'development',
       ...defaultContext,
     };
@@ -133,11 +75,11 @@ export class StructuredLogger {
           ...this.defaultContext,
           ...meta,
           correlationId:
-            correlationContext?.correlationId || meta.correlationId,
-          requestId: correlationContext?.requestId || meta.requestId,
-          userId: correlationContext?.userId || meta.userId,
-          sessionId: correlationContext?.sessionId || meta.sessionId,
-          operation: correlationContext?.operation || meta.operation,
+            correlationContext?.correlationId || safeGetProperty(meta, 'correlationId'),
+          requestId: correlationContext?.requestId || safeGetProperty(meta, 'requestId'),
+          userId: correlationContext?.userId || safeGetProperty(meta, 'userId'),
+          sessionId: correlationContext?.sessionId || safeGetProperty(meta, 'sessionId'),
+          operation: correlationContext?.operation || safeGetProperty(meta, 'operation'),
           timestamp,
           level: level.toUpperCase(),
         };
@@ -163,7 +105,7 @@ export class StructuredLogger {
               const prefix = correlationId
                 ? `[${correlationId.substring(0, 8)}]`
                 : '';
-              return `${info.timestamp} ${prefix} ${info.level}: ${info.message}`;
+              return `${safeGetProperty(info, 'timestamp')} ${prefix} ${info.level}: ${info.message}`;
             })
           ),
           level: config.logging.level,

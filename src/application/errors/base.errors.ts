@@ -8,12 +8,12 @@ export interface ErrorDetails {
 }
 
 export interface ErrorContext {
-  correlationId?: string;
-  userId?: string;
-  requestId?: string;
-  operation?: string;
-  timestamp?: Date;
-  metadata?: Record<string, any>;
+  correlationId?: string | undefined;
+  userId?: string | undefined;
+  requestId?: string | undefined;
+  operation?: string | undefined;
+  timestamp?: Date | undefined;
+  metadata?: Record<string, any> | undefined;
 }
 
 /**

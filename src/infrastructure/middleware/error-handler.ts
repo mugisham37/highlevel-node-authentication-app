@@ -12,29 +12,34 @@ import {
 import { logger } from '../logging/winston-logger';
 import {
   correlationIdManager,
-  CorrelationUtils,
 } from '../tracing/correlation-id';
 import {
   BaseError,
   InternalServerError,
   ValidationError,
+  NotFoundError,
   isOperationalError,
-  getCorrelationId,
 } from '../../application/errors/base.errors';
+import {
+  getSafeCorrelationId,
+  sanitizeHeaders,
+} from '../utils/request-utils';
+import { ENV, isDevelopment, isProduction } from '../utils/env-utils';
+import { createErrorContext, safeGet } from '../utils/type-utils';
 
 export interface ErrorResponse {
   error: {
     code: string;
     message: string;
     timestamp: string;
-    correlationId?: string;
-    requestId?: string;
+    correlationId?: string | undefined;
+    requestId?: string | undefined;
     details?: any;
   };
   meta?: {
-    version?: string;
-    environment?: string;
-    support?: string;
+    version?: string | undefined;
+    environment?: string | undefined;
+    support?: string | undefined;
   };
 }
 
@@ -59,11 +64,11 @@ export class ErrorHandler {
 
   constructor(options: Partial<ErrorHandlerOptions> = {}) {
     this.options = {
-      includeStackTrace: process.env.NODE_ENV === 'development',
-      includeErrorDetails: process.env.NODE_ENV !== 'production',
+      includeStackTrace: isDevelopment(),
+      includeErrorDetails: !isProduction(),
       logErrors: true,
       enableMetrics: true,
-      supportContact: process.env.SUPPORT_EMAIL || 'support@example.com',
+      supportContact: ENV.SUPPORT_EMAIL,
       ...options,
     };
   }
@@ -98,7 +103,7 @@ export class ErrorHandler {
   ): Promise<void> {
     const correlationId =
       correlationIdManager.getCorrelationId() ||
-      CorrelationUtils.extractCorrelationId(request.headers);
+      getSafeCorrelationId(request.headers);
 
     const startTime = Date.now();
 
@@ -165,14 +170,15 @@ export class ErrorHandler {
   ): Promise<void> {
     const correlationId =
       correlationIdManager.getCorrelationId() ||
-      CorrelationUtils.extractCorrelationId(request.headers);
+      getSafeCorrelationId(request.headers);
 
-    const error = new BaseError(
+    // Use proper NotFoundError class
+    const error = new NotFoundError(
       `Route ${request.method} ${request.url} not found`,
-      { correlationId, operation: 'route_not_found' }
+      'route',
+      `${request.method} ${request.url}`,
+      createErrorContext({ correlationId, operation: 'route_not_found' })
     );
-    error.code = 'NOT_FOUND';
-    error.statusCode = 404;
 
     if (this.options.logErrors) {
       logger.warn('Route not found', {
@@ -251,7 +257,7 @@ export class ErrorHandler {
       request: {
         method: request.method,
         url: request.url,
-        headers: this.sanitizeHeaders(request.headers),
+        headers: sanitizeHeaders(request.headers),
         query: request.query,
         params: request.params,
         ip: request.ip,
@@ -287,15 +293,15 @@ export class ErrorHandler {
    */
   private createErrorResponse(
     error: BaseError,
-    request: FastifyRequest
+    _request: FastifyRequest
   ): ErrorResponse {
     const response: ErrorResponse = {
       error: {
         code: error.code,
         message: error.message,
         timestamp: error.timestamp.toISOString(),
-        correlationId: error.correlationId,
-        requestId: error.context.requestId,
+        correlationId: error.correlationId || undefined,
+        requestId: error.context.requestId || undefined,
       },
     };
 
@@ -303,25 +309,25 @@ export class ErrorHandler {
     if (this.options.includeErrorDetails && error.statusCode < 500) {
       const errorJson = error.toJSON();
       if (
-        errorJson.details ||
-        errorJson.reason ||
-        errorJson.requiredPermission
+        safeGet(errorJson, 'details') ||
+        safeGet(errorJson, 'reason') ||
+        safeGet(errorJson, 'requiredPermission')
       ) {
         response.error.details = {
-          details: errorJson.details,
-          reason: errorJson.reason,
-          requiredPermission: errorJson.requiredPermission,
-          userPermissions: errorJson.userPermissions,
-          resource: errorJson.resource,
-          resourceId: errorJson.resourceId,
+          details: safeGet(errorJson, 'details'),
+          reason: safeGet(errorJson, 'reason'),
+          requiredPermission: safeGet(errorJson, 'requiredPermission'),
+          userPermissions: safeGet(errorJson, 'userPermissions'),
+          resource: safeGet(errorJson, 'resource'),
+          resourceId: safeGet(errorJson, 'resourceId'),
         };
       }
     }
 
     // Add metadata
     response.meta = {
-      version: process.env.APP_VERSION,
-      environment: process.env.NODE_ENV,
+      version: ENV.APP_VERSION || undefined,
+      environment: ENV.NODE_ENV,
       support: this.options.supportContact,
     };
 
@@ -352,29 +358,6 @@ export class ErrorHandler {
 
     // Set content type
     reply.header('content-type', 'application/json; charset=utf-8');
-  }
-
-  /**
-   * Sanitize headers for logging (remove sensitive data)
-   */
-  private sanitizeHeaders(headers: Record<string, any>): Record<string, any> {
-    const sensitiveHeaders = [
-      'authorization',
-      'cookie',
-      'x-api-key',
-      'x-auth-token',
-      'x-access-token',
-    ];
-
-    const sanitized = { ...headers };
-
-    for (const header of sensitiveHeaders) {
-      if (sanitized[header]) {
-        sanitized[header] = '[REDACTED]';
-      }
-    }
-
-    return sanitized;
   }
 
   /**
@@ -420,23 +403,27 @@ export class ErrorHandler {
           tags: ['health', 'errors'],
         },
       },
-      async (request: FastifyRequest, reply: FastifyReply) => {
+      async (_request: FastifyRequest, reply: FastifyReply) => {
         const correlationId = correlationIdManager.getCorrelationId();
 
         const errorStats = Array.from(this.errorCounts.entries()).map(
           ([key, count]) => {
-            const [code, statusCode] = key.split('_');
-            return { code, statusCode: parseInt(statusCode), count };
+            const parts = key.split('_');
+            const code = parts[0] || 'UNKNOWN';
+            const statusCode = parts[1] ? parseInt(parts[1], 10) : 500;
+            return { code, statusCode, count };
           }
         );
 
         const recentErrors = Array.from(this.errorRates.entries())
           .filter(([_, rate]) => rate.timestamp > Date.now() - 5 * 60 * 1000)
           .map(([key, rate]) => {
-            const [code, statusCode] = key.split('_');
+            const parts = key.split('_');
+            const code = parts[0] || 'UNKNOWN';
+            const statusCode = parts[1] ? parseInt(parts[1], 10) : 500;
             return {
               code,
-              statusCode: parseInt(statusCode),
+              statusCode,
               count: rate.count,
               timestamp: new Date(rate.timestamp),
             };
@@ -473,8 +460,10 @@ export class ErrorHandler {
   } {
     const errorStats = Array.from(this.errorCounts.entries()).map(
       ([key, count]) => {
-        const [code, statusCode] = key.split('_');
-        return { code, statusCode: parseInt(statusCode), count };
+        const parts = key.split('_');
+        const code = parts[0] || 'UNKNOWN';
+        const statusCode = parts[1] ? parseInt(parts[1], 10) : 500;
+        return { code, statusCode, count };
       }
     );
 
