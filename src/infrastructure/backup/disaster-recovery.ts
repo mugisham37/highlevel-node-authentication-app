@@ -6,9 +6,13 @@ import {
   DisasterRecoveryStep,
   CrossRegionReplication,
   BackupConfig,
+  BackupStepConfig,
+  RestoreStepConfig,
+  FailoverStepConfig,
+  ValidationStepConfig,
+  NotificationStepConfig,
+  ValidationCheck,
 } from './types';
-import { promises as fs } from 'fs';
-import path from 'path';
 
 export class DisasterRecoveryManager extends EventEmitter {
   private recoveryPlans = new Map<string, DisasterRecoveryPlan>();
@@ -251,9 +255,10 @@ export class DisasterRecoveryManager extends EventEmitter {
 
   private async executeBackupStep(
     step: DisasterRecoveryStep,
-    options: any
+    _options: any
   ): Promise<any> {
-    const backupType = step.config.type || 'full';
+    const config = step.config as BackupStepConfig;
+    const backupType = config['type'] || 'full';
 
     if (backupType === 'full') {
       return await this.backupManager.performFullBackup();
@@ -266,8 +271,9 @@ export class DisasterRecoveryManager extends EventEmitter {
     step: DisasterRecoveryStep,
     options: any
   ): Promise<any> {
-    const backupId = step.config.backupId || options.backupId;
-    const restoreOptions = step.config.restoreOptions || {};
+    const config = step.config as RestoreStepConfig;
+    const backupId = config['backupId'] || options.backupId;
+    const restoreOptions = config['restoreOptions'] || {};
 
     if (!backupId) {
       throw new Error('Backup ID is required for restore step');
@@ -279,11 +285,12 @@ export class DisasterRecoveryManager extends EventEmitter {
 
   private async executeFailoverStep(
     step: DisasterRecoveryStep,
-    options: any
+    _options: any
   ): Promise<any> {
     // Implement failover logic based on configuration
-    const targetRegion = step.config.targetRegion;
-    const failoverType = step.config.failoverType || 'automatic';
+    const config = step.config as FailoverStepConfig;
+    const targetRegion = config['targetRegion'];
+    const failoverType = config['failoverType'] || 'automatic';
 
     this.logger.info(`Executing failover to region: ${targetRegion}`, {
       type: failoverType,
@@ -305,9 +312,10 @@ export class DisasterRecoveryManager extends EventEmitter {
 
   private async executeValidationStep(
     step: DisasterRecoveryStep,
-    options: any
+    _options: any
   ): Promise<any> {
-    const validations = step.config.validations || [];
+    const config = step.config as ValidationStepConfig;
+    const validations: ValidationCheck[] = config['validations'] || [];
     const results = [];
 
     for (const validation of validations) {
@@ -334,10 +342,11 @@ export class DisasterRecoveryManager extends EventEmitter {
 
   private async executeNotificationStep(
     step: DisasterRecoveryStep,
-    options: any
+    _options: any
   ): Promise<any> {
-    const message = step.config.message || 'Disaster recovery step completed';
-    const channels = step.config.channels || ['email'];
+    const config = step.config as NotificationStepConfig;
+    const message = config['message'] || 'Disaster recovery step completed';
+    const channels = config['channels'] || ['email'];
 
     await this.sendNotification('recovery:step', {
       message,
@@ -352,7 +361,10 @@ export class DisasterRecoveryManager extends EventEmitter {
     plan: DisasterRecoveryPlan,
     executionResults: any[]
   ): Promise<void> {
-    this.logger.info('Starting rollback procedure', { planId: plan.id });
+    this.logger.info('Starting rollback procedure', { 
+      planId: plan.id,
+      failedSteps: executionResults.filter(r => !r.success).length 
+    });
 
     try {
       const rollbackSteps = plan.rollback.steps.sort(
@@ -369,7 +381,9 @@ export class DisasterRecoveryManager extends EventEmitter {
         }
       }
 
-      this.logger.info('Rollback procedure completed');
+      this.logger.info('Rollback procedure completed', {
+        executedSteps: executionResults.length
+      });
     } catch (error) {
       this.logger.error('Rollback procedure failed', { error });
       throw error;
@@ -392,9 +406,65 @@ export class DisasterRecoveryManager extends EventEmitter {
     this.logger.info('Recovery validation completed successfully');
   }
 
-  private async runValidation(validation: any): Promise<any> {
-    // Implement specific validation logic
-    return { status: 'passed', timestamp: new Date().toISOString() };
+  private async runValidation(validation: ValidationCheck): Promise<any> {
+    // Implement specific validation logic based on validation type
+    this.logger.info(`Running validation: ${validation.name}`, {
+      type: validation.type,
+      timeout: validation.timeout
+    });
+
+    // Simulate validation execution
+    const startTime = Date.now();
+    
+    try {
+      // Different validation logic based on type
+      switch (validation.type) {
+        case 'health':
+          await this.runHealthValidation(validation);
+          break;
+        case 'functional':
+          await this.runFunctionalValidation(validation);
+          break;
+        case 'data-integrity':
+          await this.runDataIntegrityValidation(validation);
+          break;
+        default:
+          throw new Error(`Unknown validation type: ${validation.type}`);
+      }
+
+      const duration = Date.now() - startTime;
+      return { 
+        status: 'passed', 
+        timestamp: new Date().toISOString(),
+        duration,
+        validation: validation.name
+      };
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      this.logger.error(`Validation failed: ${validation.name}`, { error, duration });
+      throw error;
+    }
+  }
+
+  private async runHealthValidation(validation: ValidationCheck): Promise<void> {
+    // Implement health check validation
+    this.logger.debug(`Health validation: ${validation.name}`);
+    // Simulate async operation
+    await this.sleep(100);
+  }
+
+  private async runFunctionalValidation(validation: ValidationCheck): Promise<void> {
+    // Implement functional validation
+    this.logger.debug(`Functional validation: ${validation.name}`);
+    // Simulate async operation
+    await this.sleep(100);
+  }
+
+  private async runDataIntegrityValidation(validation: ValidationCheck): Promise<void> {
+    // Implement data integrity validation
+    this.logger.debug(`Data integrity validation: ${validation.name}`);
+    // Simulate async operation
+    await this.sleep(100);
   }
 
   private async runHealthCheck(healthCheck: string): Promise<void> {
@@ -413,7 +483,30 @@ export class DisasterRecoveryManager extends EventEmitter {
   ): Promise<void> {
     if (step.validation?.expectedResult) {
       // Compare result with expected result
-      // This is a simplified implementation
+      const expectedResult = step.validation.expectedResult;
+      
+      this.logger.debug(`Validating step result for: ${step.name}`, {
+        expected: expectedResult,
+        actual: result
+      });
+
+      // Perform deep comparison or specific validation logic
+      if (typeof expectedResult === 'object' && expectedResult !== null) {
+        // Validate object properties
+        for (const [key, expectedValue] of Object.entries(expectedResult)) {
+          if (result[key] !== expectedValue) {
+            throw new Error(
+              `Step validation failed: ${key} expected ${expectedValue}, got ${result[key]}`
+            );
+          }
+        }
+      } else if (result !== expectedResult) {
+        throw new Error(
+          `Step validation failed: expected ${expectedResult}, got ${result}`
+        );
+      }
+
+      this.logger.info(`Step result validation passed: ${step.name}`);
     }
   }
 

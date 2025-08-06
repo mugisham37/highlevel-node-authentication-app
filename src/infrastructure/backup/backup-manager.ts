@@ -1,7 +1,7 @@
 import { Logger } from 'winston';
 import { DatabaseConnectionManager } from '../database/connection-manager';
-import { RedisBackupService } from './redis-backup-service';
-import { PostgresBackupService } from './postgres-backup-service';
+import { RedisBackupService, RedisBackupConfig } from './redis-backup-service';
+import { PostgresBackupService, PostgresBackupConfig } from './postgres-backup-service';
 import {
   BackupConfig,
   BackupResult,
@@ -45,8 +45,28 @@ export class BackupManager extends EventEmitter {
   ) {
     super();
 
-    this.postgresBackup = new PostgresBackupService(config.postgres, logger);
-    this.redisBackup = new RedisBackupService(config.redis, logger);
+    // Create properly typed PostgreSQL configuration
+    const postgresConfig: PostgresBackupConfig = {
+      connectionString: config.postgres.connectionString,
+      backupPath: config.postgres.backupPath,
+      compression: config.postgres.compression,
+      ...(config.postgres.pgDumpPath && { pgDumpPath: config.postgres.pgDumpPath }),
+      ...(config.postgres.pgRestorePath && { pgRestorePath: config.postgres.pgRestorePath }),
+      ...(config.postgres.walArchivePath && { walArchivePath: config.postgres.walArchivePath }),
+    };
+
+    // Create properly typed Redis configuration
+    const redisConfig: RedisBackupConfig = {
+      host: config.redis.host,
+      port: config.redis.port,
+      backupPath: config.redis.backupPath,
+      compression: config.redis.compression,
+      ...(config.redis.password && { password: config.redis.password }),
+      ...(config.redis.rdbPath && { rdbPath: config.redis.rdbPath }),
+    };
+
+    this.postgresBackup = new PostgresBackupService(postgresConfig, logger);
+    this.redisBackup = new RedisBackupService(redisConfig, logger);
 
     this.setupEventHandlers();
   }

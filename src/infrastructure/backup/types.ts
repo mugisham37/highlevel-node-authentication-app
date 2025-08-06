@@ -4,21 +4,21 @@ export interface BackupConfig {
     remoteStorage?: {
       type: 'aws-s3' | 'azure-blob' | 'gcp-storage';
       bucket: string;
-      region?: string;
+      region?: string | undefined;
       credentials: {
-        accessKey?: string;
-        secretKey?: string;
-        connectionString?: string;
+        accessKey?: string | undefined;
+        secretKey?: string | undefined;
+        connectionString?: string | undefined;
       };
-    };
+    } | undefined;
   };
 
   postgres: {
     connectionString: string;
     backupPath: string;
-    pgDumpPath?: string;
-    pgRestorePath?: string;
-    walArchivePath?: string;
+    pgDumpPath?: string | undefined;
+    pgRestorePath?: string | undefined;
+    walArchivePath?: string | undefined;
     compression: {
       enabled: boolean;
       level: number;
@@ -28,9 +28,9 @@ export interface BackupConfig {
   redis: {
     host: string;
     port: number;
-    password?: string;
+    password?: string | undefined;
     backupPath: string;
-    rdbPath?: string;
+    rdbPath?: string | undefined;
     compression: {
       enabled: boolean;
       level: number;
@@ -41,7 +41,7 @@ export interface BackupConfig {
     enabled: boolean;
     algorithm: string;
     keyPath: string;
-  };
+  } | undefined;
 
   schedule: {
     enabled: boolean;
@@ -58,7 +58,7 @@ export interface BackupConfig {
     enabled: boolean;
     regions: string[];
     replicationDelay: number;
-  };
+  } | undefined;
 }
 
 export interface BackupResult {
@@ -119,6 +119,50 @@ export interface DisasterRecoveryPlan {
   };
 }
 
+// Base interface for step configuration
+export interface BaseStepConfig {
+  [key: string]: any;
+}
+
+// Specific step configuration interfaces
+export interface BackupStepConfig extends BaseStepConfig {
+  type?: 'full' | 'incremental';
+}
+
+export interface RestoreStepConfig extends BaseStepConfig {
+  backupId?: string;
+  restoreOptions?: RestoreOptions;
+}
+
+export interface FailoverStepConfig extends BaseStepConfig {
+  targetRegion?: string;
+  failoverType?: 'automatic' | 'manual';
+}
+
+export interface ValidationStepConfig extends BaseStepConfig {
+  validations?: ValidationCheck[];
+}
+
+export interface NotificationStepConfig extends BaseStepConfig {
+  message?: string;
+  channels?: ('email' | 'slack' | 'webhook')[];
+}
+
+export interface ValidationCheck {
+  name: string;
+  type: 'health' | 'functional' | 'data-integrity';
+  timeout?: number;
+  retries?: number;
+}
+
+// Union type for step configuration
+export type StepConfig = 
+  | BackupStepConfig 
+  | RestoreStepConfig 
+  | FailoverStepConfig 
+  | ValidationStepConfig 
+  | NotificationStepConfig;
+
 export interface DisasterRecoveryStep {
   id: string;
   name: string;
@@ -126,9 +170,7 @@ export interface DisasterRecoveryStep {
   type: 'backup' | 'restore' | 'failover' | 'validation' | 'notification';
   order: number;
 
-  config: {
-    [key: string]: any;
-  };
+  config: StepConfig;
 
   timeout: number;
   retries: number;

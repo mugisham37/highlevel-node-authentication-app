@@ -2,22 +2,24 @@ import { BackupConfig } from './types';
 import path from 'path';
 
 export function createBackupConfig(): BackupConfig {
-  const backupBasePath = process.env.BACKUP_PATH || './backups';
+  const backupBasePath = process.env['BACKUP_PATH'] || './backups';
 
+  const redisPassword = process.env['REDIS_PASSWORD'];
+  
   return {
     storage: {
       localPath: backupBasePath,
       remoteStorage:
-        process.env.REMOTE_STORAGE_ENABLED === 'true'
+        process.env['REMOTE_STORAGE_ENABLED'] === 'true'
           ? {
-              type: (process.env.REMOTE_STORAGE_TYPE as any) || 'aws-s3',
+              type: (process.env['REMOTE_STORAGE_TYPE'] as 'aws-s3' | 'azure-blob' | 'gcp-storage') || 'aws-s3',
               bucket:
-                process.env.REMOTE_STORAGE_BUCKET || 'enterprise-auth-backups',
-              region: process.env.REMOTE_STORAGE_REGION || 'us-east-1',
+                process.env['REMOTE_STORAGE_BUCKET'] || 'enterprise-auth-backups',
+              region: process.env['REMOTE_STORAGE_REGION'] || undefined,
               credentials: {
-                accessKey: process.env.REMOTE_STORAGE_ACCESS_KEY,
-                secretKey: process.env.REMOTE_STORAGE_SECRET_KEY,
-                connectionString: process.env.REMOTE_STORAGE_CONNECTION_STRING,
+                accessKey: process.env['REMOTE_STORAGE_ACCESS_KEY'] || undefined,
+                secretKey: process.env['REMOTE_STORAGE_SECRET_KEY'] || undefined,
+                connectionString: process.env['REMOTE_STORAGE_CONNECTION_STRING'] || undefined,
               },
             }
           : undefined,
@@ -25,63 +27,62 @@ export function createBackupConfig(): BackupConfig {
 
     postgres: {
       connectionString:
-        process.env.DATABASE_URL ||
+        process.env['DATABASE_URL'] ||
         'postgresql://auth_user:auth_password@localhost:5432/enterprise_auth',
       backupPath: path.join(backupBasePath, 'postgres'),
-      pgDumpPath: process.env.PG_DUMP_PATH || 'pg_dump',
-      pgRestorePath: process.env.PG_RESTORE_PATH || 'pg_restore',
-      walArchivePath:
-        process.env.WAL_ARCHIVE_PATH || path.join(backupBasePath, 'wal'),
+      pgDumpPath: process.env['PG_DUMP_PATH'] || undefined,
+      pgRestorePath: process.env['PG_RESTORE_PATH'] || undefined,
+      walArchivePath: process.env['WAL_ARCHIVE_PATH'] || undefined,
       compression: {
-        enabled: process.env.BACKUP_COMPRESSION_ENABLED !== 'false',
-        level: parseInt(process.env.BACKUP_COMPRESSION_LEVEL || '6'),
+        enabled: process.env['BACKUP_COMPRESSION_ENABLED'] !== 'false',
+        level: parseInt(process.env['BACKUP_COMPRESSION_LEVEL'] || '6'),
       },
     },
 
     redis: {
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
-      password: process.env.REDIS_PASSWORD,
+      host: process.env['REDIS_HOST'] || 'localhost',
+      port: parseInt(process.env['REDIS_PORT'] || '6379'),
+      password: redisPassword || undefined,
       backupPath: path.join(backupBasePath, 'redis'),
-      rdbPath: process.env.REDIS_RDB_PATH || '/data/dump.rdb',
+      rdbPath: process.env['REDIS_RDB_PATH'] || undefined,
       compression: {
-        enabled: process.env.BACKUP_COMPRESSION_ENABLED !== 'false',
-        level: parseInt(process.env.BACKUP_COMPRESSION_LEVEL || '6'),
+        enabled: process.env['BACKUP_COMPRESSION_ENABLED'] !== 'false',
+        level: parseInt(process.env['BACKUP_COMPRESSION_LEVEL'] || '6'),
       },
     },
 
     encryption:
-      process.env.BACKUP_ENCRYPTION_ENABLED === 'true'
+      process.env['BACKUP_ENCRYPTION_ENABLED'] === 'true'
         ? {
             enabled: true,
-            algorithm: process.env.BACKUP_ENCRYPTION_ALGORITHM || 'aes-256-gcm',
+            algorithm: process.env['BACKUP_ENCRYPTION_ALGORITHM'] || 'aes-256-gcm',
             keyPath:
-              process.env.BACKUP_ENCRYPTION_KEY_PATH ||
+              process.env['BACKUP_ENCRYPTION_KEY_PATH'] ||
               './config/backup-encryption.key',
           }
         : undefined,
 
     schedule: {
-      enabled: process.env.BACKUP_SCHEDULE_ENABLED !== 'false',
-      interval: process.env.BACKUP_SCHEDULE_INTERVAL || '6h',
+      enabled: process.env['BACKUP_SCHEDULE_ENABLED'] !== 'false',
+      interval: process.env['BACKUP_SCHEDULE_INTERVAL'] || '6h',
       type:
-        (process.env.BACKUP_SCHEDULE_TYPE as 'full' | 'incremental') ||
+        (process.env['BACKUP_SCHEDULE_TYPE'] as 'full' | 'incremental') ||
         'incremental',
     },
 
     retention: {
-      days: parseInt(process.env.BACKUP_RETENTION_DAYS || '30'),
-      maxBackups: parseInt(process.env.BACKUP_MAX_COUNT || '100'),
+      days: parseInt(process.env['BACKUP_RETENTION_DAYS'] || '30'),
+      maxBackups: parseInt(process.env['BACKUP_MAX_COUNT'] || '100'),
     },
 
     crossRegion:
-      process.env.CROSS_REGION_REPLICATION_ENABLED === 'true'
+      process.env['CROSS_REGION_REPLICATION_ENABLED'] === 'true'
         ? {
             enabled: true,
-            regions: (process.env.CROSS_REGION_TARGETS || '')
+            regions: (process.env['CROSS_REGION_TARGETS'] || '')
               .split(',')
               .filter(Boolean),
-            replicationDelay: parseInt(process.env.CROSS_REGION_DELAY || '300'),
+            replicationDelay: parseInt(process.env['CROSS_REGION_DELAY'] || '300'),
           }
         : undefined,
   };
@@ -93,6 +94,8 @@ export const defaultBackupConfig: Partial<BackupConfig> = {
   },
 
   postgres: {
+    connectionString: 'postgresql://auth_user:auth_password@localhost:5432/enterprise_auth',
+    backupPath: './backups/postgres',
     compression: {
       enabled: true,
       level: 6,
@@ -100,6 +103,9 @@ export const defaultBackupConfig: Partial<BackupConfig> = {
   },
 
   redis: {
+    host: 'localhost',
+    port: 6379,
+    backupPath: './backups/redis',
     compression: {
       enabled: true,
       level: 6,

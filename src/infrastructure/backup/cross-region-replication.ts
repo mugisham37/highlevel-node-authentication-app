@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import { Logger } from 'winston';
 import { BackupManager } from './backup-manager';
-import { BackupConfig, CrossRegionReplication, BackupResult } from './types';
+import { BackupConfig,BackupResult } from './types';
 import { promises as fs } from 'fs';
 import path from 'path';
 
@@ -303,7 +303,7 @@ export class CrossRegionReplicationManager extends EventEmitter {
    * Upload backup data to target region
    */
   private async uploadToTarget(
-    backupData: Buffer,
+
     backupResult: BackupResult,
     target: ReplicationTarget
   ): Promise<any> {

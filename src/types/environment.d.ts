@@ -7,7 +7,7 @@ declare global {
   namespace NodeJS {
     interface ProcessEnv {
       // Server Configuration
-      NODE_ENV: 'development' | 'production' | 'test';
+      NODE_ENV: 'development' | 'production' | 'test' | 'staging';
       PORT?: string;
       HOST?: string;
       
@@ -91,6 +91,47 @@ declare global {
       // Testing
       TEST_DATABASE_URL?: string;
       TEST_CONFIG_VALUE?: string;
+      
+      // Backup Configuration
+      BACKUP_PATH?: string;
+      REMOTE_STORAGE_ENABLED?: string;
+      REMOTE_STORAGE_TYPE?: string;
+      REMOTE_STORAGE_BUCKET?: string;
+      REMOTE_STORAGE_REGION?: string;
+      REMOTE_STORAGE_ACCESS_KEY?: string;
+      REMOTE_STORAGE_SECRET_KEY?: string;
+      REMOTE_STORAGE_CONNECTION_STRING?: string;
+      
+      // PostgreSQL Backup
+      PG_DUMP_PATH?: string;
+      PG_RESTORE_PATH?: string;
+      WAL_ARCHIVE_PATH?: string;
+      
+      // Redis Backup
+      REDIS_RDB_PATH?: string;
+      
+      // Backup Compression
+      BACKUP_COMPRESSION_ENABLED?: string;
+      BACKUP_COMPRESSION_LEVEL?: string;
+      
+      // Backup Encryption
+      BACKUP_ENCRYPTION_ENABLED?: string;
+      BACKUP_ENCRYPTION_ALGORITHM?: string;
+      BACKUP_ENCRYPTION_KEY_PATH?: string;
+      
+      // Backup Schedule
+      BACKUP_SCHEDULE_ENABLED?: string;
+      BACKUP_SCHEDULE_INTERVAL?: string;
+      BACKUP_SCHEDULE_TYPE?: string;
+      
+      // Backup Retention
+      BACKUP_RETENTION_DAYS?: string;
+      BACKUP_MAX_COUNT?: string;
+      
+      // Cross-Region Replication
+      CROSS_REGION_REPLICATION_ENABLED?: string;
+      CROSS_REGION_TARGETS?: string;
+      CROSS_REGION_DELAY?: string;
     }
   }
 }
