@@ -320,6 +320,43 @@ export class MultiLayerCache {
     }
   }
 
+  /**
+   * Invalidate cache entries matching a pattern
+   */
+  async invalidatePattern(pattern: string): Promise<number> {
+    let totalInvalidated = 0;
+
+    try {
+      // Invalidate from all layers
+      for (const layer of this.layers) {
+        try {
+          // For layers that support pattern invalidation, use it directly
+          if ('invalidatePattern' in layer && typeof layer.invalidatePattern === 'function') {
+            const layerInvalidated = await (layer as any).invalidatePattern(pattern);
+            totalInvalidated += layerInvalidated;
+          } else {
+            // For layers without pattern support, we'll need to implement it
+            // This is a simplified implementation - in production you'd want better pattern matching
+            logger.warn(`Pattern invalidation not fully supported for ${layer.name}`, { pattern });
+          }
+        } catch (error) {
+          logger.warn(`Failed to invalidate pattern in ${layer.name}:`, { pattern, error });
+        }
+      }
+
+      logger.debug('Pattern invalidation completed', {
+        pattern,
+        totalInvalidated,
+      });
+
+      return totalInvalidated;
+    } catch (error) {
+      this.metrics.recordError();
+      logger.error('Multi-layer cache pattern invalidation error:', { pattern, error });
+      return 0;
+    }
+  }
+
   getStats() {
     const layerStats = this.layers.reduce(
       (stats, layer) => {

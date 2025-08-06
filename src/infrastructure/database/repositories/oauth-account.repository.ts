@@ -93,13 +93,13 @@ export class OAuthAccountRepository implements IOAuthAccountRepository {
           provider: account.provider,
           providerAccountId: account.providerAccountId,
           type: account.type,
-          accessToken: account.accessToken,
-          refreshToken: account.refreshToken,
-          idToken: account.idToken,
-          expiresAt: account.expiresAt,
-          tokenType: account.tokenType,
-          scope: account.scope,
-          sessionState: account.sessionState,
+          accessToken: account.accessToken || null,
+          refreshToken: account.refreshToken || null,
+          idToken: account.idToken || null,
+          expiresAt: account.expiresAt || null,
+          tokenType: account.tokenType || null,
+          scope: account.scope || null,
+          sessionState: account.sessionState || null,
         },
       });
 
@@ -119,13 +119,13 @@ export class OAuthAccountRepository implements IOAuthAccountRepository {
       const accountData = await this.prisma.account.update({
         where: { id: account.id },
         data: {
-          accessToken: account.accessToken,
-          refreshToken: account.refreshToken,
-          idToken: account.idToken,
-          expiresAt: account.expiresAt,
-          tokenType: account.tokenType,
-          scope: account.scope,
-          sessionState: account.sessionState,
+          accessToken: account.accessToken || null,
+          refreshToken: account.refreshToken || null,
+          idToken: account.idToken || null,
+          expiresAt: account.expiresAt || null,
+          tokenType: account.tokenType || null,
+          scope: account.scope || null,
+          sessionState: account.sessionState || null,
         },
       });
 

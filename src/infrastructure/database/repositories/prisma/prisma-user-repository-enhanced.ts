@@ -6,7 +6,6 @@
 import { PrismaClient } from '@prisma/client';
 import { Logger } from 'winston';
 import { BaseRepository } from '../base/base-repository';
-import { TransactionManager } from '../base/transaction-manager';
 import { MultiLayerCache } from '../../../cache/multi-layer-cache';
 import {
   IUserRepository,
@@ -15,8 +14,6 @@ import {
   UserFilters,
   UserWithRelations,
 } from '../interfaces/user-repository.interface';
-import { ITransactionContext } from '../interfaces/base-repository.interface';
-import { User } from '../../../../domain/entities/user';
 import { Role } from '../../../../domain/entities/role';
 import { Permission } from '../../../../domain/entities/permission';
 
@@ -26,7 +23,6 @@ export class PrismaUserRepositoryEnhanced
 {
   constructor(
     private prismaClient: PrismaClient,
-    private transactionManager: TransactionManager,
     logger: Logger,
     cache?: MultiLayerCache
   ) {
@@ -105,7 +101,7 @@ export class PrismaUserRepositoryEnhanced
           ttl: 3600,
           preferReplica: true,
         }
-      );
+      ) as UserWithRelations | null;
 
       this.recordQuery('findById', Date.now() - startTime, true);
       return result;
@@ -137,7 +133,7 @@ export class PrismaUserRepositoryEnhanced
           ttl: 1800,
           preferReplica: true,
         }
-      );
+      ) as UserWithRelations | null;
 
       this.recordQuery('findByEmail', Date.now() - startTime, true);
       return result;
@@ -494,7 +490,7 @@ export class PrismaUserRepositoryEnhanced
             },
           });
 
-          return userRoles.map((ur) => ur.role);
+          return userRoles.map((ur: any) => ur.role);
         },
         {
           cacheKey: this.generateCacheKey('getUserRoles', { userId }),
@@ -534,8 +530,8 @@ export class PrismaUserRepositoryEnhanced
           });
 
           const permissions = new Map<string, Permission>();
-          userRoles.forEach((userRole) => {
-            userRole.role.permissions.forEach((rolePermission) => {
+          userRoles.forEach((userRole: any) => {
+            userRole.role.permissions.forEach((rolePermission: any) => {
               permissions.set(
                 rolePermission.permission.id,
                 rolePermission.permission

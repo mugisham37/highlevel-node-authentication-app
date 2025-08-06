@@ -97,8 +97,8 @@ export class OAuthAuthorizationCodeRepository
         return false;
       }
 
-      const codeExists = results[0][1] === 1;
-      const codeUsed = results[1][1] === 1;
+      const codeExists = (results[0]?.[1] as number) === 1;
+      const codeUsed = (results[1]?.[1] as number) === 1;
 
       return codeExists && !codeUsed;
     } catch (error) {
@@ -127,8 +127,8 @@ export class OAuthAuthorizationCodeRepository
         return 0;
       }
 
-      const activeCodeKeys = results[0][1] as string[];
-      const usedCodeKeys = results[1][1] as string[];
+      const activeCodeKeys = (results[0]?.[1] as string[]) || [];
+      const usedCodeKeys = (results[1]?.[1] as string[]) || [];
 
       return activeCodeKeys.length + usedCodeKeys.length;
     } catch (error) {
@@ -248,7 +248,7 @@ export class OAuthAuthorizationCodeRepository
         const dataResult = results[i * 2];
         const ttlResult = results[i * 2 + 1];
 
-        if (dataResult && dataResult[1] && ttlResult && ttlResult[1]) {
+        if (dataResult?.[1] && ttlResult?.[1]) {
           const code = keys[i].replace(this.keyPrefix, '');
           const data = JSON.parse(
             dataResult[1] as string

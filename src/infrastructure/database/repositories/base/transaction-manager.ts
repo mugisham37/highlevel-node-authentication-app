@@ -81,7 +81,7 @@ export class TransactionManager implements ITransactionalRepository {
       // Use Prisma's transaction system as the primary coordinator
       // since it provides better transaction management
       return await this.prismaClient.$transaction(
-        async (prismaTransaction) => {
+        async (prismaTransaction: PrismaClient) => {
           // Create a Drizzle instance that uses the same connection
           // This is a simplified approach - in production, you'd want to ensure
           // both ORMs use the same underlying connection
@@ -138,7 +138,7 @@ export class TransactionManager implements ITransactionalRepository {
       const transactionPromise = new Promise<T>((resolve, reject) => {
         this.prismaClient
           .$transaction(
-            async (prisma) => {
+            async (prisma: PrismaClient) => {
               prismaTransaction = prisma;
 
               // For Drizzle, we'd need to implement transaction support

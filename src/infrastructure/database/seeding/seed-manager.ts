@@ -34,6 +34,16 @@ export interface SeedRecord {
   executionTime: number;
 }
 
+// Database row interface for seed records
+export interface SeedDbRow {
+  id: string;
+  name: string;
+  version: string;
+  environment: string;
+  applied_at: string;
+  execution_time: number;
+}
+
 export class SeedManager {
   private pool: Pool;
   private drizzleDb: any;
@@ -137,7 +147,7 @@ export class SeedManager {
       [this.environment]
     );
 
-    return result.rows.map((row) => ({
+    return result.rows.map((row: SeedDbRow) => ({
       id: row.id,
       name: row.name,
       version: row.version,
@@ -334,13 +344,25 @@ export class SeedManager {
   }> {
     const applied = await this.getAppliedSeeds();
     const pending = await this.getPendingSeeds();
+    
+    const lastSeed = applied.length > 0 ? applied[applied.length - 1] : undefined;
 
-    return {
+    const result: {
+      environment: string;
+      appliedSeeds: number;
+      pendingSeeds: number;
+      lastSeed?: SeedRecord;
+    } = {
       environment: this.environment,
       appliedSeeds: applied.length,
       pendingSeeds: pending.length,
-      lastSeed: applied[applied.length - 1],
     };
+
+    if (lastSeed) {
+      result.lastSeed = lastSeed;
+    }
+
+    return result;
   }
 
   async close(): Promise<void> {

@@ -19,26 +19,49 @@ export class PrismaPermissionRepository implements IPermissionRepository {
     private logger: Logger
   ) {}
 
+  private mapToPermission(permissionData: any): Permission {
+    const props: any = {
+      id: permissionData.id,
+      name: permissionData.name,
+      resource: permissionData.resource,
+      action: permissionData.action,
+      createdAt: permissionData.createdAt,
+    };
+    
+    const parsedConditions = this.parseConditions(permissionData.conditions);
+    if (parsedConditions) {
+      props.conditions = parsedConditions;
+    }
+    
+    return new Permission(props);
+  }
+
+  private parseConditions(conditions: any): Record<string, any> | undefined {
+    if (!conditions) return undefined;
+    if (typeof conditions === 'object' && conditions !== null) {
+      return conditions as Record<string, any>;
+    }
+    return undefined;
+  }
+
   async create(data: CreatePermissionData): Promise<Permission> {
     try {
+      const createData: any = {
+        name: data.name,
+        resource: data.resource,
+        action: data.action,
+        createdAt: new Date(),
+      };
+      
+      if (data.conditions) {
+        createData.conditions = data.conditions;
+      }
+
       const permissionData = await this.prisma.permission.create({
-        data: {
-          name: data.name,
-          resource: data.resource,
-          action: data.action,
-          conditions: data.conditions || null,
-          createdAt: new Date(),
-        },
+        data: createData,
       });
 
-      const permission = new Permission({
-        id: permissionData.id,
-        name: permissionData.name,
-        resource: permissionData.resource,
-        action: permissionData.action,
-        conditions: permissionData.conditions || undefined,
-        createdAt: permissionData.createdAt,
-      });
+      const permission = this.mapToPermission(permissionData);
 
       this.logger.info('Permission created successfully', {
         permissionId: permission.id,
@@ -62,14 +85,7 @@ export class PrismaPermissionRepository implements IPermissionRepository {
 
       if (!permissionData) return null;
 
-      return new Permission({
-        id: permissionData.id,
-        name: permissionData.name,
-        resource: permissionData.resource,
-        action: permissionData.action,
-        conditions: permissionData.conditions || undefined,
-        createdAt: permissionData.createdAt,
-      });
+      return this.mapToPermission(permissionData);
     } catch (error) {
       this.logger.error('Failed to find permission by ID', { error, id });
       throw error;

@@ -7,7 +7,6 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { eq, and, gt, lt, desc, asc, count, sql, inArray } from 'drizzle-orm';
 import { Logger } from 'winston';
 import { BaseRepository } from '../base/base-repository';
-import { TransactionManager } from '../base/transaction-manager';
 import { MultiLayerCache } from '../../../cache/multi-layer-cache';
 import {
   ISessionRepository,
@@ -29,8 +28,6 @@ import {
   NewAuthAttempt,
   UserAuthCacheEntry,
   NewUserAuthCacheEntry,
-  RateLimitEntry,
-  NewRateLimitEntry,
 } from '../../drizzle/schema/auth-sessions';
 import * as authSessionsSchema from '../../drizzle/schema/auth-sessions';
 import * as oauthCacheSchema from '../../drizzle/schema/oauth-cache';
@@ -43,7 +40,6 @@ export class DrizzleSessionRepositoryEnhanced
     private db: NodePgDatabase<
       typeof authSessionsSchema & typeof oauthCacheSchema
     >,
-    private transactionManager: TransactionManager,
     logger: Logger,
     cache?: MultiLayerCache
   ) {
@@ -480,7 +476,7 @@ export class DrizzleSessionRepositoryEnhanced
     try {
       const result = await this.optimizeQuery(
         async () => {
-          const [{ count: sessionCount }] = await this.db
+          const [countResult] = await this.db
             .select({ count: count() })
             .from(activeSessions)
             .where(
@@ -491,7 +487,7 @@ export class DrizzleSessionRepositoryEnhanced
               )
             );
 
-          return sessionCount;
+          return countResult?.count || 0;
         },
         {
           cacheKey: this.generateCacheKey('getUserSessionCount', { userId }),
@@ -573,8 +569,9 @@ export class DrizzleSessionRepositoryEnhanced
     }
   }
 
-  async recordSessionActivity(sessionId: string, activity: any): Promise<void> {
+  async recordSessionActivity(sessionId: string, _activity: any): Promise<void> {
     // This could be extended to record detailed activity logs
+    // For now, we just update the last activity timestamp
     await this.updateLastActivity(sessionId);
   }
 
@@ -1027,7 +1024,7 @@ export class DrizzleSessionRepositoryEnhanced
 
     try {
       const now = new Date();
-      const windowStart = new Date(now.getTime() - windowMs);
+      // Note: windowStart could be used for cleanup operations but is not needed for current logic
 
       // Get current count for this identifier and resource
       const [existing] = await this.db
@@ -1189,7 +1186,7 @@ export class DrizzleSessionRepositoryEnhanced
 
   // Helper methods
   private mapToSessionEntity(activeSession: ActiveSession): Session {
-    return {
+    return new Session({
       id: activeSession.id,
       userId: activeSession.userId,
       token: activeSession.token,
@@ -1198,12 +1195,19 @@ export class DrizzleSessionRepositoryEnhanced
       refreshExpiresAt: activeSession.refreshExpiresAt,
       createdAt: activeSession.createdAt,
       lastActivity: activeSession.lastActivity,
-      deviceInfo: null, // Would need to parse if stored as JSON
-      ipAddress: activeSession.ipAddress,
-      userAgent: activeSession.userAgent,
+      deviceInfo: {
+        fingerprint: activeSession.deviceFingerprint || '',
+        userAgent: activeSession.userAgent || '',
+        platform: '',
+        browser: '',
+        version: '',
+        isMobile: false,
+      },
+      ipAddress: activeSession.ipAddress || '',
+      userAgent: activeSession.userAgent || '',
       riskScore: activeSession.riskScore,
       isActive: activeSession.isActive,
-    } as Session;
+    });
   }
 
   private buildWhereConditions(filters: Partial<SessionFilters>) {
@@ -1257,7 +1261,25 @@ export class DrizzleSessionRepositoryEnhanced
     const sortBy = filters.sortBy || 'createdAt';
     const sortOrder = filters.sortOrder || 'desc';
 
-    const column = activeSessions[sortBy as keyof typeof activeSessions];
+    // Map sort fields to actual columns
+    let column;
+    switch (sortBy) {
+      case 'createdAt':
+        column = activeSessions.createdAt;
+        break;
+      case 'lastActivity':
+        column = activeSessions.lastActivity;
+        break;
+      case 'expiresAt':
+        column = activeSessions.expiresAt;
+        break;
+      case 'riskScore':
+        column = activeSessions.riskScore;
+        break;
+      default:
+        column = activeSessions.createdAt;
+    }
+    
     return sortOrder === 'desc' ? desc(column) : asc(column);
   }
 

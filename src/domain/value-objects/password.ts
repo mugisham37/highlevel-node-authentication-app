@@ -40,6 +40,13 @@ export class Password {
   }
 
   /**
+   * Alias for hashedValue to maintain backward compatibility
+   */
+  get hash(): string {
+    return this._hashedValue;
+  }
+
+  /**
    * Verify if a plain text password matches this hashed password
    */
   async verify(plainText: string): Promise<boolean> {

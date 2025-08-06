@@ -42,6 +42,42 @@ export interface ValidationSummary {
   validConstraints: number;
 }
 
+// Database query result interfaces
+export interface TableRow {
+  table_name: string;
+}
+
+export interface ColumnRow {
+  column_name: string;
+  data_type: string;
+  is_nullable: string;
+}
+
+export interface IndexRow {
+  schemaname: string;
+  tablename: string;
+  indexname: string;
+  indexdef: string;
+}
+
+export interface ConstraintRow {
+  table_name: string;
+  constraint_name: string;
+  constraint_type: string;
+  column_name: string;
+  foreign_table_name: string;
+  foreign_column_name: string;
+}
+
+export interface CountRow {
+  count: number;
+}
+
+export interface ColumnDefinition {
+  type: string;
+  nullable: boolean;
+}
+
 export class SchemaValidator {
   private pool: Pool;
   private drizzleDb: any;
@@ -87,11 +123,12 @@ export class SchemaValidator {
         summary,
       };
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       logger.error('Schema validation failed:', error);
       errors.push({
         type: 'constraint_violation',
         table: 'unknown',
-        message: `Schema validation failed: ${error.message}`,
+        message: `Schema validation failed: ${errorMessage}`,
       });
 
       return {
@@ -155,7 +192,7 @@ export class SchemaValidator {
     `);
 
     const existingTables = new Set(
-      result.rows.map((row: any) => row.table_name)
+      result.rows.map((row: TableRow) => row.table_name)
     );
 
     // Check for missing tables
@@ -175,7 +212,7 @@ export class SchemaValidator {
     warnings: ValidationWarning[]
   ): Promise<void> {
     // Define expected column definitions for critical tables
-    const expectedColumns = {
+    const expectedColumns: Record<string, Record<string, ColumnDefinition>> = {
       users: {
         id: { type: 'character varying', nullable: false },
         email: { type: 'character varying', nullable: false },
@@ -202,8 +239,8 @@ export class SchemaValidator {
         [tableName]
       );
 
-      const existingColumns = new Map(
-        result.rows.map((row: any) => [
+      const existingColumns = new Map<string, ColumnDefinition>(
+        result.rows.map((row: ColumnRow) => [
           row.column_name,
           {
             type: row.data_type,
@@ -309,7 +346,7 @@ export class SchemaValidator {
     `);
 
     const existingIndexes = new Set(
-      result.rows.map((row: any) => row.indexname)
+      result.rows.map((row: IndexRow) => row.indexname)
     );
 
     for (const index of criticalIndexes) {
@@ -345,7 +382,7 @@ export class SchemaValidator {
       AND i.indexname IS NULL
     `);
 
-    return result.rows.map((row: any) => row.table_name);
+    return result.rows.map((row: TableRow) => row.table_name);
   }
 
   private async validateConstraints(
@@ -372,19 +409,43 @@ export class SchemaValidator {
       AND tc.table_schema = 'public'
     `);
 
-    const foreignKeys = result.rows;
+    const foreignKeys = result.rows as ConstraintRow[];
 
-    // Expected foreign key relationships
-    const expectedForeignKeys = [
-      { table: 'accounts', column: 'user_id', references: 'users' },
+    // Critical constraints that must exist (errors if missing)
+    const criticalConstraints = [
       { table: 'sessions', column: 'user_id', references: 'users' },
+      { table: 'accounts', column: 'user_id', references: 'users' },
+    ];
+
+    // Expected foreign key relationships (warnings if missing)
+    const expectedForeignKeys = [
       { table: 'user_roles', column: 'user_id', references: 'users' },
       { table: 'user_roles', column: 'role_id', references: 'roles' },
     ];
 
+    // Check critical constraints
+    for (const expected of criticalConstraints) {
+      const found = foreignKeys.find(
+        (fk) =>
+          fk.table_name === expected.table &&
+          fk.column_name === expected.column &&
+          fk.foreign_table_name === expected.references
+      );
+
+      if (!found) {
+        errors.push({
+          type: 'constraint_violation',
+          table: expected.table,
+          column: expected.column,
+          message: `Critical foreign key constraint missing from ${expected.table}.${expected.column} to ${expected.references}`,
+        });
+      }
+    }
+
+    // Check expected constraints
     for (const expected of expectedForeignKeys) {
       const found = foreignKeys.find(
-        (fk: any) =>
+        (fk) =>
           fk.table_name === expected.table &&
           fk.column_name === expected.column &&
           fk.foreign_table_name === expected.references
@@ -416,11 +477,12 @@ export class SchemaValidator {
         WHERE u.id IS NULL
       `);
 
-      if (orphanedSessions.rows[0]?.count > 0) {
+      const orphanedCount = (orphanedSessions.rows[0] as CountRow)?.count || 0;
+      if (orphanedCount > 0) {
         errors.push({
           type: 'constraint_violation',
           table: 'sessions',
-          message: `Found ${orphanedSessions.rows[0].count} orphaned session records`,
+          message: `Found ${orphanedCount} orphaned session records`,
         });
       }
 
@@ -430,7 +492,7 @@ export class SchemaValidator {
         SELECT COUNT(*) as count FROM user_auth_cache
       `);
 
-      const cacheCount = drizzleCacheCount.rows[0]?.count || 0;
+      const cacheCount = (drizzleCacheCount.rows[0] as CountRow)?.count || 0;
       if (Math.abs(prismaUserCount - cacheCount) > prismaUserCount * 0.1) {
         warnings.push({
           type: 'performance',
@@ -440,10 +502,11 @@ export class SchemaValidator {
         });
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       warnings.push({
         type: 'performance',
         table: 'unknown',
-        message: `Data consistency check failed: ${error.message}`,
+        message: `Data consistency check failed: ${errorMessage}`,
       });
     }
   }
@@ -471,13 +534,17 @@ export class SchemaValidator {
         WHERE table_schema = 'public'
       `);
 
+      const tableCount = (tablesResult.rows[0] as CountRow)?.count || 0;
+      const indexCount = (indexesResult.rows[0] as CountRow)?.count || 0;
+      const constraintCount = (constraintsResult.rows[0] as CountRow)?.count || 0;
+
       return {
-        totalTables: tablesResult.rows[0]?.count || 0,
-        validTables: tablesResult.rows[0]?.count || 0, // Simplified
-        totalIndexes: indexesResult.rows[0]?.count || 0,
-        validIndexes: indexesResult.rows[0]?.count || 0, // Simplified
-        totalConstraints: constraintsResult.rows[0]?.count || 0,
-        validConstraints: constraintsResult.rows[0]?.count || 0, // Simplified
+        totalTables: tableCount,
+        validTables: tableCount, // Simplified
+        totalIndexes: indexCount,
+        validIndexes: indexCount, // Simplified
+        totalConstraints: constraintCount,
+        validConstraints: constraintCount, // Simplified
       };
     } catch (error) {
       logger.error('Failed to generate validation summary:', error);
