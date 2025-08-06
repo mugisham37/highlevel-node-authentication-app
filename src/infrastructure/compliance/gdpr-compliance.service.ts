@@ -31,10 +31,10 @@ export interface ConsentRecord {
   granted: boolean;
   timestamp: Date;
   version: string;
-  ipAddress?: string;
-  userAgent?: string;
-  withdrawnAt?: Date;
-  withdrawalReason?: string;
+  ipAddress?: string | undefined;
+  userAgent?: string | undefined;
+  withdrawnAt?: Date | undefined;
+  withdrawalReason?: string | undefined;
 }
 
 export interface DataProcessingActivity {
@@ -45,13 +45,13 @@ export interface DataProcessingActivity {
   dataCategories: string[];
   legalBasis: string;
   timestamp: Date;
-  retentionPeriod?: number; // days
+  retentionPeriod?: number | undefined; // days
   automated: boolean;
   thirdPartySharing?: {
     recipient: string;
     purpose: string;
     safeguards: string[];
-  }[];
+  }[] | undefined;
 }
 
 export interface DataExportRequest {
@@ -71,14 +71,14 @@ export interface DataDeletionRequest {
   subjectId: string;
   requestedAt: Date;
   status: 'pending' | 'processing' | 'completed' | 'failed' | 'rejected';
-  reason?: string;
-  scheduledFor?: Date;
-  completedAt?: Date;
+  reason?: string | undefined;
+  scheduledFor?: Date | undefined;
+  completedAt?: Date | undefined;
   retentionOverride?: {
     reason: string;
     legalBasis: string;
     retainUntil: Date;
-  };
+  } | undefined;
 }
 
 export class GDPRComplianceService {
@@ -137,7 +137,20 @@ export class GDPRComplianceService {
     subject.consentRecords.push(consentRecord);
 
     // Audit trail
-    await auditTrailManager.recordEvent({
+    const auditEventData: {
+      actor: ReturnType<typeof AuditHelpers.createUserActor>;
+      action: string;
+      resource: ReturnType<typeof AuditHelpers.createResource>;
+      outcome: ReturnType<typeof AuditHelpers.createSuccessOutcome>;
+      metadata: {
+        purpose: string;
+        legalBasis: ConsentRecord['legalBasis'];
+        granted: boolean;
+        version: string;
+      };
+      ipAddress?: string;
+      userAgent?: string;
+    } = {
       actor: AuditHelpers.createUserActor(subjectId),
       action: 'consent_recorded',
       resource: AuditHelpers.createResource(
@@ -152,9 +165,16 @@ export class GDPRComplianceService {
         granted,
         version,
       },
-      ipAddress: metadata?.ipAddress,
-      userAgent: metadata?.userAgent,
-    });
+    };
+
+    if (metadata?.ipAddress !== undefined) {
+      auditEventData.ipAddress = metadata.ipAddress;
+    }
+    if (metadata?.userAgent !== undefined) {
+      auditEventData.userAgent = metadata.userAgent;
+    }
+
+    await auditTrailManager.recordEvent(auditEventData);
 
     logger.info('GDPR consent recorded', {
       subjectId,
@@ -198,7 +218,19 @@ export class GDPRComplianceService {
     consentRecord.withdrawalReason = reason;
 
     // Audit trail
-    await auditTrailManager.recordEvent({
+    const withdrawalAuditEventData: {
+      actor: ReturnType<typeof AuditHelpers.createUserActor>;
+      action: string;
+      resource: ReturnType<typeof AuditHelpers.createResource>;
+      outcome: ReturnType<typeof AuditHelpers.createSuccessOutcome>;
+      metadata: {
+        purpose: string;
+        reason: string | undefined;
+        originalConsentDate: Date;
+      };
+      ipAddress?: string;
+      userAgent?: string;
+    } = {
       actor: AuditHelpers.createUserActor(subjectId),
       action: 'consent_withdrawn',
       resource: AuditHelpers.createResource(
@@ -212,9 +244,16 @@ export class GDPRComplianceService {
         reason,
         originalConsentDate: consentRecord.timestamp,
       },
-      ipAddress: metadata?.ipAddress,
-      userAgent: metadata?.userAgent,
-    });
+    };
+
+    if (metadata?.ipAddress !== undefined) {
+      withdrawalAuditEventData.ipAddress = metadata.ipAddress;
+    }
+    if (metadata?.userAgent !== undefined) {
+      withdrawalAuditEventData.userAgent = metadata.userAgent;
+    }
+
+    await auditTrailManager.recordEvent(withdrawalAuditEventData);
 
     logger.info('GDPR consent withdrawn', {
       subjectId,
@@ -425,7 +464,9 @@ export class GDPRComplianceService {
           subjectId: exportRequest.subjectId,
           format: exportRequest.format,
           dataSize: exportContent.length,
+          encryptedDataSize: encryptedData.encrypted.length,
           encrypted: true,
+          algorithm: encryptedData.algorithm,
         },
       });
 

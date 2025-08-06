@@ -4,7 +4,6 @@
  */
 
 import { logger } from '../logging/winston-logger';
-import { auditTrailManager } from '../monitoring/audit-trail';
 import { gdprComplianceService } from './gdpr-compliance.service';
 import { vulnerabilityScannerService } from '../security/vulnerability-scanner.service';
 import { secureConfigManager } from '../security/secure-config-manager.service';
@@ -105,7 +104,6 @@ export class ComplianceReportingService {
 
     // Collect GDPR data
     const gdprData = gdprComplianceService.generateComplianceReport();
-    const auditStats = auditTrailManager.getStatistics();
     const encryptionStats = dataEncryptionService.getEncryptionStats();
 
     // Define GDPR sections
@@ -340,7 +338,6 @@ export class ComplianceReportingService {
     const vulnerabilityStats =
       vulnerabilityScannerService.getVulnerabilityStatistics();
     const configStats = secureConfigManager.getStatistics();
-    const auditStats = auditTrailManager.getStatistics();
 
     // Define SOC 2 sections (Trust Service Criteria)
     const sections: ComplianceSection[] = [
@@ -351,13 +348,13 @@ export class ComplianceReportingService {
         description:
           'The entity implements logical and physical access controls to protect against threats',
         status:
-          vulnerabilityStats.bySeverity.critical === 0
+          (vulnerabilityStats.bySeverity['critical'] || 0) === 0
             ? 'compliant'
             : 'non_compliant',
-        score: vulnerabilityStats.bySeverity.critical === 0 ? 95 : 60,
+        score: (vulnerabilityStats.bySeverity['critical'] || 0) === 0 ? 95 : 60,
         evidence: ['vulnerability_scans', 'access_controls'],
         gaps:
-          vulnerabilityStats.bySeverity.critical > 0
+          (vulnerabilityStats.bySeverity['critical'] || 0) > 0
             ? ['Critical vulnerabilities detected']
             : [],
         controls: [
@@ -917,7 +914,7 @@ Generate comprehensive security compliance report
       if (!scoresByStandard[report.standard]) {
         scoresByStandard[report.standard] = [];
       }
-      scoresByStandard[report.standard].push(report.overallScore);
+      scoresByStandard[report.standard]!.push(report.overallScore);
 
       // Collect critical recommendations
       report.recommendations
