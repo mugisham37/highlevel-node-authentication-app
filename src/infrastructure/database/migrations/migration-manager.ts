@@ -5,28 +5,13 @@ import { createDatabaseConfig } from '../config';
 import { logger } from '../../logging/winston-logger';
 import fs from 'fs/promises';
 import path from 'path';
-
-export interface Migration {
-  id: string;
-  name: string;
-  version: string;
-  description: string;
-  up: () => Promise<void>;
-  down: () => Promise<void>;
-  checksum: string;
-  dependencies?: string[];
-}
-
-export interface MigrationRecord {
-  id: string;
-  name: string;
-  version: string;
-  description: string;
-  checksum: string;
-  appliedAt: Date;
-  executionTime: number;
-  rollbackAvailable: boolean;
-}
+import {
+  Migration,
+  MigrationRecord,
+  MigrationTableRow,
+  TableInfoRow,
+  getErrorMessage,
+} from './types';
 
 export class MigrationManager {
   private pool: Pool;
@@ -125,7 +110,7 @@ export class MigrationManager {
       ORDER BY applied_at ASC
     `);
 
-    return result.rows.map((row) => ({
+    return result.rows.map((row: MigrationTableRow) => ({
       id: row.id,
       name: row.name,
       version: row.version,
@@ -233,7 +218,11 @@ export class MigrationManager {
       targetMigration = found;
     } else {
       // Rollback the last migration
-      targetMigration = appliedMigrations[appliedMigrations.length - 1];
+      const lastMigration = appliedMigrations[appliedMigrations.length - 1];
+      if (!lastMigration) {
+        throw new Error('No migrations found to rollback');
+      }
+      targetMigration = lastMigration;
     }
 
     if (!targetMigration.rollbackAvailable) {
@@ -289,7 +278,7 @@ export class MigrationManager {
         errors,
       };
     } catch (error) {
-      errors.push(`Schema validation failed: ${error.message}`);
+      errors.push(`Schema validation failed: ${getErrorMessage(error)}`);
       return {
         valid: false,
         errors,
@@ -303,7 +292,7 @@ export class MigrationManager {
       await this.prisma.$queryRaw`SELECT 1`;
 
       // Validate key tables exist
-      const tables = await this.prisma.$queryRaw<Array<{ table_name: string }>>`
+      const tables = await this.prisma.$queryRaw<TableInfoRow[]>`
         SELECT table_name 
         FROM information_schema.tables 
         WHERE table_schema = 'public' 
@@ -322,7 +311,7 @@ export class MigrationManager {
         'webhooks',
       ];
 
-      const existingTables = new Set(tables.map((t) => t.table_name));
+      const existingTables = new Set(tables.map((t: TableInfoRow) => t.table_name));
 
       for (const table of requiredTables) {
         if (!existingTables.has(table)) {
@@ -330,7 +319,7 @@ export class MigrationManager {
         }
       }
     } catch (error) {
-      errors.push(`Prisma schema validation failed: ${error.message}`);
+      errors.push(`Prisma schema validation failed: ${getErrorMessage(error)}`);
     }
   }
 
@@ -361,7 +350,7 @@ export class MigrationManager {
         }
       }
     } catch (error) {
-      errors.push(`Drizzle schema validation failed: ${error.message}`);
+      errors.push(`Drizzle schema validation failed: ${getErrorMessage(error)}`);
     }
   }
 
@@ -378,7 +367,7 @@ export class MigrationManager {
         `Prisma users: ${prismaUserCount}, Drizzle unique session users: ${drizzleSessionCount.rows[0]?.count || 0}`
       );
     } catch (error) {
-      errors.push(`Cross-schema validation failed: ${error.message}`);
+      errors.push(`Cross-schema validation failed: ${getErrorMessage(error)}`);
     }
   }
 
@@ -392,12 +381,25 @@ export class MigrationManager {
     const pending = await this.getPendingMigrations();
     const validation = await this.validateSchema();
 
-    return {
+    const result: {
+      appliedMigrations: number;
+      pendingMigrations: number;
+      lastMigration?: MigrationRecord;
+      schemaValid: boolean;
+    } = {
       appliedMigrations: applied.length,
       pendingMigrations: pending.length,
-      lastMigration: applied[applied.length - 1],
       schemaValid: validation.valid,
     };
+
+    if (applied.length > 0) {
+      const lastMigration = applied[applied.length - 1];
+      if (lastMigration) {
+        result.lastMigration = lastMigration;
+      }
+    }
+
+    return result;
   }
 
   async close(): Promise<void> {

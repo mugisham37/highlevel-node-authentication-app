@@ -4,6 +4,7 @@ import { PrismaClient } from '@prisma/client';
 import { createDatabaseConfig } from '../config';
 import { logger } from '../../logging/winston-logger';
 import { MigrationManager } from './migration-manager';
+import { getErrorMessage } from './types';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -249,7 +250,7 @@ export class ProductionMigrator {
       const validation = await this.migrationManager.validateSchema();
       if (!validation.valid) {
         throw new Error(
-          `Schema validation failed: ${validation.errors.map((e) => e.message).join(', ')}`
+          `Schema validation failed: ${validation.errors.join(', ')}`
         );
       }
 
@@ -298,7 +299,7 @@ export class ProductionMigrator {
         } catch (rollbackError) {
           logger.error('Rollback failed:', rollbackError);
           throw new Error(
-            `Migration failed and rollback failed: ${error.message}`
+            `Migration failed and rollback failed: ${getErrorMessage(error)}`
           );
         }
       }
@@ -307,7 +308,7 @@ export class ProductionMigrator {
       if (notificationWebhook) {
         await this.sendNotification(notificationWebhook, {
           event: 'migration_failed',
-          error: error.message,
+          error: getErrorMessage(error),
           plan,
         });
       }

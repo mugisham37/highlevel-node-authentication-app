@@ -4,7 +4,7 @@ import { Command } from 'commander';
 import { MigrationManager } from '../migrations/migration-manager';
 import { SeedManager } from '../seeding/seed-manager';
 import { SchemaValidator } from '../validation/schema-validator';
-import { logger } from '../../logging/logger';
+import { getErrorMessage } from '../../errors/error-utils';
 
 const program = new Command();
 
@@ -28,7 +28,7 @@ migrateCommand
       await manager.migrate();
       console.log('✅ Migrations completed successfully');
     } catch (error) {
-      console.error('❌ Migration failed:', error.message);
+      console.error('❌ Migration failed:', getErrorMessage(error));
       process.exit(1);
     } finally {
       await manager.close();
@@ -46,7 +46,7 @@ migrateCommand
       await manager.rollback(options.id);
       console.log('✅ Rollback completed successfully');
     } catch (error) {
-      console.error('❌ Rollback failed:', error.message);
+      console.error('❌ Rollback failed:', getErrorMessage(error));
       process.exit(1);
     } finally {
       await manager.close();
@@ -86,7 +86,7 @@ migrateCommand
         });
       }
     } catch (error) {
-      console.error('❌ Failed to get migration status:', error.message);
+      console.error('❌ Failed to get migration status:', getErrorMessage(error));
       process.exit(1);
     } finally {
       await manager.close();
@@ -113,7 +113,7 @@ seedCommand
       await manager.seed();
       console.log('✅ Seeding completed successfully');
     } catch (error) {
-      console.error('❌ Seeding failed:', error.message);
+      console.error('❌ Seeding failed:', getErrorMessage(error));
       process.exit(1);
     } finally {
       await manager.close();
@@ -136,7 +136,7 @@ seedCommand
       await manager.rollbackSeed(options.id);
       console.log('✅ Seed rollback completed successfully');
     } catch (error) {
-      console.error('❌ Seed rollback failed:', error.message);
+      console.error('❌ Seed rollback failed:', getErrorMessage(error));
       process.exit(1);
     } finally {
       await manager.close();
@@ -171,7 +171,7 @@ seedCommand
       await manager.clearEnvironment();
       console.log(`✅ Environment ${options.env} cleared successfully`);
     } catch (error) {
-      console.error('❌ Clear operation failed:', error.message);
+      console.error('❌ Clear operation failed:', getErrorMessage(error));
       process.exit(1);
     } finally {
       await manager.close();
@@ -211,7 +211,7 @@ seedCommand
         });
       }
     } catch (error) {
-      console.error('❌ Failed to get seeding status:', error.message);
+      console.error('❌ Failed to get seeding status:', getErrorMessage(error));
       process.exit(1);
     } finally {
       await manager.close();
@@ -261,7 +261,7 @@ program
         process.exit(1);
       }
     } catch (error) {
-      console.error('❌ Validation failed:', error.message);
+      console.error('❌ Validation failed:', getErrorMessage(error));
       process.exit(1);
     } finally {
       await validator.close();
@@ -302,7 +302,7 @@ program
       await seedManager.clearEnvironment();
       console.log('✅ Data cleared');
     } catch (error) {
-      console.error('❌ Failed to clear data:', error.message);
+      console.error('❌ Failed to clear data:', getErrorMessage(error));
     } finally {
       await seedManager.close();
     }
@@ -314,7 +314,7 @@ program
       await migrationManager.migrate();
       console.log('✅ Migrations applied');
     } catch (error) {
-      console.error('❌ Failed to apply migrations:', error.message);
+      console.error('❌ Failed to apply migrations:', getErrorMessage(error));
       process.exit(1);
     } finally {
       await migrationManager.close();
@@ -327,7 +327,7 @@ program
       await newSeedManager.seed();
       console.log('✅ Seeds applied');
     } catch (error) {
-      console.error('❌ Failed to apply seeds:', error.message);
+      console.error('❌ Failed to apply seeds:', getErrorMessage(error));
     } finally {
       await newSeedManager.close();
     }

@@ -4,7 +4,6 @@ import {
   timestamp,
   integer,
   json,
-  serial,
 } from 'drizzle-orm/pg-core';
 
 // MFA challenges for temporary storage of verification challenges
