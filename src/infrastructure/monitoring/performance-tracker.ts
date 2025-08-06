@@ -6,6 +6,7 @@
 import { correlationIdManager } from '../tracing/correlation-id';
 import { metricsManager } from './prometheus-metrics';
 import { loggers } from './structured-logger';
+import { createErrorLogContext, createPerformanceLogContext } from '../utils/monitoring-utils';
 import { EventEmitter } from 'events';
 
 export interface PerformanceMetric {
@@ -234,7 +235,7 @@ export class PerformanceTracker extends EventEmitter {
       startTime: Date.now(),
       status: 'pending',
       metadata,
-      correlationId,
+      ...(correlationId !== undefined && { correlationId }),
       spanId: span.spanId,
       resourceUsage: {
         memoryBefore: process.memoryUsage(),
@@ -286,7 +287,11 @@ export class PerformanceTracker extends EventEmitter {
     metric.endTime = Date.now();
     metric.duration = metric.endTime - metric.startTime;
     metric.status = status;
-    metric.error = error;
+    
+    if (error !== undefined) {
+      metric.error = error;
+    }
+    
     metric.metadata = { ...metric.metadata, ...additionalMetadata };
 
     // Update resource usage
@@ -581,7 +586,7 @@ export class PerformanceTracker extends EventEmitter {
         threshold,
         actualDuration: metric.duration,
         severity,
-        correlationId: metric.correlationId,
+        ...(metric.correlationId !== undefined && { correlationId: metric.correlationId }),
         metadata: metric.metadata,
       };
 
@@ -604,21 +609,41 @@ export class PerformanceTracker extends EventEmitter {
    * Log performance data
    */
   private logPerformanceData(metric: PerformanceMetric): void {
-    const logLevel = metric.status === 'error' ? 'error' : 'info';
     const message = `Performance metric completed: ${metric.component}.${metric.operation}`;
 
-    loggers.performance[logLevel](message, {
-      metricId: metric.id,
-      operation: metric.operation,
-      component: metric.component,
-      duration: metric.duration,
-      status: metric.status,
-      correlationId: metric.correlationId,
-      spanId: metric.spanId,
-      resourceUsage: metric.resourceUsage,
-      metadata: metric.metadata,
-      error: metric.error?.message,
-    });
+    if (metric.status === 'error') {
+      loggers.performance.error(message, createErrorLogContext(
+        'PerformanceError',
+        undefined,
+        {
+          metricId: metric.id,
+          operation: metric.operation,
+          component: metric.component,
+          duration: metric.duration,
+          status: metric.status,
+          correlationId: metric.correlationId,
+          spanId: metric.spanId,
+          // Convert resourceUsage to a simple record for logging
+          ...(metric.resourceUsage && { resourceUsage: JSON.stringify(metric.resourceUsage) }),
+          metadata: metric.metadata,
+          error: metric.error?.message,
+        }
+      ));
+    } else {
+      loggers.performance.info(message, createPerformanceLogContext(
+        metric.operation,
+        undefined,
+        {
+          metricId: metric.id,
+          component: metric.component,
+          duration: metric.duration,
+          status: metric.status,
+          correlationId: metric.correlationId,
+          spanId: metric.spanId,
+          metadata: metric.metadata,
+        }
+      ));
+    }
   }
 
   /**
@@ -650,19 +675,19 @@ export class PerformanceTracker extends EventEmitter {
       if (durations.length === 0) return;
 
       const errorCount = metrics.filter((m) => m.status === 'error').length;
-      const totalDuration = durations.reduce((sum, d) => sum + d, 0);
+      const totalDuration = durations.reduce((sum, d) => sum + (d || 0), 0);
 
       const stats: PerformanceStats = {
-        operation: metrics[0].operation,
-        component: metrics[0].component,
+        operation: metrics[0]?.operation || 'unknown',
+        component: metrics[0]?.component || 'unknown',
         count: metrics.length,
         totalDuration,
         averageDuration: totalDuration / durations.length,
-        minDuration: durations[0],
-        maxDuration: durations[durations.length - 1],
-        p50: this.percentile(durations, 0.5),
-        p95: this.percentile(durations, 0.95),
-        p99: this.percentile(durations, 0.99),
+        minDuration: durations[0] || 0,
+        maxDuration: durations[durations.length - 1] || 0,
+        p50: this.percentile(durations, 0.5) || 0,
+        p95: this.percentile(durations, 0.95) || 0,
+        p99: this.percentile(durations, 0.99) || 0,
         errorRate: errorCount / metrics.length,
         throughput: metrics.length / 300, // Operations per second over 5 minutes
         lastUpdated: now,
@@ -675,10 +700,16 @@ export class PerformanceTracker extends EventEmitter {
   /**
    * Calculate percentile
    */
-  private percentile(sortedArray: number[], p: number): number {
+  private percentile(sortedArray: (number | undefined)[], p: number): number {
     if (sortedArray.length === 0) return 0;
-    const index = Math.ceil(sortedArray.length * p) - 1;
-    return sortedArray[Math.max(0, Math.min(index, sortedArray.length - 1))];
+    
+    // Filter out undefined values and sort
+    const validNumbers = sortedArray.filter((n): n is number => n !== undefined).sort((a, b) => a - b);
+    
+    if (validNumbers.length === 0) return 0;
+    
+    const index = Math.ceil(validNumbers.length * p) - 1;
+    return validNumbers[Math.max(0, Math.min(index, validNumbers.length - 1))] || 0;
   }
 
   /**
@@ -731,7 +762,7 @@ export class PerformanceTracker extends EventEmitter {
     }
 
     // Complete any remaining active metrics
-    for (const [id, metric] of this.activeMetrics.entries()) {
+    for (const [id] of this.activeMetrics.entries()) {
       this.stopTracking(id, 'error', new Error('System shutdown'));
     }
 

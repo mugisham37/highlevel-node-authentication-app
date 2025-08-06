@@ -23,6 +23,12 @@ import { auditTrailManager } from './audit-trail';
 import { healthCheckManager } from '../health/health-check';
 import { registerStatusEndpoints } from './system-status';
 import { loggers } from './structured-logger';
+import { SecurityEventType, AlertSeverity } from '../utils/monitoring-types';
+import { 
+  createErrorLogContext, 
+  createHttpLogContext, 
+  safeGetProperty
+} from '../utils/monitoring-utils';
 
 /**
  * Monitoring System Manager
@@ -69,9 +75,11 @@ export class MonitoringSystem {
       this.initialized = true;
       loggers.monitoring.info('Monitoring system initialized successfully');
     } catch (error) {
-      loggers.monitoring.error('Failed to initialize monitoring system', {
-        error: (error as Error).message,
-      });
+      loggers.monitoring.error('Failed to initialize monitoring system', 
+        createErrorLogContext('InitializationError', undefined, {
+          error: (error as Error).message,
+        })
+      );
       throw error;
     }
   }
@@ -144,7 +152,7 @@ export class MonitoringSystem {
    */
   private setupMiddleware(fastify: FastifyInstance): void {
     // Request/response monitoring middleware
-    fastify.addHook('onRequest', async (request, reply) => {
+    fastify.addHook('onRequest', async (request) => {
       const startTime = Date.now();
       request.startTime = startTime;
 
@@ -177,18 +185,14 @@ export class MonitoringSystem {
       );
 
       // Log HTTP request
-      loggers.api.http(`${request.method} ${request.url}`, {
-        method: request.method,
-        url: request.url,
-        statusCode: reply.statusCode,
-        responseTime: duration,
-        userAgent: request.headers['user-agent'] as string,
-        ipAddress: request.ip,
-        requestSize: request.headers['content-length']
-          ? parseInt(request.headers['content-length'] as string)
-          : undefined,
-        responseSize,
-      });
+      loggers.api.http(`${request.method} ${request.url}`, createHttpLogContext(
+        request.method,
+        request.url,
+        reply.statusCode,
+        duration,
+        request,
+        reply
+      ));
     });
 
     // Error monitoring middleware
@@ -218,8 +222,8 @@ export class MonitoringSystem {
       // Record security event if it's a security-related error
       if (reply.statusCode === 401 || reply.statusCode === 403) {
         alertingSystem.recordSecurityEvent(
-          'unauthorized_access',
-          'medium',
+          SecurityEventType.UNAUTHORIZED_ACCESS,
+          AlertSeverity.MEDIUM,
           'api',
           {
             method: request.method,
@@ -286,8 +290,8 @@ export class MonitoringSystem {
 
       // Record critical system alert
       alertingSystem.recordSecurityEvent(
-        'anomalous_behavior',
-        'critical',
+        SecurityEventType.ANOMALOUS_BEHAVIOR,
+        AlertSeverity.CRITICAL,
         'system',
         {
           type: 'uncaught_exception',
@@ -299,16 +303,20 @@ export class MonitoringSystem {
     });
 
     process.on('unhandledRejection', (reason, promise) => {
-      loggers.system.error('Unhandled promise rejection', {
-        reason: String(reason),
-        promise: String(promise),
-        impact: 'high',
-      });
+      loggers.system.error('Unhandled promise rejection', createErrorLogContext(
+        'UnhandledRejection',
+        undefined,
+        {
+          reason: String(reason),
+          promise: String(promise),
+          impact: 'high',
+        }
+      ));
 
       // Record high-severity system alert
       alertingSystem.recordSecurityEvent(
-        'anomalous_behavior',
-        'high',
+        SecurityEventType.ANOMALOUS_BEHAVIOR,
+        AlertSeverity.HIGH,
         'system',
         {
           type: 'unhandled_rejection',
@@ -335,7 +343,7 @@ export class MonitoringSystem {
     // Record audit event
     auditTrailManager.recordEvent({
       actor: {
-        type: 'user',
+        type: 'user' as const,
         id: userId,
       },
       action,
@@ -345,34 +353,52 @@ export class MonitoringSystem {
       },
       outcome: {
         result: outcome,
-        reason: details.reason,
-        errorCode: details.errorCode,
-        riskScore: details.riskScore,
       },
       metadata: details,
-      ipAddress,
-      userAgent,
+      ...(ipAddress !== undefined && { ipAddress }),
+      ...(userAgent !== undefined && { userAgent }),
     });
 
     // Record metrics
     metricsManager.recordAuthAttempt(
       action,
-      details.provider || 'internal',
+      safeGetProperty(details, 'provider') || 'internal',
       outcome,
       userAgent
     );
 
     // Log authentication event
-    loggers.auth.auth(`Authentication ${action}: ${outcome}`, {
+    const authLogContext: any = {
       authMethod: action,
-      provider: details.provider,
       outcome,
-      failureReason: details.reason,
-      ipAddress,
-      userAgent,
-      riskScore: details.riskScore,
-      userId,
-    });
+    };
+
+    const provider = safeGetProperty<string>(details, 'provider');
+    if (provider !== undefined) {
+      authLogContext.provider = provider;
+    }
+
+    const failureReason = safeGetProperty<string>(details, 'reason');
+    if (failureReason !== undefined) {
+      authLogContext.failureReason = failureReason;
+    }
+
+    const riskScore = safeGetProperty<number>(details, 'riskScore');
+    if (riskScore !== undefined) {
+      authLogContext.riskScore = riskScore;
+    }
+
+    if (ipAddress !== undefined) {
+      authLogContext.ipAddress = ipAddress;
+    }
+
+    if (userAgent !== undefined) {
+      authLogContext.userAgent = userAgent;
+    }
+
+    authLogContext.userId = userId;
+
+    loggers.auth.auth(`Authentication ${action}: ${outcome}`, authLogContext);
   }
 
   /**
@@ -403,14 +429,29 @@ export class MonitoringSystem {
     });
 
     // Log business event
-    loggers.business.business(`Business event: ${eventType}`, {
+    const businessLogContext: any = {
       eventType,
       entityType,
       entityId,
-      businessImpact: details.impact || 'low',
-      metrics: details.metrics,
-      userId,
-    });
+    };
+
+    const impact = safeGetProperty<string>(details, 'impact');
+    if (impact !== undefined) {
+      businessLogContext.businessImpact = impact;
+    } else {
+      businessLogContext.businessImpact = 'low';
+    }
+
+    const metrics = safeGetProperty<Record<string, number>>(details, 'metrics');
+    if (metrics !== undefined) {
+      businessLogContext.metrics = metrics;
+    }
+
+    if (userId !== undefined) {
+      businessLogContext.userId = userId;
+    }
+
+    loggers.business.business(`Business event: ${eventType}`, businessLogContext);
   }
 
   /**
@@ -475,9 +516,11 @@ export class MonitoringSystem {
       this.initialized = false;
       loggers.monitoring.info('Monitoring system shutdown complete');
     } catch (error) {
-      loggers.monitoring.error('Error during monitoring system shutdown', {
-        error: (error as Error).message,
-      });
+      loggers.monitoring.error('Error during monitoring system shutdown', 
+        createErrorLogContext('ShutdownError', undefined, {
+          error: (error as Error).message,
+        })
+      );
       throw error;
     }
   }

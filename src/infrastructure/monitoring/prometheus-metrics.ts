@@ -9,7 +9,6 @@ import {
   Counter,
   Histogram,
   Gauge,
-  Summary,
 } from 'prom-client';
 import { logger } from '../logging/winston-logger';
 import { correlationIdManager } from '../tracing/correlation-id';
@@ -299,7 +298,7 @@ export const businessMetrics = {
  */
 export class MetricsManager {
   private static instance: MetricsManager;
-  private metricsCollectionInterval?: NodeJS.Timeout;
+  private metricsCollectionInterval?: NodeJS.Timeout | undefined;
   private isCollecting = false;
 
   private constructor() {}

@@ -27,10 +27,10 @@ export interface SystemStatus {
 export interface ServiceStatus {
   name: string;
   status: 'healthy' | 'degraded' | 'unhealthy';
-  responseTime?: number;
+  responseTime?: number | undefined;
   lastCheck: Date;
-  details?: Record<string, any>;
-  dependencies?: ServiceStatus[];
+  details?: Record<string, any> | undefined;
+  dependencies?: ServiceStatus[] | undefined;
 }
 
 export interface SystemMetrics {
@@ -179,6 +179,7 @@ export class SystemStatusManager {
       return await healthCheckManager.checkHealth();
     } catch (error) {
       loggers.monitoring.error('Failed to get health status', {
+        errorType: 'HEALTH_CHECK_FAILURE',
         error: (error as Error).message,
       });
 
@@ -283,7 +284,7 @@ export class SystemStatusManager {
   /**
    * Get alert summary
    */
-  private async getAlertSummary(): Promise<AlertSummary> {
+  async getAlertSummary(): Promise<AlertSummary> {
     const alerts = alertingSystem.getAlerts();
     const activeAlerts = alerts.filter((alert) => alert.status === 'active');
 
@@ -362,7 +363,8 @@ export class SystemStatusManager {
 
     const sorted = values.sort((a, b) => a - b);
     const index = Math.ceil(sorted.length * percentile) - 1;
-    return sorted[Math.max(0, Math.min(index, sorted.length - 1))];
+    const selectedValue = sorted[Math.max(0, Math.min(index, sorted.length - 1))];
+    return selectedValue ?? 0;
   }
 
   /**
@@ -374,9 +376,9 @@ export class SystemStatusManager {
     return healthStatus.checks.map((check) => ({
       name: check.name,
       status: check.status,
-      responseTime: check.responseTime,
+      responseTime: check.responseTime ?? undefined,
       lastCheck: check.timestamp,
-      details: check.details,
+      details: check.details ?? undefined,
     }));
   }
 
@@ -430,7 +432,7 @@ export function registerStatusEndpoints(fastify: FastifyInstance): void {
   // Comprehensive system status
   fastify.get(
     '/status',
-    async (request: FastifyRequest, reply: FastifyReply) => {
+    async (_request: FastifyRequest, reply: FastifyReply) => {
       try {
         const status = await statusManager.getSystemStatus();
 
@@ -445,6 +447,7 @@ export function registerStatusEndpoints(fastify: FastifyInstance): void {
         reply.status(httpStatus).send(status);
       } catch (error) {
         loggers.monitoring.error('Failed to get system status', {
+          errorType: 'SYSTEM_STATUS_FAILURE',
           error: (error as Error).message,
         });
 
@@ -460,7 +463,7 @@ export function registerStatusEndpoints(fastify: FastifyInstance): void {
   // Simple health check
   fastify.get(
     '/health',
-    async (request: FastifyRequest, reply: FastifyReply) => {
+    async (_request: FastifyRequest, reply: FastifyReply) => {
       try {
         const health = await statusManager.getSimpleHealth();
 
@@ -478,7 +481,7 @@ export function registerStatusEndpoints(fastify: FastifyInstance): void {
   // Kubernetes readiness probe
   fastify.get(
     '/ready',
-    async (request: FastifyRequest, reply: FastifyReply) => {
+    async (_request: FastifyRequest, reply: FastifyReply) => {
       try {
         const readiness = await statusManager.getReadiness();
 
@@ -494,7 +497,7 @@ export function registerStatusEndpoints(fastify: FastifyInstance): void {
   );
 
   // Kubernetes liveness probe
-  fastify.get('/live', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/live', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       const liveness = await statusManager.getLiveness();
       reply.status(200).send(liveness);
@@ -509,12 +512,13 @@ export function registerStatusEndpoints(fastify: FastifyInstance): void {
   // Prometheus metrics endpoint
   fastify.get(
     '/metrics',
-    async (request: FastifyRequest, reply: FastifyReply) => {
+    async (_request: FastifyRequest, reply: FastifyReply) => {
       try {
         const metrics = await metricsManager.getMetrics();
         reply.type('text/plain').send(metrics);
       } catch (error) {
         loggers.monitoring.error('Failed to get Prometheus metrics', {
+          errorType: 'METRICS_RETRIEVAL_FAILURE',
           error: (error as Error).message,
         });
 
@@ -526,7 +530,7 @@ export function registerStatusEndpoints(fastify: FastifyInstance): void {
   // Detailed health checks
   fastify.get(
     '/health/detailed',
-    async (request: FastifyRequest, reply: FastifyReply) => {
+    async (_request: FastifyRequest, reply: FastifyReply) => {
       try {
         const healthStatus = await healthCheckManager.checkHealth();
         reply.send(healthStatus);
@@ -543,7 +547,7 @@ export function registerStatusEndpoints(fastify: FastifyInstance): void {
   // Performance metrics
   fastify.get(
     '/status/performance',
-    async (request: FastifyRequest, reply: FastifyReply) => {
+    async (_request: FastifyRequest, reply: FastifyReply) => {
       try {
         const stats = performanceTracker.getStats();
         const activeMetrics = performanceTracker.getActiveMetrics();
@@ -565,7 +569,7 @@ export function registerStatusEndpoints(fastify: FastifyInstance): void {
   // Alert status
   fastify.get(
     '/status/alerts',
-    async (request: FastifyRequest, reply: FastifyReply) => {
+    async (_request: FastifyRequest, reply: FastifyReply) => {
       try {
         const alerts = alertingSystem.getAlerts(
           undefined,

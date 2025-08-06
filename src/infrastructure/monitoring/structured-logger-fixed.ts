@@ -15,6 +15,8 @@ import {
   BusinessLogContext,
   AuthLogContext
 } from '../utils/monitoring-types';
+import { ENV } from '../utils/env-utils';
+import { safeGetProperty } from '../utils/monitoring-utils';
 
 /**
  * Log Levels with Numeric Values
@@ -27,6 +29,17 @@ export enum LogLevel {
   VERBOSE = 4,
   DEBUG = 5,
   SILLY = 6,
+}
+
+/**
+ * Log Transport Configuration
+ */
+interface TransportConfig {
+  level: string;
+  filename?: string;
+  maxsize?: number;
+  maxFiles?: number;
+  format?: winston.Logform.Format;
 }
 
 /**
