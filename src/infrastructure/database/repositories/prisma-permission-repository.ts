@@ -3,7 +3,7 @@
  * Handles permission data access operations using Prisma ORM
  */
 
-import { PrismaClient } from '../../../generated/prisma';
+import { PrismaClient, Prisma } from '../../../generated/prisma';
 import { Logger } from 'winston';
 import { Permission } from '../../../domain/entities/permission';
 import {
@@ -12,7 +12,10 @@ import {
   UpdatePermissionData,
   PermissionFilters,
 } from '../../../application/interfaces/permission-repository.interface';
-import { jsonValueToRecord, JsonValue } from '../../../types/prisma-json.types';
+import { 
+  safeJsonParse, 
+  safeJsonStringify
+} from '../type-utils';
 
 export class PrismaPermissionRepository implements IPermissionRepository {
   constructor(
@@ -21,31 +24,25 @@ export class PrismaPermissionRepository implements IPermissionRepository {
   ) {}
 
   private mapToPermission(permissionData: any): Permission {
-    const parsedConditions = this.parseConditions(permissionData.conditions);
+    const parsedConditions = safeJsonParse(permissionData.conditions);
 
     return new Permission({
       id: permissionData.id,
       name: permissionData.name,
       resource: permissionData.resource,
       action: permissionData.action,
-      conditions: parsedConditions,
+      ...(parsedConditions && { conditions: parsedConditions }),
       createdAt: permissionData.createdAt,
     });
   }
 
-  private parseConditions(
-    conditions: JsonValue | null | undefined
-  ): Record<string, any> | undefined {
-    return jsonValueToRecord(conditions);
-  }
-
   async create(data: CreatePermissionData): Promise<Permission> {
     try {
-      const createData = {
+      const createData: Prisma.PermissionCreateInput = {
         name: data.name,
         resource: data.resource,
         action: data.action,
-        conditions: data.conditions || null,
+        conditions: safeJsonStringify(data.conditions),
         createdAt: new Date(),
       };
 
@@ -101,13 +98,13 @@ export class PrismaPermissionRepository implements IPermissionRepository {
 
   async update(id: string, data: UpdatePermissionData): Promise<Permission> {
     try {
-      const updateData: any = {};
+      const updateData: Prisma.PermissionUpdateInput = {};
 
       if (data.name !== undefined) updateData.name = data.name;
       if (data.resource !== undefined) updateData.resource = data.resource;
       if (data.action !== undefined) updateData.action = data.action;
       if (data.conditions !== undefined)
-        updateData.conditions = data.conditions || null;
+        updateData.conditions = safeJsonStringify(data.conditions);
 
       const permissionData = await this.prisma.permission.update({
         where: { id },
@@ -520,7 +517,7 @@ export class PrismaPermissionRepository implements IPermissionRepository {
               name: permissionData.name,
               resource: permissionData.resource,
               action: permissionData.action,
-              conditions: permissionData.conditions || null,
+              conditions: safeJsonStringify(permissionData.conditions),
               createdAt: new Date(),
             },
           })

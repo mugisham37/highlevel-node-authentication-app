@@ -3,7 +3,7 @@
  * Handles role data access operations using Prisma ORM
  */
 
-import { PrismaClient } from '../../../generated/prisma';
+import { PrismaClient, Prisma } from '../../../generated/prisma';
 import { Logger } from 'winston';
 import { Role } from '../../../domain/entities/role';
 import { Permission } from '../../../domain/entities/permission';
@@ -14,12 +14,51 @@ import {
   RoleFilters,
   RoleWithPermissions,
 } from '../../../application/interfaces/role-repository.interface';
+import { 
+  safeJsonParse, 
+} from '../type-utils';
 
 export class PrismaRoleRepository implements IRoleRepository {
   constructor(
     private prisma: PrismaClient,
     private logger: Logger
   ) {}
+
+  private mapToPermission(permissionData: any): Permission {
+    const parsedConditions = safeJsonParse(permissionData.conditions);
+
+    return new Permission({
+      id: permissionData.id,
+      name: permissionData.name,
+      resource: permissionData.resource,
+      action: permissionData.action,
+      ...(parsedConditions && { conditions: parsedConditions }),
+      createdAt: permissionData.createdAt,
+    });
+  }
+
+  private mapToRole(roleData: any, permissions: Permission[] = []): Role {
+    return new Role({
+      id: roleData.id,
+      name: roleData.name,
+      ...(roleData.description !== null && { description: roleData.description }),
+      createdAt: roleData.createdAt,
+      updatedAt: roleData.updatedAt,
+      permissions,
+    });
+  }
+
+  private createSafeIncludeConfig(includePermissions: boolean) {
+    return includePermissions
+      ? {
+          permissions: {
+            include: {
+              permission: true,
+            },
+          },
+        }
+      : null;
+  }
 
   async create(data: CreateRoleData): Promise<Role> {
     try {
@@ -32,14 +71,7 @@ export class PrismaRoleRepository implements IRoleRepository {
         },
       });
 
-      const role = new Role({
-        id: roleData.id,
-        name: roleData.name,
-        description: roleData.description || undefined,
-        createdAt: roleData.createdAt,
-        updatedAt: roleData.updatedAt,
-        permissions: [],
-      });
+      const role = this.mapToRole(roleData);
 
       this.logger.info('Role created successfully', {
         roleId: role.id,
@@ -58,44 +90,23 @@ export class PrismaRoleRepository implements IRoleRepository {
     includePermissions = false
   ): Promise<RoleWithPermissions | null> {
     try {
+      const includeConfig = this.createSafeIncludeConfig(includePermissions);
+      
       const roleData = await this.prisma.role.findUnique({
         where: { id },
-        include: includePermissions
-          ? {
-              permissions: {
-                include: {
-                  permission: true,
-                },
-              },
-            }
-          : null,
+        include: includeConfig,
       });
 
       if (!roleData) return null;
 
       const permissions =
-        includePermissions && roleData.permissions
-          ? roleData.permissions.map(
-              (rp: any) =>
-                new Permission({
-                  id: rp.permission.id,
-                  name: rp.permission.name,
-                  resource: rp.permission.resource,
-                  action: rp.permission.action,
-                  conditions: rp.permission.conditions || undefined,
-                  createdAt: rp.permission.createdAt,
-                })
+        includePermissions && (roleData as any).permissions
+          ? (roleData as any).permissions.map(
+              (rp: any) => this.mapToPermission(rp.permission)
             )
           : [];
 
-      const role = new Role({
-        id: roleData.id,
-        name: roleData.name,
-        description: roleData.description || undefined,
-        createdAt: roleData.createdAt,
-        updatedAt: roleData.updatedAt,
-        permissions,
-      });
+      const role = this.mapToRole(roleData, permissions);
 
       return {
         ...role,
@@ -112,44 +123,23 @@ export class PrismaRoleRepository implements IRoleRepository {
     includePermissions = false
   ): Promise<RoleWithPermissions | null> {
     try {
+      const includeConfig = this.createSafeIncludeConfig(includePermissions);
+      
       const roleData = await this.prisma.role.findUnique({
         where: { name },
-        include: includePermissions
-          ? {
-              permissions: {
-                include: {
-                  permission: true,
-                },
-              },
-            }
-          : null,
+        include: includeConfig,
       });
 
       if (!roleData) return null;
 
       const permissions =
-        includePermissions && roleData.permissions
-          ? roleData.permissions.map(
-              (rp: any) =>
-                new Permission({
-                  id: rp.permission.id,
-                  name: rp.permission.name,
-                  resource: rp.permission.resource,
-                  action: rp.permission.action,
-                  conditions: rp.permission.conditions || undefined,
-                  createdAt: rp.permission.createdAt,
-                })
+        includePermissions && (roleData as any).permissions
+          ? (roleData as any).permissions.map(
+              (rp: any) => this.mapToPermission(rp.permission)
             )
           : [];
 
-      const role = new Role({
-        id: roleData.id,
-        name: roleData.name,
-        description: roleData.description || undefined,
-        createdAt: roleData.createdAt,
-        updatedAt: roleData.updatedAt,
-        permissions,
-      });
+      const role = this.mapToRole(roleData, permissions);
 
       return {
         ...role,
@@ -163,7 +153,7 @@ export class PrismaRoleRepository implements IRoleRepository {
 
   async update(id: string, data: UpdateRoleData): Promise<Role> {
     try {
-      const updateData: any = {
+      const updateData: Prisma.RoleUpdateInput = {
         updatedAt: new Date(),
       };
 
@@ -176,14 +166,7 @@ export class PrismaRoleRepository implements IRoleRepository {
         data: updateData,
       });
 
-      const role = new Role({
-        id: roleData.id,
-        name: roleData.name,
-        description: roleData.description || undefined,
-        createdAt: roleData.createdAt,
-        updatedAt: roleData.updatedAt,
-        permissions: [],
-      });
+      const role = this.mapToRole(roleData);
 
       this.logger.info('Role updated successfully', { roleId: id });
       return role;
@@ -263,25 +246,10 @@ export class PrismaRoleRepository implements IRoleRepository {
 
       const roles = rolesData.map((roleData: any) => {
         const permissions = roleData.permissions.map(
-          (rp: any) =>
-            new Permission({
-              id: rp.permission.id,
-              name: rp.permission.name,
-              resource: rp.permission.resource,
-              action: rp.permission.action,
-              conditions: rp.permission.conditions || undefined,
-              createdAt: rp.permission.createdAt,
-            })
+          (rp: any) => this.mapToPermission(rp.permission)
         );
 
-        const role = new Role({
-          id: roleData.id,
-          name: roleData.name,
-          description: roleData.description || undefined,
-          createdAt: roleData.createdAt,
-          updatedAt: roleData.updatedAt,
-          permissions,
-        });
+        const role = this.mapToRole(roleData, permissions);
 
         return {
           ...role,
