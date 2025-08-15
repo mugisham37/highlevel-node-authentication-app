@@ -37,7 +37,7 @@ export class RealTimeNotificationService {
         type: this.mapSecurityEventToNotificationType(event.type),
         title: this.getSecurityEventTitle(event.type),
         message: this.getSecurityEventMessage(event),
-        userId: event.userId,
+        userId: event.userId || undefined,
         data: {
           eventType: event.type,
           severity: event.severity,
@@ -55,7 +55,7 @@ export class RealTimeNotificationService {
 
       // Send to admin users for high severity events
       if (event.severity === 'high' || event.severity === 'critical') {
-        await this.sendAdminNotification(notification);
+        await this.sendAdminNotificationBroadcast(notification);
       }
 
       // Create WebSocket event
@@ -67,8 +67,8 @@ export class RealTimeNotificationService {
           event,
         },
         timestamp: new Date().toISOString(),
-        userId: event.userId,
-        sessionId: event.sessionId,
+        userId: event.userId || undefined,
+        sessionId: event.sessionId || undefined,
         metadata: {
           priority: this.mapSeverityToPriority(event.severity),
           source: 'security_system',
@@ -125,8 +125,8 @@ export class RealTimeNotificationService {
           event,
         },
         timestamp: new Date().toISOString(),
-        userId: event.userId,
-        sessionId: event.sessionId,
+        userId: event.userId || undefined,
+        sessionId: event.sessionId || undefined,
         metadata: {
           priority: event.type.includes('failure') ? 'high' : 'normal',
           source: 'authentication_system',
@@ -180,8 +180,8 @@ export class RealTimeNotificationService {
           event,
         },
         timestamp: new Date().toISOString(),
-        userId: event.userId,
-        sessionId: event.sessionId,
+        userId: event.userId || undefined,
+        sessionId: event.sessionId || undefined,
         metadata: {
           priority:
             event.type === 'concurrent_session_limit' ? 'high' : 'normal',
@@ -227,7 +227,7 @@ export class RealTimeNotificationService {
       };
 
       // Send to all admin users
-      await this.sendAdminNotification(notification);
+      await this.sendAdminNotificationBroadcast(notification);
 
       // Create WebSocket event
       const wsEvent: WebSocketEvent = {
@@ -291,7 +291,7 @@ export class RealTimeNotificationService {
   /**
    * Send notification to all admin users
    */
-  async sendAdminNotification(
+  async sendAdminNotificationBroadcast(
     notification: WebSocketNotification
   ): Promise<void> {
     try {
@@ -421,8 +421,10 @@ export class RealTimeNotificationService {
           break;
 
         default:
+          // This should never happen if all event types are handled
+          const exhaustiveCheck: never = event;
           logger.warn('Unknown real-time event type', {
-            eventType: event.type,
+            eventType: (exhaustiveCheck as any).type,
           });
       }
     } catch (error) {
@@ -550,7 +552,18 @@ export class RealTimeNotificationService {
   private mapSeverityToPriority(
     severity: SecurityEvent['severity']
   ): 'low' | 'normal' | 'high' | 'critical' {
-    return severity;
+    switch (severity) {
+      case 'low':
+        return 'low';
+      case 'medium':
+        return 'normal';
+      case 'high':
+        return 'high';
+      case 'critical':
+        return 'critical';
+      default:
+        return 'normal';
+    }
   }
 
   private getSecurityEventTitle(type: SecurityEvent['type']): string {

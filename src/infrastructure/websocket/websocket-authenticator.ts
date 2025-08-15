@@ -43,14 +43,14 @@ export class WebSocketAuthenticator {
       // Verify JWT token
       const tokenValidation = await this.jwtService.verifyToken(token);
 
-      if (!tokenValidation.valid || !tokenValidation.payload) {
+      if (!tokenValidation['valid'] || !tokenValidation['payload']) {
         return {
           success: false,
           error: 'Invalid or expired token',
         };
       }
 
-      const { userId, sessionId } = tokenValidation.payload;
+      const { userId, sessionId } = tokenValidation['payload'];
 
       // Verify session is still active
       const sessionValid = await this.verifySession(sessionId);

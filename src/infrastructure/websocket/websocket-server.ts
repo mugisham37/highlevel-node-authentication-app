@@ -4,7 +4,6 @@
  */
 
 import { FastifyInstance } from 'fastify';
-import { SocketStream } from '@fastify/websocket';
 import { Redis, Cluster } from 'ioredis';
 import { logger } from '../logging/winston-logger';
 import { getRedisClient } from '../cache/redis-client';
@@ -100,7 +99,7 @@ export class WebSocketServer {
    * Handle new WebSocket connection
    */
   private async handleConnection(
-    connection: SocketStream,
+    connection: any,
     request: any
   ): Promise<void> {
     const connectionId = this.generateConnectionId();
@@ -174,7 +173,7 @@ export class WebSocketServer {
    * Handle admin WebSocket connection
    */
   private async handleAdminConnection(
-    connection: SocketStream,
+    connection: any,
     request: any
   ): Promise<void> {
     const connectionId = this.generateConnectionId();
@@ -242,7 +241,7 @@ export class WebSocketServer {
   /**
    * Handle health check connection
    */
-  private handleHealthCheck(connection: SocketStream, request: any): void {
+  private handleHealthCheck(connection: any, _request: any): void {
     const stats = this.getServerStats();
 
     connection.socket.send(
@@ -267,22 +266,22 @@ export class WebSocketServer {
     const { socket } = connection;
 
     // Handle incoming messages
-    socket.on('message', async (message: Buffer) => {
+    socket['on']('message', async (message: Buffer) => {
       await this.handleMessage(connection.id, message);
     });
 
     // Handle connection close
-    socket.on('close', async (code: number, reason: Buffer) => {
+    socket['on']('close', async (code: number, reason: Buffer) => {
       await this.handleConnectionClose(connection.id, code, reason);
     });
 
     // Handle connection error
-    socket.on('error', async (error: Error) => {
+    socket['on']('error', async (error: Error) => {
       await this.handleConnectionError(connection.id, error);
     });
 
     // Handle pong (heartbeat response)
-    socket.on('pong', () => {
+    socket['on']('pong', () => {
       connection.lastActivity = new Date();
     });
   }
@@ -641,10 +640,10 @@ export class WebSocketServer {
    */
   private async sendMessage(connectionId: string, message: any): Promise<void> {
     const connection = this.connections.get(connectionId);
-    if (!connection || connection.socket.readyState !== 1) return;
+    if (!connection || connection.socket['readyState'] !== 1) return;
 
     try {
-      connection.socket.send(JSON.stringify(message));
+      connection.socket['send'](JSON.stringify(message));
     } catch (error) {
       logger.error('Error sending WebSocket message', {
         connectionId,
@@ -820,9 +819,9 @@ export class WebSocketServer {
       if (this.isShuttingDown) return;
 
       for (const [connectionId, connection] of this.connections) {
-        if (connection.socket.readyState === 1) {
+        if (connection.socket['readyState'] === 1) {
           try {
-            connection.socket.ping();
+            connection.socket['ping']();
           } catch (error) {
             logger.debug('Error sending ping', { connectionId });
             this.cleanupConnection(connectionId);
@@ -854,7 +853,7 @@ export class WebSocketServer {
               inactiveTime,
             });
 
-            connection.socket.close(1000, 'Connection inactive');
+            connection.socket['close'](1000, 'Connection inactive');
             await this.cleanupConnection(connectionId);
           }
         }
@@ -923,7 +922,7 @@ export class WebSocketServer {
     const closePromises = Array.from(this.connections.values()).map(
       (connection) => {
         return new Promise<void>((resolve) => {
-          connection.socket.close(1001, 'Server shutting down');
+          connection.socket['close'](1001, 'Server shutting down');
           setTimeout(resolve, 100); // Give time for close
         });
       }

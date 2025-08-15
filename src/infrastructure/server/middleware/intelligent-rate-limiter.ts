@@ -8,22 +8,21 @@ import { RiskScoringService } from '../../security/risk-scoring.service';
 import { DeviceFingerprintingService } from '../../security/device-fingerprinting.service';
 import { SecurityContext } from '../../security/types';
 import { logger } from '../../logging/winston-logger';
-import { config } from '../../config/environment';
 
 export interface RateLimitConfig {
   windowMs: number;
   baseLimit: number;
-  skipSuccessfulRequests?: boolean;
-  skipFailedRequests?: boolean;
-  keyGenerator?: (request: FastifyRequest) => string;
-  onLimitReached?: (request: FastifyRequest, reply: FastifyReply) => void;
-  enableDynamicLimits?: boolean;
+  skipSuccessfulRequests?: boolean | undefined;
+  skipFailedRequests?: boolean | undefined;
+  keyGenerator?: ((request: FastifyRequest) => string) | undefined;
+  onLimitReached?: ((request: FastifyRequest, reply: FastifyReply) => void) | undefined;
+  enableDynamicLimits?: boolean | undefined;
   riskBasedMultipliers?: {
     low: number;
     medium: number;
     high: number;
     critical: number;
-  };
+  } | undefined;
 }
 
 export interface RateLimitEntry {
@@ -54,10 +53,12 @@ export class IntelligentRateLimiter {
 
   private readonly store = new Map<string, RateLimitEntry>();
   private readonly config: Required<RateLimitConfig>;
+  private readonly riskScoringService: RiskScoringService;
   private cleanupInterval: NodeJS.Timeout;
 
-  constructor(config: RateLimitConfig = {}) {
+  constructor(config: Partial<RateLimitConfig> = {}) {
     this.config = { ...IntelligentRateLimiter.DEFAULT_CONFIG, ...config };
+    this.riskScoringService = new RiskScoringService();
 
     // Clean up expired entries every 5 minutes
     this.cleanupInterval = setInterval(
@@ -71,7 +72,7 @@ export class IntelligentRateLimiter {
   /**
    * Create Fastify plugin for intelligent rate limiting
    */
-  static createPlugin(config: RateLimitConfig = {}): FastifyPluginAsync {
+  static createPlugin(config: Partial<RateLimitConfig> = {}): FastifyPluginAsync {
     const limiter = new IntelligentRateLimiter(config);
 
     return async (fastify) => {
@@ -94,7 +95,7 @@ export class IntelligentRateLimiter {
     reply: FastifyReply
   ): Promise<void> {
     try {
-      const key = this.config.keyGenerator(request);
+      const key = this.config.keyGenerator!(request);
       const now = Date.now();
 
       // Get or create rate limit entry
@@ -169,8 +170,8 @@ export class IntelligentRateLimiter {
         {
           userAgent: request.headers['user-agent'] || '',
           ipAddress: request.ip || '',
-          acceptLanguage: request.headers['accept-language'],
-          acceptEncoding: request.headers['accept-encoding'],
+          acceptLanguage: request.headers['accept-language'] || undefined,
+          acceptEncoding: request.headers['accept-encoding'] || undefined,
         }
       );
 
@@ -183,11 +184,12 @@ export class IntelligentRateLimiter {
         userAgent: request.headers['user-agent'] || '',
         timestamp: new Date(),
         failedAttempts: entry.consecutiveFailures,
+        accountAge: 0, // Default for anonymous users
       };
 
       // Assess risk
       const riskAssessment =
-        await RiskScoringService.assessRisk(securityContext);
+        await this.riskScoringService.assessRisk(securityContext);
 
       // Update entry
       entry.riskScore = riskAssessment.overallScore;
@@ -204,7 +206,7 @@ export class IntelligentRateLimiter {
           ip: request.ip,
           riskScore: riskAssessment.overallScore,
           riskLevel: riskAssessment.level,
-          factors: riskAssessment.factors.map((f) => f.type),
+          factors: riskAssessment.factors.map((f: any) => f.type),
         });
       }
     } catch (error) {
@@ -226,13 +228,13 @@ export class IntelligentRateLimiter {
     let multiplier: number;
 
     if (riskScore >= 90) {
-      multiplier = this.config.riskBasedMultipliers.critical;
+      multiplier = this.config.riskBasedMultipliers!.critical;
     } else if (riskScore >= 75) {
-      multiplier = this.config.riskBasedMultipliers.high;
+      multiplier = this.config.riskBasedMultipliers!.high;
     } else if (riskScore >= 50) {
-      multiplier = this.config.riskBasedMultipliers.medium;
+      multiplier = this.config.riskBasedMultipliers!.medium;
     } else {
-      multiplier = this.config.riskBasedMultipliers.low;
+      multiplier = this.config.riskBasedMultipliers!.low;
     }
 
     return Math.max(1, Math.floor(this.config.baseLimit * multiplier));
@@ -268,7 +270,7 @@ export class IntelligentRateLimiter {
     });
 
     // Call custom handler if provided
-    this.config.onLimitReached(request, reply);
+    this.config.onLimitReached!(request, reply);
 
     // Send rate limit response
     reply.status(429).send({
@@ -295,7 +297,6 @@ export class IntelligentRateLimiter {
     limit: number
   ): void {
     const remaining = Math.max(0, limit - entry.count);
-    const resetTime = Math.ceil((entry.resetTime - Date.now()) / 1000);
 
     reply.header('X-RateLimit-Limit', limit.toString());
     reply.header('X-RateLimit-Remaining', remaining.toString());
@@ -314,7 +315,7 @@ export class IntelligentRateLimiter {
     request: FastifyRequest,
     reply: FastifyReply
   ): Promise<void> {
-    const key = this.config.keyGenerator(request);
+    const key = this.config.keyGenerator!(request);
     const now = Date.now();
 
     let entry = this.store.get(key);

@@ -43,14 +43,14 @@ export class WebhookAuditIntegration {
 
     return async (fastify) => {
       // Hook into audit events
-      fastify.addHook('onResponse', async (request, reply) => {
+      fastify.addHook('onResponse', async (request, _reply) => {
         if (request.auditEvent) {
           await integration.handleAuditEvent(request.auditEvent);
         }
       });
 
       // Hook into error events
-      fastify.addHook('onError', async (request, reply, error) => {
+      fastify.addHook('onError', async (request, _reply, _error) => {
         if (request.auditEvent) {
           await integration.handleAuditEvent(request.auditEvent);
         }
@@ -119,6 +119,7 @@ export class WebhookAuditIntegration {
    * Check if audit event is security-related
    */
   private isSecurityEvent(auditEvent: AuditEvent): boolean {
+    const riskScore = auditEvent.securityContext?.riskScore;
     return (
       auditEvent.eventType.startsWith('authentication.') ||
       auditEvent.eventType.startsWith('authorization.') ||
@@ -126,8 +127,7 @@ export class WebhookAuditIntegration {
       auditEvent.eventType.startsWith('session.') ||
       auditEvent.eventType.includes('failure') ||
       auditEvent.eventType.includes('denied') ||
-      (auditEvent.securityContext?.riskScore &&
-        auditEvent.securityContext.riskScore > 50)
+      (typeof riskScore === 'number' && riskScore > 50)
     );
   }
 

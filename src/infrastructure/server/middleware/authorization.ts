@@ -109,7 +109,7 @@ export class AuthorizationMiddleware {
       resource: 'users',
       action: 'manage',
       context: (request) => ({
-        targetUserId: request.params?.userId || request.body?.userId,
+        targetUserId: (request.params as any)?.userId || (request.body as any)?.userId,
       }),
     });
   }
@@ -122,7 +122,7 @@ export class AuthorizationMiddleware {
       resource: 'roles',
       action: 'manage',
       context: (request) => ({
-        targetRoleId: request.params?.roleId || request.body?.roleId,
+        targetRoleId: (request.params as any)?.roleId || (request.body as any)?.roleId,
       }),
     });
   }
@@ -183,7 +183,7 @@ export class AuthorizationMiddleware {
         resource: config.resource,
         action: config.action,
         context: config.context ? config.context(request) : undefined,
-        requireAll: config.requireAll,
+        requireAll: config.requireAll || false,
       };
 
       // Check authorization
@@ -257,7 +257,7 @@ export class AuthorizationMiddleware {
       // Check roles
       const hasRole = await this.authorizationService.hasRole(context, {
         requiredRoles: config.roles,
-        requireAll: config.requireAll,
+        requireAll: config.requireAll || false,
       });
 
       if (!hasRole) {
@@ -376,7 +376,7 @@ export class AuthorizationMiddleware {
 
   private async addHelpers(
     request: FastifyRequest,
-    reply: FastifyReply
+    _reply: FastifyReply
   ): Promise<void> {
     try {
       // Only add helpers if user is authenticated
@@ -476,11 +476,11 @@ export class AuthorizationMiddleware {
       userId: request.user.id,
       roles: request.user.roles || [],
       permissions: request.user.permissions || [],
-      sessionId: request.user.sessionId,
-      ipAddress: request.ip,
-      userAgent: request.headers['user-agent'],
-      deviceFingerprint: request.user.deviceFingerprint,
-      riskScore: request.user.riskScore,
+      sessionId: request.user.sessionId || undefined,
+      ipAddress: request.ip || undefined,
+      userAgent: request.headers['user-agent'] || undefined,
+      deviceFingerprint: request.user.deviceFingerprint || undefined,
+      riskScore: request.user.riskScore || undefined,
       additionalContext: {
         correlationId: request.correlationId,
         timestamp: new Date(),

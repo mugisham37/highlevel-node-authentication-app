@@ -528,10 +528,10 @@ export class WebSocketSessionManager {
         totalConnections: globalStats.totalConnections,
         activeServers: globalStats.totalServers,
         oldestConnection:
-          connectionDates.length > 0 ? connectionDates[0] : null,
+          connectionDates.length > 0 ? connectionDates[0] || null : null,
         newestConnection:
           connectionDates.length > 0
-            ? connectionDates[connectionDates.length - 1]
+            ? connectionDates[connectionDates.length - 1] || null
             : null,
       };
     } catch (error) {

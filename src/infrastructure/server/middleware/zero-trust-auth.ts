@@ -9,7 +9,6 @@ import { RiskScoringService } from '../../security/risk-scoring.service';
 import { DeviceFingerprintingService } from '../../security/device-fingerprinting.service';
 import { SecurityContext, RiskAssessment } from '../../security/types';
 import { logger } from '../../logging/winston-logger';
-import { config } from '../../config/environment';
 
 export interface ZeroTrustConfig {
   excludePaths?: string[];
@@ -66,6 +65,7 @@ export class ZeroTrustAuthMiddleware {
 
   private readonly config: Required<ZeroTrustConfig>;
   private readonly jwtService: JWTTokenService | null;
+  private readonly riskScoringService: RiskScoringService;
   private readonly sessionCache = new Map<
     string,
     { lastValidated: Date; riskScore: number }
@@ -73,6 +73,7 @@ export class ZeroTrustAuthMiddleware {
 
   constructor(config: ZeroTrustConfig = {}) {
     this.config = { ...ZeroTrustAuthMiddleware.DEFAULT_CONFIG, ...config };
+    this.riskScoringService = new RiskScoringService();
 
     // Initialize JWT service with fallback for testing
     try {
@@ -252,6 +253,9 @@ export class ZeroTrustAuthMiddleware {
    */
   private shouldSkipAuthentication(request: FastifyRequest): boolean {
     const path = request.url.split('?')[0]; // Remove query parameters
+    if (!path) {
+      return false;
+    }
     return this.config.excludePaths.some((excludePath) => {
       if (excludePath.includes('*')) {
         const pattern = excludePath.replace(/\*/g, '.*');
@@ -276,7 +280,7 @@ export class ZeroTrustAuthMiddleware {
     if (cookies) {
       const tokenMatch = cookies.match(/auth-token=([^;]+)/);
       if (tokenMatch) {
-        return tokenMatch[1];
+        return tokenMatch[1] || null;
       }
     }
 
@@ -285,9 +289,9 @@ export class ZeroTrustAuthMiddleware {
     if (query.token) {
       logger.warn('Token provided via query parameter', {
         correlationId: request.correlationId,
-        ip: request.ip,
+        ip: request.ip || 'unknown',
       });
-      return query.token;
+      return query.token || null;
     }
 
     return null;
@@ -315,7 +319,7 @@ export class ZeroTrustAuthMiddleware {
         roles: payload.roles || [],
         permissions: payload.permissions || [],
         mfaEnabled: payload.mfaEnabled || false,
-        lastLogin: payload.lastLogin ? new Date(payload.lastLogin) : undefined,
+        lastLogin: payload.lastLogin ? new Date(payload.lastLogin) : new Date(),
         riskScore: payload.riskScore || 0,
         deviceFingerprint: payload.deviceFingerprint,
         sessionId: payload.sessionId,
@@ -339,8 +343,8 @@ export class ZeroTrustAuthMiddleware {
     const deviceFingerprint = DeviceFingerprintingService.generateFingerprint({
       userAgent: request.headers['user-agent'] || '',
       ipAddress: request.ip || '',
-      acceptLanguage: request.headers['accept-language'],
-      acceptEncoding: request.headers['accept-encoding'],
+      acceptLanguage: request.headers['accept-language'] || undefined,
+      acceptEncoding: request.headers['accept-encoding'] || undefined,
     });
 
     return {
@@ -355,7 +359,7 @@ export class ZeroTrustAuthMiddleware {
         ? Math.floor(
             (Date.now() - user.lastLogin.getTime()) / (1000 * 60 * 60 * 24)
           )
-        : undefined,
+        : 0,
     };
   }
 
@@ -365,7 +369,7 @@ export class ZeroTrustAuthMiddleware {
   private async performRiskAssessment(
     context: SecurityContext
   ): Promise<RiskAssessment> {
-    return await RiskScoringService.assessRisk(context, {
+    return await this.riskScoringService.assessRisk(context, {
       enableGeoLocationChecks: true,
       enableBehavioralAnalysis: this.config.enableBehavioralAnalysis,
       enableDeviceTracking: this.config.enableDeviceTracking,

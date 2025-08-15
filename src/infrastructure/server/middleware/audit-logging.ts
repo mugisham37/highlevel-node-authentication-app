@@ -25,38 +25,38 @@ export interface AuditEvent {
   timestamp: Date;
   correlationId: string;
   eventType: AuditEventType;
-  userId?: string;
-  sessionId?: string;
+  userId?: string | undefined;
+  sessionId?: string | undefined;
   ipAddress: string;
   userAgent: string;
   method: string;
   path: string;
-  statusCode?: number;
-  duration?: number;
+  statusCode?: number | undefined;
+  duration?: number | undefined;
   request?: {
-    headers?: Record<string, any>;
-    query?: Record<string, any>;
-    params?: Record<string, any>;
+    headers?: Record<string, any> | undefined;
+    query?: Record<string, any> | undefined;
+    params?: Record<string, any> | undefined;
     body?: any;
-    bodyHash?: string;
-  };
+    bodyHash?: string | undefined;
+  } | undefined;
   response?: {
-    headers?: Record<string, any>;
+    headers?: Record<string, any> | undefined;
     body?: any;
-    bodyHash?: string;
-  };
+    bodyHash?: string | undefined;
+  } | undefined;
   securityContext?: {
-    riskScore?: number;
-    riskLevel?: string;
-    deviceFingerprint?: string;
-    requiresMFA?: boolean;
-  };
+    riskScore?: number | undefined;
+    riskLevel?: string | undefined;
+    deviceFingerprint?: string | undefined;
+    requiresMFA?: boolean | undefined;
+  } | undefined;
   error?: {
     message: string;
-    code?: string;
-    stack?: string;
-  };
-  metadata?: Record<string, any>;
+    code?: string | undefined;
+    stack?: string | undefined;
+  } | undefined;
+  metadata?: Record<string, any> | undefined;
 }
 
 export type AuditEventType =
@@ -94,6 +94,8 @@ declare module 'fastify' {
       metadata?: Record<string, any>;
       sensitiveOperation?: boolean;
     };
+    auditEvent?: AuditEvent;
+    auditStartTime?: number;
   }
 }
 
@@ -162,7 +164,7 @@ export class AuditLoggingMiddleware {
    */
   async logRequest(
     request: FastifyRequest,
-    reply: FastifyReply
+    _reply: FastifyReply
   ): Promise<void> {
     try {
       // Check if path should be audited
@@ -224,7 +226,7 @@ export class AuditLoggingMiddleware {
    */
   async logError(
     request: FastifyRequest,
-    reply: FastifyReply,
+    _reply: FastifyReply,
     error: Error
   ): Promise<void> {
     try {
@@ -233,8 +235,8 @@ export class AuditLoggingMiddleware {
         // Add error information to existing event
         auditEvent.error = {
           message: error.message,
-          code: (error as any).code,
-          stack: error.stack,
+          code: (error as any).code || undefined,
+          stack: error.stack || undefined,
         };
         auditEvent.eventType = 'system.error';
       } else {
@@ -266,8 +268,8 @@ export class AuditLoggingMiddleware {
       timestamp: new Date(),
       correlationId: request.correlationId,
       eventType,
-      userId: request.user?.id,
-      sessionId: request.user?.sessionId,
+      userId: request.user?.id || undefined,
+      sessionId: request.user?.sessionId || undefined,
       ipAddress: request.ip || 'unknown',
       userAgent: request.headers['user-agent'] || 'unknown',
       method: request.method,
@@ -304,7 +306,9 @@ export class AuditLoggingMiddleware {
         }
       } else {
         auditEvent.request!.body = '[BODY_TOO_LARGE]';
-        auditEvent.metadata!.bodySize = bodyString.length;
+        if (auditEvent.metadata) {
+          auditEvent.metadata['bodySize'] = bodyString.length;
+        }
       }
     }
 
@@ -336,7 +340,7 @@ export class AuditLoggingMiddleware {
   ): Promise<void> {
     // Add response status and duration
     auditEvent.statusCode = reply.statusCode;
-    auditEvent.duration = duration;
+    auditEvent.duration = duration || undefined;
 
     // Add response headers (filtered)
     if (this.config.enableResponseLogging && this.config.enableHeaderLogging) {
@@ -391,8 +395,8 @@ export class AuditLoggingMiddleware {
       path: request.url,
       error: {
         message: error.message,
-        code: (error as any).code,
-        stack: error.stack,
+        code: (error as any).code || undefined,
+        stack: error.stack || undefined,
       },
       metadata: {
         errorType: error.constructor.name,
@@ -497,6 +501,10 @@ export class AuditLoggingMiddleware {
    */
   private shouldAuditPath(path: string): boolean {
     const cleanPath = path.split('?')[0]; // Remove query parameters
+    
+    if (!cleanPath) {
+      return false;
+    }
 
     // Check exclude paths
     if (
@@ -663,7 +671,7 @@ export class AuditLoggingMiddleware {
       event.eventType.startsWith('security.') ||
       event.eventType.includes('failure') ||
       event.eventType.includes('denied') ||
-      (event.securityContext?.riskScore && event.securityContext.riskScore > 70)
+      !!(event.securityContext?.riskScore && event.securityContext.riskScore > 70)
     );
   }
 

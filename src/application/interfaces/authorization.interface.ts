@@ -10,19 +10,19 @@ export interface AuthorizationContext {
   userId: string;
   roles: string[];
   permissions: string[];
-  sessionId?: string;
-  ipAddress?: string;
-  userAgent?: string;
-  deviceFingerprint?: string;
-  riskScore?: number;
-  additionalContext?: Record<string, any>;
+  sessionId?: string | undefined;
+  ipAddress?: string | undefined;
+  userAgent?: string | undefined;
+  deviceFingerprint?: string | undefined;
+  riskScore?: number | undefined;
+  additionalContext?: Record<string, any> | undefined;
 }
 
 export interface AuthorizationRequest {
   resource: string;
   action: string;
   context?: Record<string, any> | undefined;
-  requireAll?: boolean; // If true, all permissions must match
+  requireAll: boolean; // Changed to required boolean
 }
 
 export interface AuthorizationResult {
@@ -39,7 +39,7 @@ export interface AuthorizationResult {
 
 export interface RoleBasedCheck {
   requiredRoles: string[];
-  requireAll?: boolean; // If true, user must have all roles
+  requireAll: boolean; // Changed to required boolean
 }
 
 export interface PermissionBasedCheck {

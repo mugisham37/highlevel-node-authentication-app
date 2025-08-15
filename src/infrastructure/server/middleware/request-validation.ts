@@ -29,10 +29,10 @@ export interface ValidationError {
 }
 
 export interface ValidationSchemas {
-  body?: ZodSchema;
-  query?: ZodSchema;
-  params?: ZodSchema;
-  headers?: ZodSchema;
+  body?: ZodSchema | undefined;
+  query?: ZodSchema | undefined;
+  params?: ZodSchema | undefined;
+  headers?: ZodSchema | undefined;
 }
 
 declare module 'fastify' {
@@ -334,7 +334,7 @@ export class RequestValidationMiddleware {
       field: `${context}.${err.path.join('.')}`,
       message: err.message,
       code: err.code,
-      received: err.received,
+      received: 'received' in err ? err.received : undefined,
       expected: this.getExpectedType(err),
     }));
   }
@@ -492,7 +492,7 @@ export class RequestValidationMiddleware {
    */
   private detectSecurityThreats(
     errors: ValidationError[],
-    request: FastifyRequest
+    _request: FastifyRequest
   ): string[] {
     const threats: string[] = [];
 

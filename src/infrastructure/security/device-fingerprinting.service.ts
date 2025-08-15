@@ -9,20 +9,20 @@ import { DeviceFingerprint } from './types';
 export interface DeviceFingerprintInput {
   userAgent: string;
   ipAddress: string;
-  acceptLanguage?: string;
-  acceptEncoding?: string;
-  timezone?: string;
-  screenResolution?: string;
-  colorDepth?: number;
-  platform?: string;
-  cookiesEnabled?: boolean;
-  doNotTrack?: boolean;
-  plugins?: string[];
-  fonts?: string[];
-  canvas?: string;
-  webgl?: string;
-  audioContext?: string;
-  headers?: Record<string, string>;
+  acceptLanguage?: string | undefined;
+  acceptEncoding?: string | undefined;
+  timezone?: string | undefined;
+  screenResolution?: string | undefined;
+  colorDepth?: number | undefined;
+  platform?: string | undefined;
+  cookiesEnabled?: boolean | undefined;
+  doNotTrack?: boolean | undefined;
+  plugins?: string[] | undefined;
+  fonts?: string[] | undefined;
+  canvas?: string | undefined;
+  webgl?: string | undefined;
+  audioContext?: string | undefined;
+  headers?: Record<string, string> | undefined;
 }
 
 export interface DeviceAnalysis {
@@ -467,12 +467,12 @@ export class DeviceFingerprintingService {
     if (input.audioContext) score += 5;
 
     // Plugin availability (but not too many)
-    const pluginCount = input.plugins.length;
+    const pluginCount = input.plugins?.length || 0;
     if (pluginCount > 0 && pluginCount < 20) score += 10;
     else if (pluginCount >= 20) score -= 5; // Too many plugins is suspicious
 
     // Font availability
-    const fontCount = input.fonts.length;
+    const fontCount = input.fonts?.length || 0;
     if (fontCount > 10 && fontCount < 100) score += 10;
 
     // Screen resolution reasonableness

@@ -15,19 +15,19 @@ export interface DeviceFingerprint {
   id: string;
   userAgent: string;
   ipAddress: string;
-  acceptLanguage?: string;
-  acceptEncoding?: string;
-  timezone?: string;
-  screenResolution?: string;
-  colorDepth?: number;
-  platform?: string;
-  cookiesEnabled?: boolean;
-  doNotTrack?: boolean;
-  plugins?: string[];
-  fonts?: string[];
-  canvas?: string;
-  webgl?: string;
-  audioContext?: string;
+  acceptLanguage?: string | undefined;
+  acceptEncoding?: string | undefined;
+  timezone?: string | undefined;
+  screenResolution?: string | undefined;
+  colorDepth?: number | undefined;
+  platform?: string | undefined;
+  cookiesEnabled?: boolean | undefined;
+  doNotTrack?: boolean | undefined;
+  plugins?: string[] | undefined;
+  fonts?: string[] | undefined;
+  canvas?: string | undefined;
+  webgl?: string | undefined;
+  audioContext?: string | undefined;
   createdAt: Date;
   lastSeen: Date;
   trustScore: number;
@@ -58,13 +58,13 @@ export interface SecurityContext {
   ipAddress: string;
   userAgent: string;
   timestamp: Date;
-  previousLogins?: LoginHistory[];
-  accountAge?: number; // days
-  failedAttempts?: number;
-  isVPN?: boolean;
-  isTor?: boolean;
-  isProxy?: boolean;
-  geoLocation?: GeoLocation;
+  previousLogins?: LoginHistory[] | undefined;
+  accountAge: number; // days - changed to required
+  failedAttempts?: number | undefined;
+  isVPN?: boolean | undefined;
+  isTor?: boolean | undefined;
+  isProxy?: boolean | undefined;
+  geoLocation?: GeoLocation | undefined;
 }
 
 export interface LoginHistory {

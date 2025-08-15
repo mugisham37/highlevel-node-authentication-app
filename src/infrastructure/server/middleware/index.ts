@@ -56,6 +56,31 @@ export {
   type CSPDirectives,
 } from './security-headers';
 
+// Import all constants for use in factory functions
+import {
+  authenticationRateLimiter,
+  apiRateLimiter,
+  strictRateLimiter,
+} from './intelligent-rate-limiter';
+
+import {
+  standardZeroTrust,
+  strictZeroTrust,
+  adminZeroTrust,
+} from './zero-trust-auth';
+
+import {
+  standardAuditLogger,
+  securityAuditLogger,
+  complianceAuditLogger,
+} from './audit-logging';
+
+import {
+  standardSecurityHeaders,
+  strictSecurityHeaders,
+  developmentSecurityHeaders,
+} from './security-headers';
+
 // Middleware factory functions for common use cases
 export const createSecurityMiddlewareStack = {
   /**

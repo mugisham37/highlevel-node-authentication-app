@@ -2,7 +2,12 @@
  * WebSocket Types and Interfaces
  */
 
-import { SocketStream } from '@fastify/websocket';
+import { WebSocket } from '@fastify/websocket';
+
+export interface SocketStream {
+  socket: WebSocket;
+  [key: string]: any;
+}
 
 export interface WebSocketConnection {
   id: string;
@@ -33,14 +38,14 @@ export interface WebSocketEvent {
   type: string;
   data: Record<string, any>;
   timestamp: string;
-  userId?: string;
-  sessionId?: string;
+  userId?: string | undefined;
+  sessionId?: string | undefined;
   metadata?: {
-    serverId?: string;
+    serverId?: string | undefined;
     priority?: 'low' | 'normal' | 'high' | 'critical';
     [key: string]: any;
-  };
-  correlationId?: string;
+  } | undefined;
+  correlationId?: string | undefined;
 }
 
 export interface WebSocketAuthResult {
@@ -82,8 +87,8 @@ export interface SecurityEvent {
     | 'rate_limit_exceeded'
     | 'suspicious_activity'
     | 'authentication_failure';
-  userId?: string;
-  sessionId?: string;
+  userId?: string | undefined;
+  sessionId?: string | undefined;
   details: Record<string, any>;
   severity: 'low' | 'medium' | 'high' | 'critical';
   timestamp: Date;
@@ -99,11 +104,11 @@ export interface AuthenticationEvent {
     | 'mfa_challenge'
     | 'password_change';
   userId: string;
-  sessionId?: string;
+  sessionId?: string | undefined;
   details: Record<string, any>;
   timestamp: Date;
-  ip?: string;
-  userAgent?: string;
+  ip?: string | undefined;
+  userAgent?: string | undefined;
 }
 
 export interface SessionEvent {
@@ -142,9 +147,9 @@ export interface WebSocketNotification {
   type: 'info' | 'warning' | 'error' | 'success';
   title: string;
   message: string;
-  userId?: string;
-  data?: Record<string, any>;
+  userId?: string | undefined;
+  data?: Record<string, any> | undefined;
   timestamp: Date;
-  expiresAt?: Date;
-  read?: boolean;
+  expiresAt?: Date | undefined;
+  read?: boolean | undefined;
 }
