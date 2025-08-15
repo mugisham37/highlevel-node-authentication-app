@@ -812,12 +812,12 @@ export class TamperProtectionService {
   shutdown(): void {
     if (this.keyRotationTimer) {
       clearInterval(this.keyRotationTimer);
-      this.keyRotationTimer = undefined;
+      delete (this as any).keyRotationTimer;
     }
 
     if (this.integrityCheckTimer) {
       clearInterval(this.integrityCheckTimer);
-      this.integrityCheckTimer = undefined;
+      delete (this as any).integrityCheckTimer;
     }
 
     logger.info('Tamper protection service shutdown complete', {

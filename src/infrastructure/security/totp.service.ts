@@ -113,14 +113,21 @@ export class TOTPService {
         step: 30, // 30-second time step
       });
 
-      if (verification) {
+      if (verification && typeof verification === 'object' && 'delta' in verification) {
         this.logger.info('TOTP token verification successful', {
-          delta: verification,
+          delta: (verification as any).delta,
         });
 
         return {
           valid: true,
-          delta: verification,
+          delta: (verification as any).delta,
+        };
+      } else if (verification === true) {
+        this.logger.info('TOTP token verification successful');
+
+        return {
+          valid: true,
+          delta: 0,
         };
       } else {
         this.logger.warn('TOTP token verification failed', {
@@ -208,7 +215,6 @@ export class TOTPService {
       const qrCodeDataUrl = await QRCode.toDataURL(otpauthUrl, {
         errorCorrectionLevel: 'M',
         type: 'image/png',
-        quality: 0.92,
         margin: 1,
         color: {
           dark: '#000000',

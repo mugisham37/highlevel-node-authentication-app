@@ -30,14 +30,12 @@ export interface EmailTemplate {
 }
 
 export class EmailMFAService {
-  private config: EmailConfig;
   private serviceName: string;
 
   constructor(
     config: EmailConfig,
     private logger: Logger
   ) {
-    this.config = config;
     this.serviceName = config.serviceName || 'Enterprise Auth';
   }
 
@@ -407,11 +405,11 @@ This is an automated message. Please do not reply to this email.
     switch (alertType) {
       case 'login':
         alertTitle = 'New Login Detected';
-        alertMessage = `A new login was detected on your account from ${details?.location || 'unknown location'} at ${details?.timestamp || 'unknown time'}.`;
+        alertMessage = `A new login was detected on your account from ${details?.['location'] || 'unknown location'} at ${details?.['timestamp'] || 'unknown time'}.`;
         break;
       case 'password_change':
         alertTitle = 'Password Changed';
-        alertMessage = `Your password was changed at ${details?.timestamp || 'unknown time'}.`;
+        alertMessage = `Your password was changed at ${details?.['timestamp'] || 'unknown time'}.`;
         break;
       case 'mfa_disabled':
         alertTitle = 'Multi-Factor Authentication Disabled';
@@ -685,7 +683,7 @@ This is an automated message. Please do not reply to this email.
    */
   private maskEmail(email: string): string {
     const [localPart, domain] = email.split('@');
-    if (!domain) return email;
+    if (!domain || !localPart) return email;
 
     const maskedLocal =
       localPart.length > 2

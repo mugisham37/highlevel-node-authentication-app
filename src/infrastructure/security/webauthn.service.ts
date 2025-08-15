@@ -8,17 +8,23 @@ import {
   verifyRegistrationResponse,
   generateAuthenticationOptions,
   verifyAuthenticationResponse,
-  VerifiedRegistrationResponse,
-  VerifiedAuthenticationResponse,
 } from '@simplewebauthn/server';
 import type {
   RegistrationResponseJSON,
   AuthenticationResponseJSON,
-  AuthenticatorDevice,
   PublicKeyCredentialCreationOptionsJSON,
   PublicKeyCredentialRequestOptionsJSON,
+  AuthenticatorTransport,
 } from '@simplewebauthn/types';
 import { Logger } from 'winston';
+
+// Define AuthenticatorDevice interface since it's not exported by @simplewebauthn/types
+export interface AuthenticatorDevice {
+  credentialID: Uint8Array;
+  credentialPublicKey: Uint8Array;
+  counter: number;
+  transports?: AuthenticatorTransport[];
+}
 
 export interface WebAuthnConfig {
   rpName: string;
@@ -140,7 +146,7 @@ export class WebAuthnService {
       const options = await generateRegistrationOptions({
         rpName: this.config.rpName,
         rpID: this.config.rpID,
-        userID: userId,
+        userID: new TextEncoder().encode(userId),
         userName: userEmail,
         userDisplayName: userName || userEmail,
         timeout: 60000, // 1 minute
@@ -214,32 +220,30 @@ export class WebAuthnService {
       }
 
       const {
-        credentialID,
-        credentialPublicKey,
-        counter,
+        credential,
         credentialDeviceType,
         credentialBackedUp,
       } = verification.registrationInfo;
 
       // Store the credential
-      const credential: WebAuthnCredential = {
+      const credentialData: WebAuthnCredential = {
         id: this.generateCredentialId(),
         userId,
-        credentialId: Buffer.from(credentialID).toString('base64url'),
-        publicKey: Buffer.from(credentialPublicKey).toString('base64'),
-        counter,
+        credentialId: Buffer.from(credential.id).toString('base64url'),
+        publicKey: Buffer.from(credential.publicKey).toString('base64'),
+        counter: credential.counter,
         name: credentialName,
         createdAt: new Date(),
         deviceType: credentialDeviceType,
         backedUp: credentialBackedUp,
-        transports: response.response.transports,
+        transports: response.response.transports || [],
       };
 
-      await this.storeCredential(credential);
+      await this.storeCredential(credentialData);
 
       this.logger.info('WebAuthn registration successful', {
         userId,
-        credentialId: credential.credentialId,
+        credentialId: credentialData.credentialId,
         credentialName,
         deviceType: credentialDeviceType,
         backedUp: credentialBackedUp,
@@ -247,7 +251,7 @@ export class WebAuthnService {
 
       return {
         success: true,
-        credentialId: credential.credentialId,
+        credentialId: credentialData.credentialId,
       };
     } catch (error) {
       this.logger.error('WebAuthn registration verification error', {
@@ -278,8 +282,7 @@ export class WebAuthnService {
 
       let allowCredentials: Array<{
         id: string;
-        type: 'public-key';
-        transports?: AuthenticatorTransport[];
+        transports?: any[];
       }> = [];
 
       if (userId) {
@@ -287,15 +290,13 @@ export class WebAuthnService {
         const userCredentials = await this.getUserCredentials(userId);
         allowCredentials = userCredentials.map((cred) => ({
           id: cred.credentialId,
-          type: 'public-key' as const,
-          transports: cred.transports as AuthenticatorTransport[],
+          transports: cred.transports || [],
         }));
       }
 
       const options = await generateAuthenticationOptions({
         timeout: 60000, // 1 minute
-        allowCredentials:
-          allowCredentials.length > 0 ? allowCredentials : undefined,
+        ...(allowCredentials.length > 0 ? { allowCredentials } : {}),
         userVerification: 'preferred',
         rpID: this.config.rpID,
       });
@@ -358,9 +359,11 @@ export class WebAuthnService {
         expectedChallenge,
         expectedOrigin: expectedOrigin || this.config.origin,
         expectedRPID: this.config.rpID,
-        authenticator,
+        credentialID: authenticator.credentialID,
+        credentialPublicKey: authenticator.credentialPublicKey,
+        credentialCounter: authenticator.counter,
         requireUserVerification: false,
-      });
+      } as any);
 
       if (!verification.verified) {
         this.logger.warn('WebAuthn authentication verification failed', {
@@ -481,7 +484,7 @@ export class WebAuthnService {
     credentialId: string
   ): Promise<WebAuthnCredential | null> {
     try {
-      for (const [userId, credentials] of this.credentials.entries()) {
+      for (const [, credentials] of this.credentials.entries()) {
         const credential = credentials.find(
           (c) => c.credentialId === credentialId
         );
@@ -613,7 +616,7 @@ export class WebAuthnService {
     credentialId: string,
     newCounter: number
   ): Promise<void> {
-    for (const [userId, credentials] of this.credentials.entries()) {
+    for (const [, credentials] of this.credentials.entries()) {
       const credential = credentials.find((c) => c.id === credentialId);
       if (credential) {
         credential.counter = newCounter;
@@ -635,7 +638,7 @@ export class WebAuthnService {
    */
   private maskEmail(email: string): string {
     const [localPart, domain] = email.split('@');
-    if (!domain) return email;
+    if (!domain || !localPart) return email;
 
     const maskedLocal =
       localPart.length > 2

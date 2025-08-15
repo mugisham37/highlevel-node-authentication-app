@@ -289,10 +289,10 @@ export class SMSService {
 
     switch (alertType) {
       case 'login':
-        return `${baseMessage}New login detected from ${details?.location || 'unknown location'} at ${details?.timestamp || 'unknown time'}. If this wasn't you, secure your account immediately.`;
+        return `${baseMessage}New login detected from ${details?.['location'] || 'unknown location'} at ${details?.['timestamp'] || 'unknown time'}. If this wasn't you, secure your account immediately.`;
 
       case 'password_change':
-        return `${baseMessage}Your password was changed at ${details?.timestamp || 'unknown time'}. If you didn't make this change, contact support immediately.`;
+        return `${baseMessage}Your password was changed at ${details?.['timestamp'] || 'unknown time'}. If you didn't make this change, contact support immediately.`;
 
       case 'mfa_disabled':
         return `${baseMessage}Multi-factor authentication was disabled on your account. If you didn't make this change, contact support immediately.`;
@@ -357,11 +357,19 @@ export class SMSService {
     totalCost?: number;
   }> {
     try {
-      const messages = await this.client.messages.list({
-        dateSentAfter: startDate,
-        dateSentBefore: endDate,
+      const listOptions: any = {
         from: this.fromNumber,
-      });
+      };
+      
+      if (startDate) {
+        listOptions.dateSentAfter = startDate;
+      }
+      
+      if (endDate) {
+        listOptions.dateSentBefore = endDate;
+      }
+
+      const messages = await this.client.messages.list(listOptions);
 
       const stats = {
         messagesSent: messages.length,

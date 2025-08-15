@@ -596,8 +596,8 @@ export class ComplianceScannerService {
       checkFunction: async () => {
         const vulnStats =
           vulnerabilityScannerService.getVulnerabilityStatistics();
-        const criticalVulns = vulnStats.bySeverity.critical || 0;
-        const highVulns = vulnStats.bySeverity.high || 0;
+        const criticalVulns = vulnStats.bySeverity['critical'] || 0;
+        const highVulns = vulnStats.bySeverity['high'] || 0;
 
         const compliant = criticalVulns === 0 && highVulns < 5;
         const score = Math.max(0, 100 - criticalVulns * 20 - highVulns * 5);
@@ -754,7 +754,7 @@ export class ComplianceScannerService {
   stopScheduledScanning(): void {
     if (this.scanInterval) {
       clearInterval(this.scanInterval);
-      this.scanInterval = undefined;
+      this.scanInterval = undefined as any;
       logger.info('Scheduled compliance scanning stopped');
     }
   }

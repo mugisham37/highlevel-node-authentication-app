@@ -50,8 +50,7 @@ export class CryptographicService {
     this.passwordHashingService = new PasswordHashingService();
     this.jwtTokenService = new JWTTokenService(
       config.accessTokenSecret,
-      config.refreshTokenSecret,
-      config.jwtSigningOptions
+      config.jwtSigningOptions?.issuer
     );
     this.riskScoringService = new RiskScoringService();
   }
@@ -105,10 +104,10 @@ export class CryptographicService {
     accessTokenOptions?: Partial<JWTSigningOptions>,
     refreshTokenOptions?: Partial<JWTSigningOptions>
   ) {
-    return this.jwtTokenService.createTokenPair(
+    return this.jwtTokenService.generateTokenPair(
       payload,
-      accessTokenOptions,
-      refreshTokenOptions
+      accessTokenOptions?.expiresIn || '15m',
+      refreshTokenOptions?.expiresIn || '7d'
     );
   }
 
@@ -120,8 +119,8 @@ export class CryptographicService {
     return this.jwtTokenService.verifyRefreshToken(token);
   }
 
-  refreshAccessToken(refreshToken: string, newPayload?: any) {
-    return this.jwtTokenService.refreshAccessToken(refreshToken, newPayload);
+  refreshAccessToken(refreshToken: string) {
+    return this.jwtTokenService.refreshAccessToken(refreshToken);
   }
 
   createSpecialToken(
@@ -129,7 +128,11 @@ export class CryptographicService {
     payload: any,
     expiresIn?: string
   ): string {
-    return this.jwtTokenService.createSpecialToken(type, payload, expiresIn);
+    return this.jwtTokenService.createSpecialToken(
+      payload,
+      type,
+      expiresIn ? { expiresIn } : undefined
+    );
   }
 
   verifySpecialToken(
@@ -413,16 +416,16 @@ export class CryptographicService {
         } as DeviceFingerprint);
 
     return {
-      userId: input.userId,
-      sessionId: input.sessionId,
+      userId: input.userId || 'anonymous',
+      sessionId: input.sessionId || `session-${Date.now()}`,
       deviceFingerprint,
       ipAddress: input.ipAddress,
       userAgent: input.userAgent,
       timestamp: new Date(),
-      previousLogins: input.previousLogins,
-      accountAge: input.accountAge,
-      failedAttempts: input.failedAttempts,
-      geoLocation: input.geoLocation,
+      ...(input.previousLogins && { previousLogins: input.previousLogins }),
+      ...(input.accountAge !== undefined && { accountAge: input.accountAge }),
+      ...(input.failedAttempts !== undefined && { failedAttempts: input.failedAttempts }),
+      ...(input.geoLocation && { geoLocation: input.geoLocation }),
     };
   }
 

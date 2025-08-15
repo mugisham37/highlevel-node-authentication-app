@@ -4,8 +4,6 @@
  */
 
 import {
-  createCipher,
-  createDecipher,
   createHash,
   randomBytes,
   scrypt,
@@ -13,7 +11,6 @@ import {
   createDecipheriv,
 } from 'crypto';
 import { promisify } from 'util';
-import { config } from '../config/environment';
 import { logger } from '../logging/winston-logger';
 import { EncryptionOptions, EncryptionResult } from './types';
 
@@ -48,7 +45,7 @@ export class DataEncryptionService {
 
   constructor(config?: Partial<DataEncryptionConfig>) {
     this.config = {
-      masterKey: process.env.ENCRYPTION_MASTER_KEY || this.generateMasterKey(),
+      masterKey: process.env['ENCRYPTION_MASTER_KEY'] || this.generateMasterKey(),
       defaultAlgorithm: 'aes-256-gcm',
       keyDerivationRounds: 100000,
       saltLength: 32,
@@ -214,7 +211,7 @@ export class DataEncryptionService {
       let result = `${iv.toString('base64')}:${encrypted}`;
 
       if (this.config.defaultAlgorithm === 'aes-256-gcm') {
-        const tag = cipher.getAuthTag();
+        const tag = (cipher as any).getAuthTag();
         result += `:${tag.toString('base64')}`;
       }
 
@@ -244,7 +241,7 @@ export class DataEncryptionService {
 
     try {
       const parts = encryptedValue.split(':');
-      if (parts.length < 2) {
+      if (parts.length < 2 || !parts[0] || !parts[1]) {
         throw new Error('Invalid encrypted field format');
       }
 
@@ -262,7 +259,7 @@ export class DataEncryptionService {
 
       if (this.config.defaultAlgorithm === 'aes-256-gcm' && parts[2]) {
         const tag = Buffer.from(parts[2], 'base64');
-        decipher.setAuthTag(tag);
+        (decipher as any).setAuthTag(tag);
       }
 
       let decrypted = decipher.update(encrypted, 'base64', 'utf8');
@@ -289,7 +286,7 @@ export class DataEncryptionService {
    */
   async encryptInTransit(
     data: any,
-    recipientPublicKey?: string
+    _recipientPublicKey?: string
   ): Promise<{
     encryptedData: string;
     ephemeralPublicKey?: string;
@@ -320,7 +317,7 @@ export class DataEncryptionService {
   async decryptInTransit(
     encryptedData: string,
     signature: string,
-    senderPublicKey?: string
+    _senderPublicKey?: string
   ): Promise<any> {
     try {
       // Verify signature first

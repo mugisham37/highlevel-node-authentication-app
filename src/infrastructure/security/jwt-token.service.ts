@@ -35,9 +35,9 @@ export class JWTTokenService {
 
   constructor(secretKey?: string, defaultIssuer?: string) {
     this.secretKey =
-      secretKey || process.env.JWT_SECRET || this.generateSecretKey();
+      secretKey || process.env['JWT_SECRET'] || this.generateSecretKey();
     this.defaultIssuer =
-      defaultIssuer || process.env.JWT_ISSUER || 'auth-service';
+      defaultIssuer || process.env['JWT_ISSUER'] || 'auth-service';
   }
 
   /**
@@ -50,7 +50,9 @@ export class JWTTokenService {
   ): Promise<string> {
     const now = Math.floor(Date.now() / 1000);
 
-    const tokenPayload: JWTPayload = {
+    const tokenPayload = {
+      sub: payload['sub'] || payload['aud'],
+      aud: payload['aud'] || 'default',
       ...payload,
       iss: options?.issuer || this.defaultIssuer,
       iat: now,
@@ -66,7 +68,7 @@ export class JWTTokenService {
     }
 
     if (options?.notBefore) {
-      tokenPayload.nbf =
+      (tokenPayload as any).nbf =
         typeof options.notBefore === 'string'
           ? Math.floor(Date.now() / 1000) +
             this.parseTimeToSeconds(options.notBefore)
@@ -74,7 +76,7 @@ export class JWTTokenService {
     }
 
     const jwtOptions: jwt.SignOptions = {
-      expiresIn,
+      expiresIn: expiresIn as any,
       algorithm: 'HS256',
     };
 
@@ -229,6 +231,9 @@ export class JWTTokenService {
 
     try {
       // Try to decode each part
+      if (!parts[0] || !parts[1]) {
+        return false;
+      }
       JSON.parse(Buffer.from(parts[0], 'base64url').toString());
       JSON.parse(Buffer.from(parts[1], 'base64url').toString());
       return true;
@@ -247,6 +252,149 @@ export class JWTTokenService {
     } catch {
       return null;
     }
+  }
+
+  /**
+   * Create access token
+   */
+  createAccessToken(
+    payload: any,
+    options?: Partial<TokenOptions>
+  ): string {
+    const tokenPayload: JWTPayload = {
+      sub: payload.sub || payload.userId,
+      aud: options?.audience || 'access',
+      ...payload,
+    };
+
+    const signOptions: jwt.SignOptions = {
+      issuer: options?.issuer || this.defaultIssuer,
+      audience: options?.audience || 'access',
+      subject: options?.subject || payload.sub || payload.userId,
+      jwtid: options?.jwtid || this.generateJTI(),
+    };
+
+    if (options?.expiresIn !== undefined) {
+      signOptions.expiresIn = options.expiresIn as any;
+    } else {
+      signOptions.expiresIn = '15m';
+    }
+
+    return jwt.sign(tokenPayload, this.secretKey, signOptions);
+  }
+
+  /**
+   * Create refresh token
+   */
+  createRefreshToken(
+    payload: any,
+    options?: Partial<TokenOptions>
+  ): string {
+    const tokenPayload: JWTPayload = {
+      sub: payload.sub || payload.userId,
+      aud: options?.audience || 'refresh',
+      ...payload,
+    };
+
+    const signOptions: jwt.SignOptions = {
+      issuer: options?.issuer || this.defaultIssuer,
+      audience: options?.audience || 'refresh',
+      subject: options?.subject || payload.sub || payload.userId,
+      jwtid: options?.jwtid || this.generateJTI(),
+    };
+
+    if (options?.expiresIn !== undefined) {
+      signOptions.expiresIn = options.expiresIn as any;
+    } else {
+      signOptions.expiresIn = '7d';
+    }
+
+    return jwt.sign(tokenPayload, this.secretKey, signOptions);
+  }
+
+  /**
+   * Verify access token
+   */
+  verifyAccessToken(token: string): any {
+    return jwt.verify(token, this.secretKey, {
+      audience: 'access',
+      issuer: this.defaultIssuer,
+    });
+  }
+
+  /**
+   * Verify refresh token
+   */
+  verifyRefreshToken(token: string): any {
+    return jwt.verify(token, this.secretKey, {
+      audience: 'refresh',
+      issuer: this.defaultIssuer,
+    });
+  }
+
+  /**
+   * Refresh access token using refresh token
+   */
+  refreshAccessToken(refreshToken: string): string {
+    const payload = this.verifyRefreshToken(refreshToken);
+    return this.createAccessToken({
+      sub: payload.sub,
+      userId: payload.userId,
+    });
+  }
+
+  /**
+   * Create special token for specific purposes
+   */
+  createSpecialToken(
+    payload: any,
+    purpose: string,
+    options?: Partial<TokenOptions>
+  ): string {
+    const tokenPayload: JWTPayload = {
+      sub: payload.sub || payload.userId,
+      aud: purpose,
+      purpose,
+      ...payload,
+    };
+
+    const signOptions: jwt.SignOptions = {
+      issuer: options?.issuer || this.defaultIssuer,
+      audience: purpose,
+      subject: options?.subject || payload.sub || payload.userId,
+      jwtid: options?.jwtid || this.generateJTI(),
+    };
+
+    if (options?.expiresIn !== undefined) {
+      signOptions.expiresIn = options.expiresIn as any;
+    } else {
+      signOptions.expiresIn = '1h';
+    }
+
+    return jwt.sign(tokenPayload, this.secretKey, signOptions);
+  }
+
+  /**
+   * Verify special token
+   */
+  verifySpecialToken(token: string, purpose: string): any {
+    return jwt.verify(token, this.secretKey, {
+      audience: purpose,
+      issuer: this.defaultIssuer,
+    });
+  }
+
+  /**
+   * Generate secrets for token signing
+   */
+  static generateSecrets(): {
+    accessTokenSecret: string;
+    refreshTokenSecret: string;
+  } {
+    return {
+      accessTokenSecret: randomBytes(64).toString('hex'),
+      refreshTokenSecret: randomBytes(64).toString('hex'),
+    };
   }
 
   /**
@@ -281,6 +429,15 @@ export class JWTTokenService {
     }
 
     const [, value, unit] = match;
-    return parseInt(value, 10) * units[unit];
+    if (!value || !unit) {
+      throw new Error(`Invalid time format: ${time}`);
+    }
+
+    const unitMultiplier = units[unit];
+    if (unitMultiplier === undefined) {
+      throw new Error(`Invalid time unit: ${unit}`);
+    }
+
+    return parseInt(value, 10) * unitMultiplier;
   }
 }

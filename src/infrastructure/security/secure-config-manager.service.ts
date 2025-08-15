@@ -136,7 +136,7 @@ export class SecureConfigManagerService {
       newValue: sensitive ? '[REDACTED]' : value,
       actor,
       environment,
-      reason: options?.reason,
+      reason: options?.reason || 'No reason provided',
     };
 
     this.auditLog.push(auditEntry);
@@ -275,7 +275,7 @@ export class SecureConfigManagerService {
       oldValue: configEntry.sensitive ? '[REDACTED]' : configEntry.value,
       actor,
       environment,
-      reason: options?.reason,
+      reason: options?.reason || 'No reason provided',
     };
 
     this.auditLog.push(auditEntry);
@@ -331,7 +331,7 @@ export class SecureConfigManagerService {
     // Find applicable schema
     let applicableSchema: SecureConfigSchema | undefined;
 
-    for (const [schemaName, schema] of this.schemas) {
+    for (const [, schema] of this.schemas) {
       if (schema[key]) {
         applicableSchema = schema;
         break;
@@ -801,13 +801,19 @@ export class SecureConfigManagerService {
     auditLogEntries: number;
     lastModified?: Date;
   } {
-    const stats = {
+    const stats: {
+      totalConfigurations: number;
+      encryptedConfigurations: number;
+      sensitiveConfigurations: number;
+      configurationsByEnvironment: Record<string, number>;
+      auditLogEntries: number;
+      lastModified?: Date;
+    } = {
       totalConfigurations: this.configurations.size,
       encryptedConfigurations: 0,
       sensitiveConfigurations: 0,
       configurationsByEnvironment: {} as Record<string, number>,
       auditLogEntries: this.auditLog.length,
-      lastModified: undefined as Date | undefined,
     };
 
     for (const config of this.configurations.values()) {

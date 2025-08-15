@@ -29,7 +29,6 @@ export class SecureTokenGenerator {
   private static readonly URL_SAFE_ALPHABET =
     'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
   private static readonly NUMERIC_ALPHABET = '0123456789';
-  private static readonly HEX_ALPHABET = '0123456789abcdef';
 
   /**
    * Generate a secure random token with specified options
@@ -264,7 +263,7 @@ export class SecureTokenGenerator {
   static generateDerivedKey(
     password: string,
     salt: string,
-    iterations: number = 100000,
+    _iterations: number = 100000,
     keyLength: number = 32
   ): Buffer {
     return scryptSync(password, salt, keyLength);
@@ -317,8 +316,8 @@ export class SecureTokenGenerator {
 
     return { 
       valid: true, 
-      payload: payload || undefined, 
-      token: token || undefined 
+      ...(payload && { payload }), 
+      ...(token && { token }) 
     };
   }
 
@@ -361,7 +360,7 @@ export class SecureTokenGenerator {
   static extractTimestamp(token: string): number | null {
     try {
       const parts = token.split('_');
-      if (parts.length < 2) return null;
+      if (parts.length < 2 || !parts[0]) return null;
 
       const timestampHex = parts[0];
       return parseInt(timestampHex, 16);
@@ -380,12 +379,15 @@ export class SecureTokenGenerator {
     timestamp?: number;
     expired?: boolean;
   } {
-    const result = {
+    const result: {
+      valid: boolean;
+      hasChecksum: boolean;
+      checksumValid?: boolean;
+      timestamp?: number;
+      expired?: boolean;
+    } = {
       valid: false,
       hasChecksum: false,
-      checksumValid: undefined as boolean | undefined,
-      timestamp: undefined as number | undefined,
-      expired: undefined as boolean | undefined,
     };
 
     if (!token || typeof token !== 'string') {
@@ -413,7 +415,7 @@ export class SecureTokenGenerator {
     }
 
     result.valid =
-      !result.expired && (!result.hasChecksum || result.checksumValid);
+      !result.expired && (!result.hasChecksum || !!result.checksumValid);
     return result;
   }
 
@@ -467,7 +469,7 @@ export class SecureTokenGenerator {
     length: number,
     alphabet: string
   ): string {
-    if (alphabet.length === 0) {
+    if (!alphabet || alphabet.length === 0) {
       throw new Error('Alphabet cannot be empty');
     }
 
@@ -475,7 +477,11 @@ export class SecureTokenGenerator {
     let result = '';
 
     for (let i = 0; i < length; i++) {
-      result += alphabet[bytes[i] % alphabet.length];
+      const byteValue = bytes[i];
+      if (byteValue === undefined) {
+        throw new Error('Invalid byte array');
+      }
+      result += alphabet[byteValue % alphabet.length];
     }
 
     return result;
@@ -528,11 +534,11 @@ export class SecureTokenGenerator {
       const decoded = Buffer.from(token, 'base64url').toString();
       const [deviceId, timestamp, signature] = decoded.split(':');
 
-      if (deviceId !== expectedDeviceId) {
+      if (deviceId !== expectedDeviceId || !timestamp) {
         return false;
       }
 
-      const age = Date.now() - parseInt(timestamp);
+      const age = Date.now() - parseInt(timestamp, 10);
       if (age > maxAge) {
         return false;
       }

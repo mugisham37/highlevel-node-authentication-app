@@ -4,11 +4,9 @@
  */
 
 import {
-  DeviceFingerprint,
   RiskAssessment,
   RiskFactor,
   SecurityContext,
-  LoginHistory,
   GeoLocation,
 } from './types';
 import { DeviceFingerprintingService } from './device-fingerprinting.service';
@@ -485,7 +483,7 @@ export class RiskScoringService {
    */
   private static analyzeNetworkRisk(context: SecurityContext): RiskFactor[] {
     const factors: RiskFactor[] = [];
-    const { ipAddress, userAgent, geoLocation } = context;
+    const { userAgent, geoLocation } = context;
 
     // VPN/Proxy detection (simplified)
     const lowerUserAgent = userAgent.toLowerCase();
@@ -583,19 +581,21 @@ export class RiskScoringService {
     // Rapid successive attempts
     if (context.previousLogins && context.previousLogins.length > 0) {
       const lastLogin = context.previousLogins[0];
-      const timeSinceLastLogin = now.getTime() - lastLogin.timestamp.getTime();
+      if (lastLogin?.timestamp) {
+        const timeSinceLastLogin = now.getTime() - lastLogin.timestamp.getTime();
 
-      if (timeSinceLastLogin < 60000) {
-        // Less than 1 minute
-        factors.push({
-          type: 'temporal',
-          severity: 'medium',
-          score: 15,
-          description: 'Rapid successive login attempts',
-          metadata: {
-            timeSinceLastLogin: Math.round(timeSinceLastLogin / 1000),
-          },
-        });
+        if (timeSinceLastLogin < 60000) {
+          // Less than 1 minute
+          factors.push({
+            type: 'temporal',
+            severity: 'medium',
+            score: 15,
+            description: 'Rapid successive login attempts',
+            metadata: {
+              timeSinceLastLogin: Math.round(timeSinceLastLogin / 1000),
+            },
+          });
+        }
       }
     }
 
@@ -729,13 +729,18 @@ export class RiskScoringService {
     const avgLng =
       locations.reduce((sum, loc) => sum + loc.longitude, 0) / locations.length;
 
+    const firstLocation = locations[0];
+    if (!firstLocation) {
+      throw new Error('No locations provided for centroid calculation');
+    }
+
     return {
-      country: locations[0].country, // Use first location's country as reference
-      region: locations[0].region,
+      country: firstLocation.country, // Use first location's country as reference
+      region: firstLocation.region,
       city: 'Centroid',
       latitude: avgLat,
       longitude: avgLng,
-      timezone: locations[0].timezone,
+      timezone: firstLocation.timezone,
     };
   }
 
