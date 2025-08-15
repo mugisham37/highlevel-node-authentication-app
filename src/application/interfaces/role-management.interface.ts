@@ -5,6 +5,7 @@
 
 import { Role } from '../../domain/entities/role';
 import { Permission } from '../../domain/entities/permission';
+import { RoleWithPermissions } from './role-repository.interface';
 
 export interface CreateRoleData {
   name: string;
@@ -28,10 +29,6 @@ export interface RoleFilters {
   offset?: number;
   sortBy?: 'name' | 'createdAt' | 'permissionCount' | 'hierarchyLevel';
   sortOrder?: 'asc' | 'desc';
-}
-
-export interface RoleWithPermissions extends Role {
-  permissions: Permission[];
 }
 
 export interface RoleHierarchy {

@@ -105,6 +105,7 @@ export interface IRoleRepository {
   getStats(): Promise<{
     total: number;
     systemRoles: number;
+    adminRoles: number;
     averagePermissions: number;
     mostUsedRoles: Array<{ roleId: string; name: string; userCount: number }>;
   }>;

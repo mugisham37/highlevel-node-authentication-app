@@ -205,16 +205,41 @@ export class WebhookEvent {
     metadata: Record<string, any>;
     correlationId?: string;
   } {
-    return {
+    const result: any = {
       id: this.id,
       type: this.type,
       data: this.data,
       timestamp: this.timestamp.toISOString(),
-      userId: this.userId,
-      sessionId: this.sessionId,
       metadata: this.metadata,
-      correlationId: this.correlationId,
     };
+
+    if (this.userId !== undefined) {
+      result.userId = this.userId;
+    }
+    if (this.sessionId !== undefined) {
+      result.sessionId = this.sessionId;
+    }
+    if (this.correlationId !== undefined) {
+      result.correlationId = this.correlationId;
+    }
+
+    return result;
+  }
+
+  /**
+   * Convert to JSON for serialization
+   */
+  toJSON(): {
+    id: string;
+    type: string;
+    data: Record<string, any>;
+    timestamp: string;
+    userId?: string;
+    sessionId?: string;
+    metadata: Record<string, any>;
+    correlationId?: string;
+  } {
+    return this.createPayload();
   }
 
   /**

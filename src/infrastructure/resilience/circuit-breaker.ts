@@ -200,6 +200,13 @@ export class CircuitBreaker {
   }
 
   /**
+   * Get failure count
+   */
+  getFailureCount(): number {
+    return this.failures;
+  }
+
+  /**
    * Force circuit breaker to open (for testing or manual intervention)
    */
   forceOpen(recoveryTimeout?: number): void {

@@ -265,15 +265,11 @@ export class WebhookService implements IWebhookService {
       }
 
       // Create test event
-      const testPayload = this.signatureService.generateTestPayload();
+      const testPayload = this.signatureService.generateTestPayload('webhook.test');
       const testEvent = new WebhookEvent(
         this.generateEventId(),
         'webhook.test',
-        {
-          message: 'This is a test webhook delivery',
-          timestamp: new Date().toISOString(),
-          webhookId,
-        },
+        testPayload,
         userId,
         undefined,
         new Date(),
@@ -366,7 +362,7 @@ export class WebhookService implements IWebhookService {
         initialDelay: request.retryConfig?.initialDelay ?? 1000,
         maxDelay: request.retryConfig?.maxDelay ?? 300000, // 5 minutes
       },
-      headers: request.headers,
+      ...(request.headers && { headers: request.headers }),
       timeout: request.timeout ?? 10000, // 10 seconds
     };
   }
@@ -395,7 +391,7 @@ export class WebhookService implements IWebhookService {
         maxDelay:
           updates.retryConfig?.maxDelay ?? existing.retryConfig.maxDelay,
       },
-      headers: updates.headers ?? existing.headers,
+      ...(updates.headers ? { headers: updates.headers } : existing.headers ? { headers: existing.headers } : {}),
       timeout: updates.timeout ?? existing.timeout,
     };
   }

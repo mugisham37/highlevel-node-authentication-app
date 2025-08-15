@@ -86,7 +86,6 @@ export class WebhookFactory {
 
     // Create dead letter queue
     const deadLetterQueue = new DeadLetterQueueService(
-      deliveryRepository,
       redisCache,
       {
         maxRetentionDays: 7,

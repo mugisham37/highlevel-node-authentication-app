@@ -222,7 +222,7 @@ export class PermissionManagementService
           return {
             allowed: true,
             permission,
-            matchedConditions: check.context,
+            ...(check.context && { matchedConditions: check.context }),
           };
         }
       }
@@ -410,9 +410,12 @@ export class PermissionManagementService
       };
 
       for (let i = 0; i < permissions.length; i++) {
+        const permissionData = permissions[i];
+        if (!permissionData) continue;
+        
         try {
           const permission = await this.createPermission(
-            permissions[i],
+            permissionData,
             createdBy
           );
           result.created.push(permission);
@@ -420,7 +423,7 @@ export class PermissionManagementService
           result.errors.push({
             index: i,
             error: error instanceof Error ? error.message : 'Unknown error',
-            data: permissions[i],
+            data: permissionData,
           });
         }
       }

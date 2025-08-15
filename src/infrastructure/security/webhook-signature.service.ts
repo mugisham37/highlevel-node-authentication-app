@@ -172,14 +172,10 @@ export class WebhookSignatureService implements IWebhookSignatureService {
   /**
    * Generate test payload for webhook testing
    */
-  generateTestPayload(): {
-    payload: string;
-    timestamp: number;
-  } {
-    const timestamp = Math.floor(Date.now() / 1000);
-    const testEvent = {
+  generateTestPayload(eventType: string): Record<string, any> {
+    return {
       id: `test_${randomBytes(8).toString('hex')}`,
-      type: 'webhook.test',
+      type: eventType,
       data: {
         message: 'This is a test webhook delivery',
         timestamp: new Date().toISOString(),
@@ -189,11 +185,6 @@ export class WebhookSignatureService implements IWebhookSignatureService {
         test: true,
         source: 'webhook_test',
       },
-    };
-
-    return {
-      payload: JSON.stringify(testEvent),
-      timestamp,
     };
   }
 

@@ -10,7 +10,6 @@ import { SecureIdGenerator } from '../../infrastructure/security/secure-id-gener
 import { SecureTokenGenerator } from '../../infrastructure/security/secure-token-generator.service';
 import {
   WebAuthnService,
-  WebAuthnCredential,
 } from '../../infrastructure/security/webauthn.service';
 import { MFAChallengeRepository } from '../../infrastructure/database/repositories/mfa-challenge.repository';
 import { PrismaUserRepository } from '../../infrastructure/database/repositories/prisma-user-repository';
@@ -192,12 +191,12 @@ export class PasswordlessAuthService {
         };
       }
 
-      // No WebAuthn credentials - offer magic link as primary method
-      const magicLinkResult = await this.sendMagicLink({
+      const magicLinkRequest: any = {
         email: request.email,
         deviceInfo: request.deviceInfo,
-        ipAddress: request.ipAddress || undefined,
-      });
+        ...(request.ipAddress && { ipAddress: request.ipAddress }),
+      };
+      const magicLinkResult = await this.sendMagicLink(magicLinkRequest);
 
       if (magicLinkResult.success) {
         return {
@@ -274,7 +273,7 @@ export class PasswordlessAuthService {
           magicToken,
           redirectUrl: request.redirectUrl,
           deviceInfo: request.deviceInfo,
-          ipAddress: request.ipAddress || undefined,
+          ...(request.ipAddress && { ipAddress: request.ipAddress }),
           type: 'magic_link',
         } as Record<string, any>,
       });
@@ -298,7 +297,7 @@ export class PasswordlessAuthService {
           error: {
             code: 'EMAIL_SEND_FAILED',
             message: 'Failed to send magic link email',
-            details: emailResult.error,
+            ...(emailResult.error && { details: { error: emailResult.error } }),
           },
         };
       }
@@ -409,7 +408,7 @@ export class PasswordlessAuthService {
       }
 
       // Verify device consistency (optional security check)
-      const storedDeviceInfo = challenge.metadata?.deviceInfo;
+      const storedDeviceInfo = (challenge.metadata as any)?.deviceInfo;
       if (
         storedDeviceInfo &&
         !this.isDeviceConsistent(storedDeviceInfo, deviceInfo)
@@ -497,12 +496,11 @@ export class PasswordlessAuthService {
         };
       }
 
-      // Generate WebAuthn registration options
       const registrationOptions =
         await this.webAuthnService.generateRegistrationOptions(
           user.id,
           user.email,
-          user.name
+          user.name ?? undefined
         );
 
       // Store registration challenge
@@ -593,13 +591,14 @@ export class PasswordlessAuthService {
       }
 
       // Verify registration response
+      const metadata = challenge.metadata as any;
       const verificationResult =
         await this.webAuthnService.verifyRegistrationResponse(
           challenge.userId,
-          challenge.metadata?.credentialName || 'Passwordless Device',
+          metadata?.credentialName || 'Passwordless Device',
           registrationResponse,
-          challenge.metadata?.challenge,
-          challenge.metadata?.origin
+          metadata?.challenge,
+          metadata?.origin
         );
 
       if (!verificationResult.success) {
@@ -610,7 +609,7 @@ export class PasswordlessAuthService {
           error: {
             code: 'WEBAUTHN_VERIFICATION_FAILED',
             message: 'WebAuthn registration verification failed',
-            details: verificationResult.error,
+            ...(verificationResult.error && { details: { error: verificationResult.error } }),
           },
         };
       }
@@ -622,7 +621,7 @@ export class PasswordlessAuthService {
       await this.registerDevice({
         userId: challenge.userId,
         deviceFingerprint: deviceInfo.fingerprint,
-        deviceName: challenge.metadata?.credentialName || 'Passwordless Device',
+        deviceName: metadata?.credentialName || 'Passwordless Device',
         deviceType: deviceInfo.platform,
         webAuthnCredentialId: verificationResult.credentialId!,
       });
@@ -635,7 +634,7 @@ export class PasswordlessAuthService {
 
       return {
         success: true,
-        credentialId: verificationResult.credentialId,
+        credentialId: verificationResult.credentialId!,
       };
     } catch (error) {
       this.logger.error('WebAuthn registration completion error', {
@@ -696,11 +695,12 @@ export class PasswordlessAuthService {
       }
 
       // Verify authentication response
+      const authMetadata = challenge.metadata as any;
       const verificationResult =
         await this.webAuthnService.verifyAuthenticationResponse(
           authenticationResponse,
-          challenge.metadata?.challenge,
-          challenge.metadata?.origin
+          authMetadata?.challenge,
+          authMetadata?.origin
         );
 
       if (!verificationResult.success) {
@@ -711,7 +711,7 @@ export class PasswordlessAuthService {
           error: {
             code: 'WEBAUTHN_AUTH_FAILED',
             message: 'WebAuthn authentication failed',
-            details: verificationResult.error,
+            ...(verificationResult.error && { details: { error: verificationResult.error } }),
           },
         };
       }
@@ -738,7 +738,7 @@ export class PasswordlessAuthService {
       // For now, just update the user directly since we're not using full domain entities
       await this.userRepository.updateUser(user.id, {
         lastLoginAt: new Date(),
-        lastLoginIP: challenge.metadata?.deviceInfo?.ipAddress || 'unknown',
+        lastLoginIP: (challenge.metadata as any)?.deviceInfo?.ipAddress || 'unknown',
         riskScore: Math.max(0, (user.riskScore || 0) - 5), // Reduce risk on successful auth
         failedLoginAttempts: 0,
         lockedUntil: null,
@@ -889,7 +889,7 @@ export class PasswordlessAuthService {
         deviceType: cred.deviceType || 'unknown',
         trusted: true, // WebAuthn credentials are considered trusted
         registeredAt: cred.createdAt,
-        lastUsedAt: cred.lastUsed,
+        lastUsedAt: cred.lastUsed || new Date(),
         webAuthnCredentials: [cred.credentialId],
       }));
 
@@ -1049,7 +1049,7 @@ export class PasswordlessAuthService {
    */
   private maskEmail(email: string): string {
     const [localPart, domain] = email.split('@');
-    if (!domain) return email;
+    if (!domain || !localPart) return email;
 
     const maskedLocal =
       localPart.length > 2

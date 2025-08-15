@@ -609,7 +609,7 @@ export class AuthenticationService {
       sessionEntity.calculateRiskScore(request.ipAddress, request.deviceInfo);
 
       // Create new token pair
-      const tokens = this.jwtTokenService.createTokenPair({
+      const tokens = await this.jwtTokenService.generateTokenPair({
         sub: user.id,
         sessionId: session.id,
         deviceId: request.deviceInfo.fingerprint,
@@ -854,7 +854,7 @@ export class AuthenticationService {
     const sessionId = SecureIdGenerator.generateSecureId();
 
     // Create tokens
-    const tokens = this.jwtTokenService.createTokenPair({
+    const tokens = await this.jwtTokenService.generateTokenPair({
       sub: user.id,
       sessionId,
       deviceId: credentials.deviceInfo.fingerprint,

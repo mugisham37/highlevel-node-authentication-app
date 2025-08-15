@@ -1,6 +1,11 @@
 /**
- * User Management Service Implementation
- * Provides comprehensive user CRUD operations with proper authorization
+ * User Management Service Implementation      const userData = {
+        email: data.email,
+        ...(data.name && { name: data.name }),
+        ...(data.image && { image: data.image }),
+        ...(password?.hashedValue && { passwordHash: password.hashedValue }),
+        ...(data.emailVerified && { emailVerified: new Date() }),
+      };vides comprehensive user CRUD operations with proper authorization
  */
 
 import { Logger } from 'winston';
@@ -47,10 +52,10 @@ export class UserManagementService implements IUserManagementService {
       // Create user data
       const userData = {
         email: email.value,
-        name: data.name,
-        image: data.image,
-        passwordHash: password?.hashedValue,
-        emailVerified: data.emailVerified ? new Date() : undefined,
+        ...(data.name && { name: data.name }),
+        ...(data.image && { image: data.image }),
+        ...(password?.hashedValue && { passwordHash: password.hashedValue }),
+        ...(data.emailVerified && { emailVerified: new Date() }),
       };
 
       const createdUser = await this.userRepository.createUser(userData);
@@ -59,19 +64,19 @@ export class UserManagementService implements IUserManagementService {
       const user = new User({
         id: createdUser.id,
         email,
-        emailVerified: createdUser.emailVerified || undefined,
-        name: createdUser.name || undefined,
-        image: createdUser.image || undefined,
+        ...(createdUser.emailVerified && { emailVerified: createdUser.emailVerified }),
+        ...(createdUser.name && { name: createdUser.name }),
+        ...(createdUser.image && { image: createdUser.image }),
         password,
         createdAt: createdUser.createdAt,
         updatedAt: createdUser.updatedAt,
         mfaEnabled: createdUser.mfaEnabled,
-        totpSecret: createdUser.totpSecret || undefined,
+        ...(createdUser.totpSecret && { totpSecret: createdUser.totpSecret }),
         backupCodes: createdUser.backupCodes,
         failedLoginAttempts: createdUser.failedLoginAttempts,
-        lockedUntil: createdUser.lockedUntil || undefined,
-        lastLoginAt: createdUser.lastLoginAt || undefined,
-        lastLoginIP: createdUser.lastLoginIP || undefined,
+        ...(createdUser.lockedUntil && { lockedUntil: createdUser.lockedUntil }),
+        ...(createdUser.lastLoginAt && { lastLoginAt: createdUser.lastLoginAt }),
+        ...(createdUser.lastLoginIP && { lastLoginIP: createdUser.lastLoginIP }),
         riskScore: createdUser.riskScore,
       });
 
@@ -167,7 +172,7 @@ export class UserManagementService implements IUserManagementService {
         updateData.email = email.value;
       }
 
-      const updatedUser = await this.userRepository.updateUser(id, updateData);
+      await this.userRepository.updateUser(id, updateData);
       const userWithRelations = await this.userRepository.findById(id, true);
 
       if (!userWithRelations) {
@@ -205,13 +210,13 @@ export class UserManagementService implements IUserManagementService {
   ): Promise<{ users: UserWithRoles[]; total: number }> {
     try {
       const result = await this.userRepository.findUsersWithFilters({
-        search: filters.search,
-        mfaEnabled: filters.mfaEnabled,
-        locked: filters.locked,
-        createdAfter: filters.createdAfter,
-        createdBefore: filters.createdBefore,
-        limit: filters.limit,
-        offset: filters.offset,
+        ...(filters.search && { search: filters.search }),
+        ...(filters.mfaEnabled !== undefined && { mfaEnabled: filters.mfaEnabled }),
+        ...(filters.locked !== undefined && { locked: filters.locked }),
+        ...(filters.createdAfter && { createdAfter: filters.createdAfter }),
+        ...(filters.createdBefore && { createdBefore: filters.createdBefore }),
+        ...(filters.limit && { limit: filters.limit }),
+        ...(filters.offset && { offset: filters.offset }),
       });
 
       const users = await Promise.all(
@@ -368,15 +373,18 @@ export class UserManagementService implements IUserManagementService {
       };
 
       for (let i = 0; i < users.length; i++) {
+        const userData = users[i];
+        if (!userData) continue;
+        
         try {
-          await this.createUser(users[i], createdBy);
+          await this.createUser(userData, createdBy);
           result.processed++;
         } catch (error) {
           result.failed++;
           result.errors.push({
             index: i,
             error: error instanceof Error ? error.message : 'Unknown error',
-            data: users[i],
+            data: userData,
           });
         }
       }
@@ -417,8 +425,11 @@ export class UserManagementService implements IUserManagementService {
       };
 
       for (let i = 0; i < updates.length; i++) {
+        const updateData = updates[i];
+        if (!updateData) continue;
+        
         try {
-          await this.updateUser(updates[i].id, updates[i].data, updatedBy);
+          await this.updateUser(updateData.id, updateData.data, updatedBy);
           result.processed++;
         } catch (error) {
           result.failed++;
@@ -466,8 +477,11 @@ export class UserManagementService implements IUserManagementService {
       };
 
       for (let i = 0; i < userIds.length; i++) {
+        const userId = userIds[i];
+        if (!userId) continue;
+        
         try {
-          await this.deleteUser(userIds[i], deletedBy);
+          await this.deleteUser(userId, deletedBy);
           result.processed++;
         } catch (error) {
           result.failed++;
@@ -506,11 +520,11 @@ export class UserManagementService implements IUserManagementService {
       const exportData: UserExportData[] = result.users.map((user) => ({
         id: user.id,
         email: user.email.value,
-        name: user.name,
+        name: user.name || 'Unknown',
         emailVerified: user.isEmailVerified(),
         mfaEnabled: user.mfaEnabled,
         createdAt: user.createdAt,
-        lastLoginAt: user.lastLoginAt,
+        lastLoginAt: user.lastLoginAt || new Date(),
         riskScore: user.riskScore,
         roles: user.roles.map((role) => role.name),
         permissions: user.permissions.map((permission) => permission.name),
@@ -562,7 +576,7 @@ export class UserManagementService implements IUserManagementService {
       this.logger.info('Unlocking user', { userId, unlockedBy });
 
       await this.userRepository.updateUser(userId, {
-        lockedUntil: undefined,
+        lockedUntil: null,
         failedLoginAttempts: 0,
       });
 
@@ -674,19 +688,19 @@ export class UserManagementService implements IUserManagementService {
     const user = new User({
       id: userData.id,
       email,
-      emailVerified: userData.emailVerified || undefined,
-      name: userData.name || undefined,
-      image: userData.image || undefined,
+      ...(userData.emailVerified && { emailVerified: userData.emailVerified }),
+      ...(userData.name && { name: userData.name }),
+      ...(userData.image && { image: userData.image }),
       password: undefined, // Don't expose password
       createdAt: userData.createdAt,
       updatedAt: userData.updatedAt,
       mfaEnabled: userData.mfaEnabled,
-      totpSecret: userData.totpSecret || undefined,
+      ...(userData.totpSecret && { totpSecret: userData.totpSecret }),
       backupCodes: userData.backupCodes || [],
       failedLoginAttempts: userData.failedLoginAttempts,
-      lockedUntil: userData.lockedUntil || undefined,
-      lastLoginAt: userData.lastLoginAt || undefined,
-      lastLoginIP: userData.lastLoginIP || undefined,
+      ...(userData.lockedUntil && { lockedUntil: userData.lockedUntil }),
+      ...(userData.lastLoginAt && { lastLoginAt: userData.lastLoginAt }),
+      ...(userData.lastLoginIP && { lastLoginIP: userData.lastLoginIP }),
       riskScore: userData.riskScore,
     });
 

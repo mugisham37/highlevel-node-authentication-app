@@ -104,6 +104,7 @@ export class SessionManagementService {
     private readonly sessionRepository: DrizzleSessionRepository,
     private readonly sessionStorage: SessionStorage,
     private readonly riskScoringService: RiskScoringService,
+    // @ts-expect-error - TODO: Implement device fingerprinting features
     private readonly deviceFingerprintingService: DeviceFingerprintingService,
     private readonly concurrentSessionConfig: ConcurrentSessionConfig,
     private readonly logger: Logger

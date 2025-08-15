@@ -706,15 +706,21 @@ export class PrismaRoleRepository implements IRoleRepository {
   async getStats(): Promise<{
     total: number;
     systemRoles: number;
+    adminRoles: number;
     averagePermissions: number;
     mostUsedRoles: Array<{ roleId: string; name: string; userCount: number }>;
   }> {
     try {
-      const [total, systemRoles, rolesWithCounts] = await Promise.all([
+      const [total, systemRoles, adminRoles, rolesWithCounts] = await Promise.all([
         this.prisma.role.count(),
         this.prisma.role.count({
           where: {
             name: { in: ['admin', 'user', 'guest', 'moderator'] },
+          },
+        }),
+        this.prisma.role.count({
+          where: {
+            name: { contains: 'admin', mode: 'insensitive' },
           },
         }),
         this.prisma.role.findMany({
@@ -743,6 +749,7 @@ export class PrismaRoleRepository implements IRoleRepository {
       return {
         total,
         systemRoles,
+        adminRoles,
         averagePermissions: Math.round(averagePermissions * 100) / 100,
         mostUsedRoles,
       };

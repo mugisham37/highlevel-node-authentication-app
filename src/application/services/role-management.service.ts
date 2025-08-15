@@ -4,7 +4,6 @@
  */
 
 import { Logger } from 'winston';
-import { Role } from '../../domain/entities/role';
 import { Permission } from '../../domain/entities/permission';
 import { PrismaRoleRepository } from '../../infrastructure/database/repositories/prisma-role-repository';
 import { PrismaPermissionRepository } from '../../infrastructure/database/repositories/prisma-permission-repository';
@@ -13,9 +12,9 @@ import {
   CreateRoleData,
   UpdateRoleData,
   RoleFilters,
-  RoleWithPermissions,
   RoleHierarchy,
 } from '../interfaces/role-management.interface';
+import { RoleWithPermissions } from '../interfaces/role-repository.interface';
 
 export class RoleManagementService implements IRoleManagementService {
   constructor(
@@ -32,10 +31,15 @@ export class RoleManagementService implements IRoleManagementService {
       this.logger.info('Creating new role', { name: data.name, createdBy });
 
       // Create the role
-      const role = await this.roleRepository.create({
+      const roleData: { name: string; description?: string } = {
         name: data.name,
-        description: data.description,
-      });
+      };
+      
+      if (data.description !== undefined) {
+        roleData.description = data.description;
+      }
+      
+      const role = await this.roleRepository.create(roleData);
 
       // Add permissions if specified
       const permissions: Permission[] = [];
@@ -98,7 +102,7 @@ export class RoleManagementService implements IRoleManagementService {
     try {
       this.logger.info('Updating role', { roleId: id, updatedBy });
 
-      const role = await this.roleRepository.update(id, data);
+      await this.roleRepository.update(id, data);
       const roleWithPermissions = await this.roleRepository.findById(id, true);
 
       if (!roleWithPermissions) {
@@ -250,7 +254,7 @@ export class RoleManagementService implements IRoleManagementService {
         role: item.role,
         level: item.level,
         children: [], // Would be populated based on actual hierarchy relationships
-        parent: undefined, // Would be populated based on actual hierarchy relationships
+        // parent property is omitted when undefined
       }));
 
       // Sort by hierarchy level (highest first)

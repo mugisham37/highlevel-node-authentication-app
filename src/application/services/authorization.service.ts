@@ -254,6 +254,7 @@ export class AuthorizationService implements IAuthorizationService {
           resource: resourceCheck.resource,
           action,
           context: resourceCheck.context,
+          requireAll: false,
         })
       );
 
@@ -293,6 +294,7 @@ export class AuthorizationService implements IAuthorizationService {
         resource,
         action,
         context: actionContext,
+        requireAll: false,
       });
 
       return result.allowed;
@@ -590,10 +592,10 @@ export class AuthorizationService implements IAuthorizationService {
     try {
       // Pre-load common permissions for user
       const commonRequests: AuthorizationRequest[] = [
-        { resource: 'users', action: 'read' },
-        { resource: 'users', action: 'update' },
-        { resource: 'roles', action: 'read' },
-        { resource: 'permissions', action: 'read' },
+        { resource: 'users', action: 'read', requireAll: false },
+        { resource: 'users', action: 'update', requireAll: false },
+        { resource: 'roles', action: 'read', requireAll: false },
+        { resource: 'permissions', action: 'read', requireAll: false },
       ];
 
       const context = await this.buildAuthorizationContext(userId);

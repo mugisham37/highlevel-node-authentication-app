@@ -71,8 +71,8 @@ export class WebhookDeliveryService implements IWebhookDeliveryService {
       // Update attempt record with success
       await this.deliveryRepository.update(attemptId, {
         status: 'success',
-        httpStatus: result.httpStatus,
-        responseBody: result.responseBody,
+        ...(result.httpStatus && { httpStatus: result.httpStatus }),
+        ...(result.responseBody && { responseBody: result.responseBody }),
         deliveredAt: new Date(),
       });
 

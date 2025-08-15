@@ -87,7 +87,6 @@ export class AuthenticationServiceFactory {
       drizzleDb,
       logger,
       jwtAccessSecret,
-      jwtRefreshSecret,
     } = dependencies;
 
     // Create repositories
@@ -99,11 +98,7 @@ export class AuthenticationServiceFactory {
 
     const jwtTokenService = new JWTTokenService(
       jwtAccessSecret,
-      jwtRefreshSecret,
-      {
-        ...(config.jwt?.issuer !== undefined && { issuer: config.jwt.issuer }),
-        ...(config.jwt?.audience !== undefined && { audience: config.jwt.audience }),
-      }
+      config.jwt?.issuer || 'auth-service'
     );
 
     const riskScoringOptions = config.riskScoring

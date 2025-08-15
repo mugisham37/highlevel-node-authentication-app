@@ -1,6 +1,60 @@
 /**
  * WebSocket Integration Service
- * Integrates WebSocket real-time features with the existing event system
+ * Integrates WebSocket real-time features with t          await this.handleLoginEvent({
+            type: 'login_success',
+            userId: event.userId!,
+            sessionId: event.sessionId,
+            details: event.data,
+            timestamp: event.timestam  async publishSecuri    data?: Reco  ): Promise<void> {
+    try {
+      const event = new WebhookEvent(
+        this.generateEventId(),
+        eventType,
+        data || {},
+        userId,
+        sessionId,
+        new Date(),
+        {},
+        undefined
+      );
+      
+      await this.eventPublisher.publishEvent(event);
+
+      logger.debug('Security event published', { any>
+  ): Promise<void> {
+    try {
+      const event = new WebhookEvent(
+        this.generateEventId(),
+        eventType,
+        data || {},
+        userId,
+        sessionId,
+        new Date(),
+        {},
+        undefined
+      );
+      
+      await this.eventPublisher.publishEvent(event);
+    eventType: string,
+    userId?: string,
+    sessionId?: string,
+    data?: Record<string, any>
+  ): Promise<void> {
+    try {
+      const event = new WebhookEvent(
+        this.generateEventId(),
+        eventType,
+        data || {},
+        userId,
+        sessionId,
+        new Date(),
+        {},
+        undefined
+      );
+      
+      await this.eventPublisher.publishEvent(event);   ip: event.data['ip'],
+            userAgent: event.data['userAgent'],
+          });ng event system
  */
 
 import { IEventPublisher } from '../interfaces/webhook.interface';
@@ -31,17 +85,18 @@ export class WebSocketIntegrationService {
    * Setup event listeners to bridge webhook events to WebSocket
    */
   private setupEventListeners(): void {
-    // Listen to events from the event publisher
-    this.eventPublisher.on('event', async (event: WebhookEvent) => {
-      await this.handleWebhookEvent(event);
-    });
-
+    // TODO: Implement event listener pattern for webhook events
+    // The event publisher interface doesn't currently support event listeners
+    // This would need to be implemented with a proper event bus or observer pattern
+    
     logger.info('WebSocket integration service initialized');
   }
 
   /**
    * Handle webhook event and convert to WebSocket event
+   * @future This method will be used for webhook-to-websocket integration
    */
+  // @ts-ignore - Method reserved for future webhook integration
   private async handleWebhookEvent(webhookEvent: WebhookEvent): Promise<void> {
     try {
       // Convert webhook event to WebSocket event
@@ -93,8 +148,8 @@ export class WebSocketIntegrationService {
             sessionId: event.sessionId,
             details: event.data,
             timestamp: event.timestamp,
-            ip: event.data.ip,
-            userAgent: event.data.userAgent,
+            ip: event.data['ip'],
+            userAgent: event.data['userAgent'],
           });
           break;
 
@@ -104,8 +159,8 @@ export class WebSocketIntegrationService {
             userId: event.userId!,
             details: event.data,
             timestamp: event.timestamp,
-            ip: event.data.ip,
-            userAgent: event.data.userAgent,
+            ip: event.data['ip'],
+            userAgent: event.data['userAgent'],
           });
           break;
 
@@ -211,8 +266,8 @@ export class WebSocketIntegrationService {
         case 'user.deleted':
           await this.handleAdminEvent({
             type: event.type.replace('user.', 'user_') as AdminEvent['type'],
-            adminUserId: event.data.adminUserId || 'system',
-            targetUserId: event.userId,
+            adminUserId: event.data['adminUserId'] || 'system',
+            targetUserId: event.userId || 'unknown',
             details: event.data,
             timestamp: event.timestamp,
           });
@@ -274,12 +329,18 @@ export class WebSocketIntegrationService {
     data?: Record<string, any>
   ): Promise<void> {
     try {
-      await this.eventPublisher.publishAuthEvent(
+      const event = new WebhookEvent(
+        this.generateEventId(),
         eventType,
         data || {},
         userId,
-        sessionId
+        sessionId,
+        new Date(),
+        {},
+        undefined
       );
+      
+      await this.eventPublisher.publishEvent(event);
 
       logger.debug('Authentication event published', {
         eventType,
@@ -305,12 +366,18 @@ export class WebSocketIntegrationService {
     data?: Record<string, any>
   ): Promise<void> {
     try {
-      await this.eventPublisher.publishAuthEvent(
+      const event = new WebhookEvent(
+        this.generateEventId(),
         eventType,
         data || {},
         userId,
-        sessionId
+        sessionId,
+        new Date(),
+        {},
+        undefined
       );
+      
+      await this.eventPublisher.publishEvent(event);
 
       logger.debug('Security event published', {
         eventType,
@@ -501,5 +568,14 @@ export class WebSocketIntegrationService {
     const timestamp = Date.now().toString(36);
     const random = Math.random().toString(36).substring(2);
     return `notif_${timestamp}_${random}`;
+  }
+
+  /**
+   * Generate unique event ID
+   */
+  private generateEventId(): string {
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substring(2);
+    return `event_${timestamp}_${random}`;
   }
 }

@@ -29,6 +29,13 @@ export interface TokenOptions {
   notBefore?: string | number;
 }
 
+export interface TokenPair {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+  refreshExpiresIn: number;
+}
+
 export class JWTTokenService {
   private readonly secretKey: string;
   private readonly defaultIssuer: string;
@@ -202,7 +209,7 @@ export class JWTTokenService {
     payload: Omit<JWTPayload, 'iat' | 'exp' | 'iss' | 'jti' | 'token_type'>,
     accessTokenExpiry: string | number = '15m',
     refreshTokenExpiry: string | number = '7d'
-  ): Promise<{ accessToken: string; refreshToken: string }> {
+  ): Promise<TokenPair> {
     const accessToken = await this.generateToken(
       { ...payload, token_type: 'access' },
       accessTokenExpiry
@@ -213,7 +220,20 @@ export class JWTTokenService {
       refreshTokenExpiry
     );
 
-    return { accessToken, refreshToken };
+    // Convert expiry to seconds
+    const accessExpirySeconds = typeof accessTokenExpiry === 'string' 
+      ? this.parseTimeToSeconds(accessTokenExpiry) 
+      : accessTokenExpiry;
+    const refreshExpirySeconds = typeof refreshTokenExpiry === 'string' 
+      ? this.parseTimeToSeconds(refreshTokenExpiry) 
+      : refreshTokenExpiry;
+
+    return { 
+      accessToken, 
+      refreshToken,
+      expiresIn: accessExpirySeconds,
+      refreshExpiresIn: refreshExpirySeconds
+    };
   }
 
   /**

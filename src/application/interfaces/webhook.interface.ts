@@ -345,6 +345,28 @@ export interface IWebhookSignatureService {
    * Generate webhook secret
    */
   generateSecret(): string;
+
+  /**
+   * Validate webhook secret format
+   */
+  validateSecret(secret: string): {
+    valid: boolean;
+    errors: string[];
+  };
+
+  /**
+   * Create delivery headers including signature
+   */
+  createDeliveryHeaders(
+    payload: string,
+    secret: string,
+    customHeaders?: Record<string, string>
+  ): Record<string, string>;
+
+  /**
+   * Generate test payload for webhook testing
+   */
+  generateTestPayload(eventType: string): Record<string, any>;
 }
 
 export interface IDeadLetterQueue {
