@@ -9,15 +9,7 @@ import { Logger } from 'winston';
 
 // Import service factories
 import { AuthenticationServiceFactory } from '../../application/factories/authentication.factory';
-import { UserManagementServiceFactory } from '../../application/factories/user-management.factory';
-import { OAuthProviderFactory } from '../../application/factories/oauth-provider.factory';
-
-// Import services that might not have factories yet
-import { MFAService } from '../../application/services/mfa.service';
-import { SessionManagementService } from '../../application/services/session-management.service';
-import { OAuthService } from '../../application/services/oauth.service';
-import { OAuthServerService } from '../../application/services/oauth-server.service';
-import { AuthorizationService } from '../../application/services/authorization.service';
+import { UserManagementFactory } from '../../application/factories/user-management.factory';
 
 // Import infrastructure services
 import { logger } from '../../infrastructure/logging/winston-logger';
@@ -190,10 +182,11 @@ export class ServiceFactory {
   ) {
     if (prismaClient) {
       try {
-        return UserManagementServiceFactory.create({
-          prismaClient,
+        const factory = new UserManagementFactory({
+          prisma: prismaClient,
           logger: serviceLogger!,
         });
+        return factory;
       } catch (error) {
         serviceLogger?.warn(
           'Failed to create UserManagementService, using mock',

@@ -294,17 +294,27 @@ export class WebhookController {
 
       const query: WebhookQuery = {
         userId,
-        active: request.query.active
-          ? request.query.active === 'true'
-          : undefined,
-        eventType: request.query.eventType,
-        limit: request.query.limit
-          ? parseInt(request.query.limit, 10)
-          : undefined,
-        offset: request.query.offset
-          ? parseInt(request.query.offset, 10)
-          : undefined,
       };
+
+      // Handle optional properties
+      if (request.query.eventType !== undefined) {
+        query.eventType = request.query.eventType;
+      }
+
+      if (request.query.limit !== undefined) {
+        query.limit = parseInt(request.query.limit, 10);
+      }
+
+      if (request.query.offset !== undefined) {
+        query.offset = parseInt(request.query.offset, 10);
+      }
+
+      // Handle optional boolean filter
+      if (request.query.active === 'true') {
+        query.active = true;
+      } else if (request.query.active === 'false') {
+        query.active = false;
+      }
 
       const result = await this.webhookService.listWebhooks(query);
 
@@ -471,7 +481,7 @@ export class WebhookController {
       reply.send({
         success: true,
         data: {
-          eventTypes: eventTypes.map((type) => ({
+          eventTypes: eventTypes.map((type: string) => ({
             type,
             description: this.getEventTypeDescription(type),
           })),
@@ -512,15 +522,8 @@ export class WebhookController {
         return;
       }
 
-      const query = {
+      const query: any = {
         userId,
-        eventType: request.query.eventType,
-        startDate: request.query.startDate
-          ? new Date(request.query.startDate)
-          : undefined,
-        endDate: request.query.endDate
-          ? new Date(request.query.endDate)
-          : undefined,
         limit: request.query.limit
           ? parseInt(request.query.limit, 10)
           : undefined,
@@ -528,6 +531,17 @@ export class WebhookController {
           ? parseInt(request.query.offset, 10)
           : undefined,
       };
+
+      // Handle optional properties
+      if (request.query.eventType !== undefined) {
+        query.eventType = request.query.eventType;
+      }
+      if (request.query.startDate !== undefined) {
+        query.startDate = new Date(request.query.startDate);
+      }
+      if (request.query.endDate !== undefined) {
+        query.endDate = new Date(request.query.endDate);
+      }
 
       const result = await this.eventPublisher.listEvents(query);
 

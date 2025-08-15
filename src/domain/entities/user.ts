@@ -9,7 +9,7 @@ import { Password } from '../value-objects/password';
 export interface DeviceInfo {
   fingerprint: string;
   userAgent: string;
-  platform: string;
+  platform?: string;
   browser?: string;
   version?: string;
   isMobile: boolean;

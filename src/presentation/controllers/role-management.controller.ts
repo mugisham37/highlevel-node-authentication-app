@@ -237,30 +237,33 @@ export class RoleManagementController {
       const query = request.query as any;
       const filters: RoleFilters = {
         search: query.search,
-        isSystemRole:
-          query.isSystemRole === 'true'
-            ? true
-            : query.isSystemRole === 'false'
-              ? false
-              : undefined,
-        isAdminRole:
-          query.isAdminRole === 'true'
-            ? true
-            : query.isAdminRole === 'false'
-              ? false
-              : undefined,
         hasPermission: query.hasPermission,
-        createdAfter: query.createdAfter
-          ? new Date(query.createdAfter)
-          : undefined,
-        createdBefore: query.createdBefore
-          ? new Date(query.createdBefore)
-          : undefined,
         limit: query.limit ? parseInt(query.limit) : 50,
         offset: query.offset ? parseInt(query.offset) : 0,
         sortBy: query.sortBy,
         sortOrder: query.sortOrder,
       };
+
+      // Handle date filters
+      if (query.createdAfter) {
+        filters.createdAfter = new Date(query.createdAfter);
+      }
+      if (query.createdBefore) {
+        filters.createdBefore = new Date(query.createdBefore);
+      }
+
+      // Handle boolean filters that need explicit true/false checks
+      if (query.isSystemRole === 'true') {
+        filters.isSystemRole = true;
+      } else if (query.isSystemRole === 'false') {
+        filters.isSystemRole = false;
+      }
+
+      if (query.isAdminRole === 'true') {
+        filters.isAdminRole = true;
+      } else if (query.isAdminRole === 'false') {
+        filters.isAdminRole = false;
+      }
 
       const result = await this.roleManagementService.getRoles(filters);
 

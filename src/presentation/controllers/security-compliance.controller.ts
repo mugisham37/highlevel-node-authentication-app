@@ -7,10 +7,6 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { logger } from '../../infrastructure/logging/winston-logger';
 import {
-  auditTrailManager,
-  AuditHelpers,
-} from '../../infrastructure/monitoring/audit-trail';
-import {
   gdprComplianceService,
   complianceReportingService,
 } from '../../infrastructure/compliance';
@@ -21,6 +17,7 @@ import {
 } from '../../infrastructure/security';
 import { tamperProtectionService } from '../../infrastructure/security/tamper-protection.service';
 import { complianceScannerService } from '../../infrastructure/security/compliance-scanner.service';
+import { EncryptionOptions } from '../../infrastructure/security/types';
 
 // Request schemas
 const ConsentRequestSchema = z.object({
@@ -89,16 +86,21 @@ export class SecurityComplianceController {
       const clientIP = request.ip;
       const userAgent = request.headers['user-agent'];
 
+      const metadata: any = {
+        ipAddress: clientIP,
+      };
+      
+      if (userAgent !== undefined) {
+        metadata.userAgent = userAgent;
+      }
+
       const consentRecord = await gdprComplianceService.recordConsent(
         validatedData.subjectId,
         validatedData.purpose,
         validatedData.legalBasis,
         validatedData.granted,
         validatedData.version,
-        {
-          ipAddress: clientIP,
-          userAgent,
-        }
+        metadata
       );
 
       logger.info('GDPR consent recorded via API', {
@@ -143,14 +145,19 @@ export class SecurityComplianceController {
       const clientIP = request.ip;
       const userAgent = request.headers['user-agent'];
 
+      const metadata: any = {
+        ipAddress: clientIP,
+      };
+      
+      if (userAgent !== undefined) {
+        metadata.userAgent = userAgent;
+      }
+
       const consentRecord = await gdprComplianceService.withdrawConsent(
         subjectId,
         purpose,
         reason,
-        {
-          ipAddress: clientIP,
-          userAgent,
-        }
+        metadata
       );
 
       if (!consentRecord) {
@@ -380,7 +387,7 @@ export class SecurityComplianceController {
    * Get vulnerability statistics
    */
   async getVulnerabilityStatistics(
-    request: FastifyRequest,
+    _request: FastifyRequest,
     reply: FastifyReply
   ): Promise<void> {
     try {
@@ -415,15 +422,24 @@ export class SecurityComplianceController {
     try {
       const validatedData = ConfigurationRequestSchema.parse(request.body);
 
+      const configOptions: any = {
+        actor: 'api-user', // This would come from authentication context
+      };
+      
+      if (validatedData.reason !== undefined) {
+        configOptions.reason = validatedData.reason;
+      }
+      if (validatedData.environment !== undefined) {
+        configOptions.environment = validatedData.environment;
+      }
+      if (validatedData.sensitive !== undefined) {
+        configOptions.sensitive = validatedData.sensitive;
+      }
+
       await secureConfigManager.setConfig(
         validatedData.key,
         validatedData.value,
-        {
-          actor: 'api-user', // This would come from authentication context
-          reason: validatedData.reason,
-          environment: validatedData.environment,
-          sensitive: validatedData.sensitive,
-        }
+        configOptions
       );
 
       logger.info('Secure configuration set via API', {
@@ -463,10 +479,15 @@ export class SecurityComplianceController {
       const { key } = request.params;
       const { environment } = request.query;
 
-      const value = await secureConfigManager.getConfig(key, {
+      const configOptions: any = {
         actor: 'api-user', // This would come from authentication context
-        environment,
-      });
+      };
+      
+      if (environment !== undefined) {
+        configOptions.environment = environment;
+      }
+
+      const value = await secureConfigManager.getConfig(key, configOptions);
 
       if (value === undefined) {
         reply.status(404).send({
@@ -544,9 +565,39 @@ export class SecurityComplianceController {
     try {
       const { data, options } = request.body;
 
+      // Validate and filter encryption options
+      let filteredOptions: Partial<EncryptionOptions> | undefined;
+      if (options) {
+        filteredOptions = {};
+        
+        // Validate algorithm
+        if (options.algorithm) {
+          const validAlgorithms: ('aes-256-gcm' | 'aes-256-cbc' | 'chacha20-poly1305')[] = [
+            'aes-256-gcm', 
+            'aes-256-cbc', 
+            'chacha20-poly1305'
+          ];
+          if (validAlgorithms.includes(options.algorithm as any)) {
+            filteredOptions.algorithm = options.algorithm as any;
+          }
+        }
+        
+        // Validate keyDerivation
+        if (options.keyDerivation) {
+          const validKeyDerivations: ('pbkdf2' | 'scrypt' | 'argon2')[] = [
+            'pbkdf2',
+            'scrypt',
+            'argon2'
+          ];
+          if (validKeyDerivations.includes(options.keyDerivation as any)) {
+            filteredOptions.keyDerivation = options.keyDerivation as any;
+          }
+        }
+      }
+
       const encryptionResult = await dataEncryptionService.encryptAtRest(
         data,
-        options
+        filteredOptions
       );
 
       logger.info('Data encrypted via API', {
@@ -619,7 +670,7 @@ export class SecurityComplianceController {
    * Get encryption statistics
    */
   async getEncryptionStatistics(
-    request: FastifyRequest,
+    _request: FastifyRequest,
     reply: FastifyReply
   ): Promise<void> {
     try {
@@ -808,7 +859,7 @@ export class SecurityComplianceController {
    * Get compliance dashboard
    */
   async getComplianceDashboard(
-    request: FastifyRequest,
+    _request: FastifyRequest,
     reply: FastifyReply
   ): Promise<void> {
     try {
@@ -834,7 +885,7 @@ export class SecurityComplianceController {
    * Get system health check for security compliance
    */
   async getSecurityHealthCheck(
-    request: FastifyRequest,
+    _request: FastifyRequest,
     reply: FastifyReply
   ): Promise<void> {
     try {

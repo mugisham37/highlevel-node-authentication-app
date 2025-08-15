@@ -11,6 +11,25 @@ import { DeviceManagementService } from '../../application/services/device-manag
 import { FallbackAuthService } from '../../application/services/fallback-auth.service';
 import { DeviceInfo } from '../../domain/entities/user';
 
+// Helper function to filter out undefined values from deviceInfo
+function filterDeviceInfo(deviceInfo: any): DeviceInfo {
+  const filtered: DeviceInfo = {
+    fingerprint: deviceInfo.fingerprint,
+    userAgent: deviceInfo.userAgent,
+    isMobile: deviceInfo.isMobile,
+  };
+  
+  if (deviceInfo.platform !== undefined) filtered.platform = deviceInfo.platform;
+  if (deviceInfo.browser !== undefined) filtered.browser = deviceInfo.browser;
+  if (deviceInfo.version !== undefined) filtered.version = deviceInfo.version;
+  if (deviceInfo.mobile !== undefined) filtered.mobile = deviceInfo.mobile;
+  if (deviceInfo.screenResolution !== undefined) filtered.screenResolution = deviceInfo.screenResolution;
+  if (deviceInfo.timezone !== undefined) filtered.timezone = deviceInfo.timezone;
+  if (deviceInfo.language !== undefined) filtered.language = deviceInfo.language;
+  
+  return filtered;
+}
+
 // Request validation schemas
 const DeviceInfoSchema = z.object({
   fingerprint: z.string().min(1),
@@ -121,14 +140,19 @@ export class PasswordlessAuthController {
       // Add IP address from request if not provided
       const clientIP = ipAddress || request.ip;
 
+      const requestData: any = {
+        email,
+        deviceInfo: filterDeviceInfo(deviceInfo),
+        origin,
+        ipAddress: clientIP,
+      };
+      
+      if (userAgent !== undefined) {
+        requestData.userAgent = userAgent;
+      }
+
       const result =
-        await this.passwordlessAuthService.initiatePasswordlessAuth({
-          email,
-          deviceInfo,
-          origin,
-          userAgent,
-          ipAddress: clientIP,
-        });
+        await this.passwordlessAuthService.initiatePasswordlessAuth(requestData);
 
       if (result.success) {
         reply.status(200).send({
@@ -192,12 +216,17 @@ export class PasswordlessAuthController {
       // Add IP address from request if not provided
       const clientIP = ipAddress || request.ip;
 
-      const result = await this.passwordlessAuthService.sendMagicLink({
+      const requestData: any = {
         email,
-        redirectUrl,
-        deviceInfo,
+        deviceInfo: filterDeviceInfo(deviceInfo),
         ipAddress: clientIP,
-      });
+      };
+      
+      if (redirectUrl !== undefined) {
+        requestData.redirectUrl = redirectUrl;
+      }
+
+      const result = await this.passwordlessAuthService.sendMagicLink(requestData);
 
       if (result.success) {
         reply.status(200).send({
@@ -256,7 +285,7 @@ export class PasswordlessAuthController {
 
       const result = await this.passwordlessAuthService.verifyMagicLink(
         token,
-        deviceInfo,
+        filterDeviceInfo(deviceInfo),
         clientIP
       );
 
@@ -325,7 +354,7 @@ export class PasswordlessAuthController {
         await this.passwordlessAuthService.registerWebAuthnCredential({
           userId,
           credentialName,
-          deviceInfo,
+          deviceInfo: filterDeviceInfo(deviceInfo),
           origin,
         });
 
@@ -388,7 +417,7 @@ export class PasswordlessAuthController {
         await this.passwordlessAuthService.completeWebAuthnRegistration(
           challengeId,
           registrationResponse,
-          deviceInfo
+          filterDeviceInfo(deviceInfo)
         );
 
       if (result.success) {
@@ -453,7 +482,7 @@ export class PasswordlessAuthController {
         await this.passwordlessAuthService.authenticateWithWebAuthn(
           challengeId,
           authenticationResponse,
-          deviceInfo
+          filterDeviceInfo(deviceInfo)
         );
 
       if (result.success && result.user) {
@@ -518,7 +547,7 @@ export class PasswordlessAuthController {
       const result = await this.passwordlessAuthService.initiateBiometricAuth({
         userId,
         biometricType,
-        deviceInfo,
+        deviceInfo: filterDeviceInfo(deviceInfo),
         origin,
       });
 
@@ -683,13 +712,18 @@ export class PasswordlessAuthController {
       // Add IP address from request if not provided
       const clientIP = ipAddress || request.ip;
 
-      const result = await this.fallbackAuthService.initiateFallbackAuth({
+      const requestData: any = {
         email,
         method,
-        deviceInfo,
+        deviceInfo: filterDeviceInfo(deviceInfo),
         ipAddress: clientIP,
-        reason,
-      });
+      };
+      
+      if (reason !== undefined) {
+        requestData.reason = reason;
+      }
+
+      const result = await this.fallbackAuthService.initiateFallbackAuth(requestData);
 
       if (result.success) {
         reply.status(200).send({

@@ -4,7 +4,7 @@
  */
 
 import { FastifyInstance } from 'fastify';
-import { SocketStream } from '@fastify/websocket';
+import { WebSocket } from 'ws';
 import { IEventPublisher } from '../../application/interfaces/webhook.interface';
 import { WebhookEvent } from '../../domain/entities/webhook';
 import { logger } from '../../infrastructure/logging/winston-logger';
@@ -13,7 +13,7 @@ import { EventSubscriptionSchema } from '../schemas/webhook.schemas';
 interface WebSocketConnection {
   id: string;
   userId: string;
-  socket: SocketStream;
+  socket: WebSocket;
   subscriptions: string[];
   lastActivity: Date;
   authenticated: boolean;
@@ -21,7 +21,6 @@ interface WebSocketConnection {
 
 export class WebhookWebSocketController {
   private connections = new Map<string, WebSocketConnection>();
-  private subscriptionId = 0;
 
   constructor(private readonly eventPublisher: IEventPublisher) {
     this.startCleanupInterval();
@@ -32,6 +31,7 @@ export class WebhookWebSocketController {
    */
   async registerRoutes(fastify: FastifyInstance): Promise<void> {
     // WebSocket endpoint for real-time event streaming
+    const self = this;
     fastify.register(async function (fastify) {
       await fastify.register(require('@fastify/websocket'));
 
@@ -39,7 +39,7 @@ export class WebhookWebSocketController {
         '/events/stream',
         { websocket: true },
         (connection, request) => {
-          this.handleWebSocketConnection(connection, request);
+          self.handleWebSocketConnection(connection, request);
         }
       );
     });
@@ -49,14 +49,14 @@ export class WebhookWebSocketController {
    * Handle new WebSocket connection
    */
   private handleWebSocketConnection(
-    connection: SocketStream,
+    connection: WebSocket,
     request: any
   ): void {
     const connectionId = this.generateConnectionId();
     const userId = request.user?.id;
 
     if (!userId) {
-      connection.socket.close(1008, 'Authentication required');
+      connection.close(1008, 'Authentication required');
       return;
     }
 
@@ -78,17 +78,17 @@ export class WebhookWebSocketController {
     });
 
     // Handle incoming messages
-    connection.socket.on('message', (message: Buffer) => {
+    connection.on('message', (message: Buffer) => {
       this.handleWebSocketMessage(connectionId, message);
     });
 
     // Handle connection close
-    connection.socket.on('close', (code: number, reason: Buffer) => {
+    connection.on('close', (code: number, reason: Buffer) => {
       this.handleWebSocketClose(connectionId, code, reason);
     });
 
     // Handle connection error
-    connection.socket.on('error', (error: Error) => {
+    connection.on('error', (error: Error) => {
       this.handleWebSocketError(connectionId, error);
     });
 

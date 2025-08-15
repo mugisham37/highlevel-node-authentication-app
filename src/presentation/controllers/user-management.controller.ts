@@ -247,41 +247,46 @@ export class UserManagementController {
       const query = request.query as any;
       const filters: UserFilters = {
         search: query.search,
-        mfaEnabled:
-          query.mfaEnabled === 'true'
-            ? true
-            : query.mfaEnabled === 'false'
-              ? false
-              : undefined,
         locked: query.locked === 'true',
-        emailVerified:
-          query.emailVerified === 'true'
-            ? true
-            : query.emailVerified === 'false'
-              ? false
-              : undefined,
         roles: query.roles
           ? Array.isArray(query.roles)
             ? query.roles
             : [query.roles]
-          : undefined,
-        createdAfter: query.createdAfter
-          ? new Date(query.createdAfter)
-          : undefined,
-        createdBefore: query.createdBefore
-          ? new Date(query.createdBefore)
-          : undefined,
-        riskScoreMin: query.riskScoreMin
-          ? parseFloat(query.riskScoreMin)
-          : undefined,
-        riskScoreMax: query.riskScoreMax
-          ? parseFloat(query.riskScoreMax)
           : undefined,
         limit: query.limit ? parseInt(query.limit) : 50,
         offset: query.offset ? parseInt(query.offset) : 0,
         sortBy: query.sortBy,
         sortOrder: query.sortOrder,
       };
+
+      // Handle optional boolean filters
+      if (query.mfaEnabled === 'true') {
+        filters.mfaEnabled = true;
+      } else if (query.mfaEnabled === 'false') {
+        filters.mfaEnabled = false;
+      }
+
+      if (query.emailVerified === 'true') {
+        filters.emailVerified = true;
+      } else if (query.emailVerified === 'false') {
+        filters.emailVerified = false;
+      }
+
+      // Handle optional date filters
+      if (query.createdAfter) {
+        filters.createdAfter = new Date(query.createdAfter);
+      }
+      if (query.createdBefore) {
+        filters.createdBefore = new Date(query.createdBefore);
+      }
+
+      // Handle optional number filters
+      if (query.riskScoreMin) {
+        filters.riskScoreMin = parseFloat(query.riskScoreMin);
+      }
+      if (query.riskScoreMax) {
+        filters.riskScoreMax = parseFloat(query.riskScoreMax);
+      }
 
       const result = await this.userManagementService.getUsers(filters);
 
@@ -525,31 +530,34 @@ export class UserManagementController {
       const query = request.query as any;
       const filters: UserFilters = {
         search: query.search,
-        mfaEnabled:
-          query.mfaEnabled === 'true'
-            ? true
-            : query.mfaEnabled === 'false'
-              ? false
-              : undefined,
         locked: query.locked === 'true',
-        emailVerified:
-          query.emailVerified === 'true'
-            ? true
-            : query.emailVerified === 'false'
-              ? false
-              : undefined,
         roles: query.roles
           ? Array.isArray(query.roles)
             ? query.roles
             : [query.roles]
           : undefined,
-        createdAfter: query.createdAfter
-          ? new Date(query.createdAfter)
-          : undefined,
-        createdBefore: query.createdBefore
-          ? new Date(query.createdBefore)
-          : undefined,
       };
+
+      // Handle optional boolean filters
+      if (query.mfaEnabled === 'true') {
+        filters.mfaEnabled = true;
+      } else if (query.mfaEnabled === 'false') {
+        filters.mfaEnabled = false;
+      }
+
+      if (query.emailVerified === 'true') {
+        filters.emailVerified = true;
+      } else if (query.emailVerified === 'false') {
+        filters.emailVerified = false;
+      }
+
+      // Handle optional date filters
+      if (query.createdAfter) {
+        filters.createdAfter = new Date(query.createdAfter);
+      }
+      if (query.createdBefore) {
+        filters.createdBefore = new Date(query.createdBefore);
+      }
 
       const users = await this.userManagementService.exportUsers(filters);
 

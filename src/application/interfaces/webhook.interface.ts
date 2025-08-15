@@ -123,6 +123,11 @@ export interface IWebhookService {
     averageResponseTime: number;
     recentDeliveries: WebhookDeliveryAttempt[];
   }>;
+
+  /**
+   * Get supported event types
+   */
+  getSupportedEventTypes(): string[];
 }
 
 export interface IEventPublisher {
@@ -130,6 +135,17 @@ export interface IEventPublisher {
    * Publish an event to all matching webhooks
    */
   publishEvent(event: WebhookEvent): Promise<void>;
+
+  /**
+   * Publish authentication event
+   */
+  publishAuthEvent(
+    eventType: string,
+    data: Record<string, any>,
+    userId?: string,
+    sessionId?: string,
+    correlationId?: string
+  ): Promise<void>;
 
   /**
    * Publish multiple events in batch
@@ -154,6 +170,30 @@ export interface IEventPublisher {
   }): Promise<{
     events: WebhookEvent[];
     total: number;
+  }>;
+
+  /**
+   * Subscribe to event stream (for WebSocket)
+   */
+  subscribeToEventStream(
+    userId: string,
+    eventTypes: string[],
+    callback: (event: WebhookEvent) => void
+  ): string;
+
+  /**
+   * Unsubscribe from event stream
+   */
+  unsubscribeFromEventStream(subscriptionId: string): void;
+
+  /**
+   * Get active subscriptions
+   */
+  getActiveSubscriptions(userId?: string): Array<{
+    id: string;
+    userId: string;
+    eventTypes: string[];
+    createdAt: Date;
   }>;
 }
 
