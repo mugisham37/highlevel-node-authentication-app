@@ -15,7 +15,6 @@ import {
   SecurityEventType,
   AlertSeverity,
   SecurityEvent,
-  AuditEvent,
   AuditActor,
   AuditResource,
   AuditOutcome,
@@ -56,6 +55,18 @@ export function safeGetPropertyWithDefault<T>(
   defaultValue: T
 ): T {
   const value = obj[key];
+  return value !== undefined ? value as T : defaultValue;
+}
+
+/**
+ * Type-safe property access helper for basicProps objects
+ */
+export function getBasicProperty<T>(
+  basicProps: Record<string, any>,
+  key: string,
+  defaultValue: T
+): T {
+  const value = basicProps[key];
   return value !== undefined ? value as T : defaultValue;
 }
 
@@ -431,6 +442,101 @@ export function extractDetailsProperty<T>(
 }
 
 /**
+ * Get response size from reply object
+ */
+export function getResponseSize(reply?: FastifyReply): number | undefined {
+  if (!reply) return undefined;
+  
+  const contentLength = reply.getHeader('content-length');
+  if (typeof contentLength === 'number') {
+    return contentLength;
+  }
+  if (typeof contentLength === 'string') {
+    const parsed = parseInt(contentLength);
+    return !isNaN(parsed) ? parsed : undefined;
+  }
+  return undefined;
+}
+
+/**
+ * Calculate percentile from array of numbers
+ */
+export function calculatePercentile(values: number[], percentile: number): number {
+  if (values.length === 0) return 0;
+  
+  const sorted = [...values].sort((a, b) => a - b);
+  const index = Math.ceil((percentile / 100) * sorted.length) - 1;
+  const safeIndex = Math.max(0, index);
+  return sorted[safeIndex] ?? 0;
+}
+
+/**
+ * Get resource usage information
+ */
+export function getResourceUsage(): { memory: number; cpu: number } {
+  const memUsage = process.memoryUsage();
+  return {
+    memory: memUsage.heapUsed,
+    cpu: process.cpuUsage().user / 1000000, // Convert microseconds to seconds
+  };
+}
+
+/**
+ * Format duration in a human-readable way
+ */
+export function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 60000) return `${(ms / 1000).toFixed(2)}s`;
+  if (ms < 3600000) return `${(ms / 60000).toFixed(2)}m`;
+  return `${(ms / 3600000).toFixed(2)}h`;
+}
+
+/**
+ * Check if value is a valid security event type
+ */
+export function isValidSecurityEventType(value: any): value is SecurityEventType {
+  return Object.values(SecurityEventType).includes(value);
+}
+
+/**
+ * Convert string to SecurityEventType safely
+ */
+export function toSecurityEventType(value: string): SecurityEventType | undefined {
+  return isValidSecurityEventType(value) ? value : undefined;
+}
+
+/**
+ * Create audit context helper
+ */
+export function createAuditContext(
+  operation: string,
+  component: string,
+  service: string,
+  version: string,
+  environment: string,
+  options?: {
+    requestId?: string;
+    businessContext?: Record<string, any>;
+    complianceContext?: {
+      regulation: string;
+      requirement: string;
+      classification: string;
+    };
+  }
+): AuditContext {
+  return {
+    operation,
+    component,
+    service,
+    version,
+    environment,
+    ...(options?.requestId !== undefined && { requestId: options.requestId }),
+    ...(options?.businessContext !== undefined && { businessContext: options.businessContext }),
+    ...(options?.complianceContext !== undefined && { complianceContext: options.complianceContext }),
+  };
+}
+
+/**
  * Create safe monitoring context for different scenarios
  */
 export function createMonitoringContext(
@@ -444,40 +550,48 @@ export function createMonitoringContext(
   switch (type) {
     case 'error':
       return createErrorLogContext(
-        basicProps.errorType || 'UnknownError',
+        getBasicProperty(basicProps, 'errorType', 'UnknownError'),
         request,
         { ...additionalContext, ...basicProps }
       );
     case 'security':
       return createSecurityLogContext(
-        basicProps.securityEvent || 'unknown_event',
-        basicProps.severity || 'medium',
+        getBasicProperty(basicProps, 'securityEvent', 'unknown_event'),
+        getBasicProperty(basicProps, 'severity', 'medium') as 'low' | 'medium' | 'high' | 'critical',
         request,
         { ...additionalContext, ...basicProps }
       );
     case 'auth':
       return createAuthLogContext(
-        basicProps.authMethod || 'unknown',
-        basicProps.outcome || 'failure',
+        getBasicProperty(basicProps, 'authMethod', 'unknown'),
+        getBasicProperty(basicProps, 'outcome', 'failure') as 'success' | 'failure' | 'mfa_required',
         request,
         { ...additionalContext, ...basicProps }
       );
     case 'business':
       return createBusinessLogContext(
-        basicProps.eventType || 'unknown',
-        basicProps.entityType || 'unknown',
+        getBasicProperty(basicProps, 'eventType', 'unknown'),
+        getBasicProperty(basicProps, 'entityType', 'unknown'),
         request,
         { ...additionalContext, ...basicProps }
       );
-    case 'performance':
+    case 'performance': {
+      // Handle the operation property explicitly to satisfy exactOptionalPropertyTypes
+      const operation = getBasicProperty(basicProps, 'operation', 'unknown');
+      const perfContext: Partial<PerformanceLogContext> = {
+        ...additionalContext,
+        ...basicProps,
+        operation
+      };
       return createPerformanceLogContext(
-        basicProps.operation || 'unknown',
+        operation,
         request,
-        { ...additionalContext, ...basicProps }
+        perfContext
       );
+    }
     case 'audit':
       return createAuditLogContext(
-        basicProps.action || 'unknown',
+        getBasicProperty(basicProps, 'action', 'unknown'),
         request,
         { ...additionalContext, ...basicProps }
       );

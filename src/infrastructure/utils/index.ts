@@ -52,7 +52,7 @@ export {
   createAuditOutcome,
   createAuditChanges,
   createAuditContext,
-  createAuditEvent,
+  createAuditEventData,
   safeGetProperty,
   getResponseSize,
   calculatePercentile,

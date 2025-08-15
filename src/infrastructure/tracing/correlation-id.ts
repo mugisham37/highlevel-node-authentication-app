@@ -9,32 +9,32 @@ import { logger } from '../logging/winston-logger';
 
 export interface CorrelationContext {
   correlationId: string;
-  requestId?: string;
-  userId?: string;
-  sessionId?: string;
-  operation?: string;
+  requestId?: string | undefined;
+  userId?: string | undefined;
+  sessionId?: string | undefined;
+  operation?: string | undefined;
   startTime: number;
   metadata: Record<string, any>;
 }
 
 export interface TraceSpan {
   spanId: string;
-  parentSpanId?: string;
+  parentSpanId?: string | undefined;
   operation: string;
   startTime: number;
-  endTime?: number;
-  duration?: number;
+  endTime?: number | undefined;
+  duration?: number | undefined;
   tags: Record<string, any>;
   logs: TraceLog[];
   status: 'success' | 'error' | 'pending';
-  error?: Error;
+  error?: Error | undefined;
 }
 
 export interface TraceLog {
   timestamp: number;
   level: 'debug' | 'info' | 'warn' | 'error';
   message: string;
-  fields?: Record<string, any>;
+  fields?: Record<string, any> | undefined;
 }
 
 /**
@@ -65,10 +65,10 @@ class CorrelationIdManager {
   run<T>(context: Partial<CorrelationContext>, callback: () => T): T {
     const fullContext: CorrelationContext = {
       correlationId: context.correlationId || this.generateCorrelationId(),
-      requestId: context.requestId,
-      userId: context.userId,
-      sessionId: context.sessionId,
-      operation: context.operation,
+      requestId: context.requestId || undefined,
+      userId: context.userId || undefined,
+      sessionId: context.sessionId || undefined,
+      operation: context.operation || undefined,
       startTime: context.startTime || Date.now(),
       metadata: context.metadata || {},
     };
@@ -156,7 +156,7 @@ class CorrelationIdManager {
 
     const span: TraceSpan = {
       spanId,
-      parentSpanId,
+      parentSpanId: parentSpanId || undefined,
       operation,
       startTime: Date.now(),
       tags: { ...tags, correlationId },
@@ -190,7 +190,7 @@ class CorrelationIdManager {
     span.endTime = Date.now();
     span.duration = span.endTime - span.startTime;
     span.status = error ? 'error' : 'success';
-    span.error = error;
+    span.error = error || undefined;
 
     logger.debug('Finished trace span', {
       spanId: span.spanId,
@@ -220,7 +220,7 @@ class CorrelationIdManager {
         timestamp: Date.now(),
         level,
         message,
-        fields,
+        fields: fields || undefined,
       });
     }
   }
@@ -324,13 +324,13 @@ export class CorrelationUtils {
     }
 
     // Check query parameters
-    if (query?.correlationId || query?.requestId) {
-      return query.correlationId || query.requestId;
+    if (query?.['correlationId'] || query?.['requestId']) {
+      return query['correlationId'] || query['requestId'];
     }
 
     // Check body
-    if (body?.correlationId || body?.requestId) {
-      return body.correlationId || body.requestId;
+    if (body?.['correlationId'] || body?.['requestId']) {
+      return body['correlationId'] || body['requestId'];
     }
 
     return undefined;
@@ -354,11 +354,11 @@ export class CorrelationUtils {
       (headers?.['x-request-id'] as string) ||
       correlationIdManager.generateCorrelationId();
 
-    return {
+    const context: Partial<CorrelationContext> = {
       correlationId,
       requestId,
-      userId,
-      sessionId,
+      userId: userId || undefined,
+      sessionId: sessionId || undefined,
       startTime: Date.now(),
       metadata: {
         userAgent: headers?.['user-agent'],
@@ -367,6 +367,8 @@ export class CorrelationUtils {
         path: headers?.['x-original-uri'],
       },
     };
+
+    return context;
   }
 
   /**
