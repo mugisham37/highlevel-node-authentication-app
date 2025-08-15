@@ -1910,6 +1910,7 @@ export async function registerSDKRoutes(
           error: 'SDK_GENERATION_FAILED',
           message: errorMessage,
         });
+        return; // Explicit return for error case
       }
     }
   );

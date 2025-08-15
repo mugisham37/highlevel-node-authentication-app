@@ -146,18 +146,6 @@ export class SimpleCacheAdapter implements ICache {
     this.l1Cache.destroy?.();
   }
 
-  // Missing methods to match MultiLayerCache interface
-  private async populateUpperLayers<T>(
-    key: string,
-    hitLayer: string
-  ): Promise<void> {
-    // For simple adapter, no upper layers to populate
-    this.logger.debug('populateUpperLayers called (no-op for simple adapter)', {
-      key,
-      hitLayer,
-    });
-  }
-
   // Properties to match MultiLayerCache interface
   get layers() {
     return [

@@ -21,8 +21,8 @@ export interface SystemHealthStatus {
   status: 'healthy' | 'degraded' | 'unhealthy';
   timestamp: Date;
   uptime: number;
-  version?: string;
-  environment?: string;
+  version: string | undefined;
+  environment: string | undefined;
   checks: HealthCheckResult[];
   summary: {
     total: number;
@@ -30,7 +30,7 @@ export interface SystemHealthStatus {
     degraded: number;
     unhealthy: number;
   };
-  correlationId?: string;
+  correlationId: string | undefined;
 }
 
 export interface HealthCheckOptions {
@@ -194,7 +194,7 @@ export class HealthCheck {
 export class HealthCheckManager {
   private readonly checks = new Map<string, HealthCheck>();
   private readonly startTime = Date.now();
-  private intervalTimer?: NodeJS.Timeout;
+  private intervalTimer: NodeJS.Timeout | undefined;
   private isRunning = false;
 
   constructor(
@@ -484,7 +484,7 @@ export class CommonHealthChecks {
       async () => {
         const fs = await import('fs/promises');
         const stats = await fs.statfs(path);
-        const freeGB = (stats.free * stats.bavail) / 1024 ** 3;
+        const freeGB = (stats.bfree * stats.bavail) / 1024 ** 3;
 
         if (freeGB < minFreeGB) {
           throw new Error(

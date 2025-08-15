@@ -565,6 +565,12 @@ export const loggers = {
   // Background processes
   jobs: LoggerFactory.getLogger('jobs'),
   scheduler: LoggerFactory.getLogger('scheduler'),
+  
+  // Additional required loggers
+  api: LoggerFactory.getLogger('api'),
+  system: LoggerFactory.getLogger('system'),
+  business: LoggerFactory.getLogger('business'),
+  performance: LoggerFactory.getLogger('performance'),
 };
 
 /**

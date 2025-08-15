@@ -4,7 +4,6 @@
  */
 
 import { performanceTracker } from '../monitoring/performance-tracker';
-import { metricsManager } from '../monitoring/prometheus-metrics';
 import { logger } from '../logging/winston-logger';
 import { correlationIdManager } from '../tracing/correlation-id';
 import { EventEmitter } from 'events';
@@ -435,7 +434,6 @@ export class BenchmarkSuite extends EventEmitter {
 
     let currentConcurrency = 1;
     const maxConcurrency = config.maxConcurrency;
-    const concurrencyIncrement = maxConcurrency / (config.rampUpTime * 10); // Increase every 100ms
 
     const activeRequests = new Set<Promise<void>>();
 
@@ -569,9 +567,20 @@ export class BenchmarkSuite extends EventEmitter {
     const startTime = Date.now();
 
     try {
-      // This would make an actual HTTP request in a real implementation
-      // For now, we'll simulate the request
-      await new Promise((resolve) => setTimeout(resolve, Math.random() * 100));
+      // Create a promise that will be resolved/rejected based on timeout
+      const requestPromise = new Promise<void>((resolve) => {
+        // This would make an actual HTTP request to the endpoint in a real implementation
+        // For now, we'll simulate the request based on endpoint configuration
+        const simulatedLatency = endpoint.weight ? endpoint.weight * 10 : Math.random() * 100;
+        setTimeout(resolve, simulatedLatency);
+      });
+
+      const timeoutPromise = new Promise<void>((_, reject) => {
+        setTimeout(() => reject(new Error(`Request timeout after ${timeout}ms`)), timeout);
+      });
+
+      // Race between request and timeout
+      await Promise.race([requestPromise, timeoutPromise]);
 
       const responseTime = Date.now() - startTime;
       return { success: true, responseTime };
@@ -587,6 +596,10 @@ export class BenchmarkSuite extends EventEmitter {
   private selectEndpoint(
     endpoints: (LoadTestEndpoint & { probability: number })[]
   ): LoadTestEndpoint {
+    if (endpoints.length === 0) {
+      throw new Error('No endpoints available for selection');
+    }
+
     const random = Math.random();
     let cumulativeProbability = 0;
 
@@ -597,7 +610,12 @@ export class BenchmarkSuite extends EventEmitter {
       }
     }
 
-    return endpoints[endpoints.length - 1];
+    // Fallback to last endpoint if no match found (this should never happen with proper probability distribution)
+    const lastEndpoint = endpoints[endpoints.length - 1];
+    if (!lastEndpoint) {
+      throw new Error('No fallback endpoint available');
+    }
+    return lastEndpoint;
   }
 
   /**
@@ -606,7 +624,9 @@ export class BenchmarkSuite extends EventEmitter {
   private percentile(sortedArray: number[], p: number): number {
     if (sortedArray.length === 0) return 0;
     const index = Math.ceil(sortedArray.length * p) - 1;
-    return sortedArray[Math.max(0, Math.min(index, sortedArray.length - 1))];
+    const clampedIndex = Math.max(0, Math.min(index, sortedArray.length - 1));
+    const value = sortedArray[clampedIndex];
+    return value ?? 0;
   }
 
   /**
@@ -745,6 +765,7 @@ export class BenchmarkSuite extends EventEmitter {
       if (benchmarkResults.length === 0) continue;
 
       const latest = benchmarkResults[benchmarkResults.length - 1];
+      if (!latest) continue;
 
       report += `## ${name}\n\n`;
       report += `- **Iterations**: ${latest.iterations}\n`;
@@ -758,6 +779,76 @@ export class BenchmarkSuite extends EventEmitter {
     }
 
     return report;
+  }
+}
+
+/**
+ * Weighted Endpoint Selector for Load Testing
+ */
+export class WeightedEndpointSelector {
+  private endpoints: (LoadTestEndpoint & { probability: number })[] = [];
+
+  constructor(endpoints: LoadTestEndpoint[]) {
+    this.setupWeightedEndpoints(endpoints);
+  }
+
+  /**
+   * Setup weighted endpoints with probability distribution
+   */
+  private setupWeightedEndpoints(endpoints: LoadTestEndpoint[]): void {
+    const totalWeight = endpoints.reduce((sum, endpoint) => sum + (endpoint.weight || 1), 0);
+    
+    this.endpoints = endpoints.map(endpoint => ({
+      ...endpoint,
+      probability: (endpoint.weight || 1) / totalWeight
+    }));
+  }
+
+  /**
+   * Select random endpoint based on weights
+   */
+  select(): LoadTestEndpoint {
+    if (this.endpoints.length === 0) {
+      throw new Error('No endpoints available for selection');
+    }
+
+    const random = Math.random();
+    let cumulativeProbability = 0;
+
+    for (const endpoint of this.endpoints) {
+      cumulativeProbability += endpoint.probability;
+      if (random <= cumulativeProbability) {
+        const { probability, ...endpointWithoutProbability } = endpoint;
+        return endpointWithoutProbability;
+      }
+    }
+
+    // Fallback to last endpoint
+    const lastEndpoint = this.endpoints[this.endpoints.length - 1];
+    if (!lastEndpoint) {
+      throw new Error('No endpoints available for fallback selection');
+    }
+    const { probability, ...endpointWithoutProbability } = lastEndpoint;
+    return endpointWithoutProbability;
+  }
+
+  /**
+   * Get endpoint by index with null safety
+   */
+  getEndpoint(index: number): LoadTestEndpoint | null {
+    const endpoint = this.endpoints[index];
+    if (!endpoint) {
+      return null;
+    }
+    const { probability, ...endpointWithoutProbability } = endpoint;
+    return endpointWithoutProbability;
+  }
+
+  /**
+   * Get endpoint count
+   */
+  getEndpointCount(): number {
+    return this.endpoints.length;
   }
 }
 
