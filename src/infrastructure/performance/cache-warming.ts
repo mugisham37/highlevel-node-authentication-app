@@ -250,7 +250,7 @@ export class CacheWarmingSystem extends EventEmitter {
 
     try {
       const activeSessions = await this.dbManager.executeQuery(
-        async (db) => {
+        async () => {
           // This would use Drizzle for performance
           return []; // Placeholder - would fetch active sessions
         },
@@ -282,7 +282,7 @@ export class CacheWarmingSystem extends EventEmitter {
 
     try {
       const providers = await this.dbManager.executeQuery(
-        async (db) => {
+        async () => {
           // This would fetch OAuth provider configurations
           return []; // Placeholder
         },
@@ -314,7 +314,7 @@ export class CacheWarmingSystem extends EventEmitter {
 
     try {
       const rolePermissions = await this.dbManager.executeQuery(
-        async (db) => {
+        async () => {
           // This would fetch role and permission mappings
           return []; // Placeholder
         },
@@ -346,7 +346,7 @@ export class CacheWarmingSystem extends EventEmitter {
 
     try {
       const mfaConfigs = await this.dbManager.executeQuery(
-        async (db) => {
+        async () => {
           // This would fetch MFA configurations
           return []; // Placeholder
         },
@@ -429,8 +429,8 @@ export class CacheWarmingSystem extends EventEmitter {
 
       // Cache the result
       await this.cache.set(job.cacheKey, data, {
-        ttl: job.options.ttl,
-        tags: job.options.tags,
+        ttl: job.options.ttl || 300, // Default 5 minutes
+        tags: job.options.tags || [],
       });
 
       const duration = Date.now() - startTime;

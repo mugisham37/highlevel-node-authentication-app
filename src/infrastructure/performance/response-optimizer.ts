@@ -102,7 +102,7 @@ export class ResponseOptimizer {
       };
 
       // Check if response should be cached
-      if (this.shouldCache(request, reply)) {
+      if (this.shouldCache(request)) {
         const cacheKey = this.generateCacheKey(request);
         const cached = await this.getCachedResponse(cacheKey);
 
@@ -171,7 +171,7 @@ export class ResponseOptimizer {
       this.setOptimizationHeaders(reply, metrics);
 
       // Cache the response if applicable
-      if (this.shouldCache(request, reply)) {
+      if (this.shouldCache(request)) {
         const cacheKey = this.generateCacheKey(request);
         await this.cacheResponse(cacheKey, optimizedPayload, reply);
       }
@@ -274,7 +274,7 @@ export class ResponseOptimizer {
 
     const startTime = Date.now();
     let compressedData: Buffer;
-    let algorithm: string;
+    let algorithm: string = 'none';
 
     try {
       // Select best compression algorithm
@@ -352,7 +352,7 @@ export class ResponseOptimizer {
   /**
    * Check if response should be cached
    */
-  private shouldCache(request: FastifyRequest, reply: FastifyReply): boolean {
+  private shouldCache(request: FastifyRequest): boolean {
     if (!this.config.cache.enabled) {
       return false;
     }
@@ -634,10 +634,13 @@ export class ResponseOptimizer {
   /**
    * Extract route pattern from URL
    */
-  private extractRoute(url: string): string {
+  private extractRoute(url: string | undefined): string {
     // Simple route extraction - in a real implementation,
     // this would use the router's route matching logic
-    return url.split('?')[0].replace(/\/\d+/g, '/:id');
+    if (!url) return '/unknown';
+    const baseUrl = url.split('?')[0];
+    if (!baseUrl) return '/unknown';
+    return baseUrl.replace(/\/\d+/g, '/:id');
   }
 
   /**

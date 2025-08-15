@@ -278,7 +278,7 @@ function setupEventListeners(performanceModule: PerformanceModule): void {
   });
 
   // Cache Warming System events
-  performanceModule.cacheWarmingSystem.on('job_completed', (job, data) => {
+  performanceModule.cacheWarmingSystem.on('job_completed', (job) => {
     logger.debug('Cache warming job completed', {
       jobId: job.id,
       jobName: job.name,

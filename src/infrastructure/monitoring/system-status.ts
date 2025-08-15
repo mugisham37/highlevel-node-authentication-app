@@ -191,6 +191,7 @@ export class SystemStatusManager {
         environment: this.environment,
         checks: [],
         summary: { total: 0, healthy: 0, degraded: 0, unhealthy: 1 },
+        correlationId: correlationIdManager.getCorrelationId(),
       };
     }
   }

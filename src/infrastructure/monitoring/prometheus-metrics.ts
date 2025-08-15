@@ -301,6 +301,14 @@ export class MetricsManager {
   private metricsCollectionInterval?: NodeJS.Timeout | undefined;
   private isCollecting = false;
 
+  // Public metric references for external access
+  public readonly apiMetrics = apiMetrics;
+  public readonly databaseMetrics = databaseMetrics;
+  public readonly cacheMetrics = cacheMetrics;
+  public readonly authMetrics = authMetrics;
+  public readonly securityMetrics = securityMetrics;
+  public readonly systemMetrics = systemMetrics;
+
   private constructor() {}
 
   static getInstance(): MetricsManager {

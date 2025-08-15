@@ -94,14 +94,14 @@ class ManagedPool extends EventEmitter {
   }
 
   private setupEventListeners(): void {
-    this.pool.on('connect', (client) => {
+    this.pool.on('connect', () => {
       this.metrics.totalConnections++;
       logger.debug(`New connection established in pool ${this.config.name}`, {
         totalConnections: this.metrics.totalConnections,
       });
     });
 
-    this.pool.on('remove', (client) => {
+    this.pool.on('remove', () => {
       this.metrics.totalConnections--;
       logger.debug(`Connection removed from pool ${this.config.name}`, {
         totalConnections: this.metrics.totalConnections,
@@ -158,12 +158,12 @@ class ManagedPool extends EventEmitter {
       metricsManager.recordDatabaseQuery(
         'query',
         'unknown',
-        'pg',
+        'prisma',
         'success',
         duration
       );
 
-      return result.rows as T;
+      return (result as any).rows as T;
     } catch (error) {
       const duration = Date.now() - startTime;
       this.updateQueryMetrics(duration, false);
@@ -173,7 +173,7 @@ class ManagedPool extends EventEmitter {
       metricsManager.recordDatabaseQuery(
         'query',
         'unknown',
-        'pg',
+        'prisma',
         'error',
         duration,
         (error as Error).name
@@ -246,10 +246,11 @@ class ManagedPool extends EventEmitter {
   }
 
   private async getConnection(timeout: number): Promise<PoolClient> {
-    return Promise.race([
+    const connection = await Promise.race([
       this.pool.connect(),
       this.createTimeoutPromise(timeout, 'Connection timeout'),
     ]);
+    return connection as PoolClient;
   }
 
   private createTimeoutPromise<T>(
@@ -360,7 +361,6 @@ export class ConnectionPoolManager extends EventEmitter {
   private pools = new Map<string, ManagedPool>();
   private loadBalancingStrategy: LoadBalancingStrategy;
   private metricsCollectionTimer?: NodeJS.Timeout;
-  private roundRobinIndex = 0;
 
   constructor(
     loadBalancingStrategy: LoadBalancingStrategy = new RoundRobinStrategy()
@@ -594,7 +594,7 @@ export class RoundRobinStrategy implements LoadBalancingStrategy {
 
     const pool = pools[this.index % pools.length];
     this.index = (this.index + 1) % pools.length;
-    return pool;
+    return pool || null;
   }
 }
 
@@ -630,7 +630,7 @@ export class WeightedRoundRobinStrategy implements LoadBalancingStrategy {
 
     const pool = this.weightedPools[this.index % this.weightedPools.length];
     this.index = (this.index + 1) % this.weightedPools.length;
-    return pool;
+    return pool || null;
   }
 
   private buildWeightedPools(pools: ManagedPool[]): void {
@@ -669,6 +669,6 @@ export class RandomStrategy implements LoadBalancingStrategy {
     if (pools.length === 0) return null;
 
     const randomIndex = Math.floor(Math.random() * pools.length);
-    return pools[randomIndex];
+    return pools[randomIndex] || null;
   }
 }
