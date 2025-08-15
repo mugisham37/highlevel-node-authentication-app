@@ -69,6 +69,15 @@ export class AuthorizationMiddleware {
   }
 
   /**
+   * Create preHandler function to require specific resource/action permission
+   */
+  requirePermissionHandler(config: AuthorizationConfig) {
+    return async (request: FastifyRequest, reply: FastifyReply) => {
+      await this.checkPermission(request, reply, config);
+    };
+  }
+
+  /**
    * Create middleware to require specific roles
    */
   requireRole(config: RequireRoleConfig): FastifyPluginAsync {
@@ -76,6 +85,15 @@ export class AuthorizationMiddleware {
       fastify.addHook('preHandler', async (request, reply) => {
         await this.checkRole(request, reply, config);
       });
+    };
+  }
+
+  /**
+   * Create preHandler function to require specific roles
+   */
+  requireRoleHandler(config: RequireRoleConfig) {
+    return async (request: FastifyRequest, reply: FastifyReply) => {
+      await this.checkRole(request, reply, config);
     };
   }
 
@@ -91,6 +109,15 @@ export class AuthorizationMiddleware {
   }
 
   /**
+   * Create preHandler function to require admin access
+   */
+  requireAdminHandler() {
+    return async (request: FastifyRequest, reply: FastifyReply) => {
+      await this.checkAdmin(request, reply);
+    };
+  }
+
+  /**
    * Create middleware to add authorization helper methods to request
    */
   addAuthorizationHelpers(): FastifyPluginAsync {
@@ -102,10 +129,32 @@ export class AuthorizationMiddleware {
   }
 
   /**
+   * Create preHandler function to add authorization helper methods to request
+   */
+  addAuthorizationHelpersHandler() {
+    return async (request: FastifyRequest, reply: FastifyReply) => {
+      await this.addHelpers(request, reply);
+    };
+  }
+
+  /**
    * Create middleware for user management endpoints
    */
   requireUserManagement(): FastifyPluginAsync {
     return this.requirePermission({
+      resource: 'users',
+      action: 'manage',
+      context: (request) => ({
+        targetUserId: (request.params as any)?.userId || (request.body as any)?.userId,
+      }),
+    });
+  }
+
+  /**
+   * Create preHandler function for user management endpoints
+   */
+  requireUserManagementHandler() {
+    return this.requirePermissionHandler({
       resource: 'users',
       action: 'manage',
       context: (request) => ({
@@ -128,10 +177,34 @@ export class AuthorizationMiddleware {
   }
 
   /**
+   * Create preHandler function for role management endpoints
+   */
+  requireRoleManagementHandler() {
+    return this.requirePermissionHandler({
+      resource: 'roles',
+      action: 'manage',
+      context: (request) => ({
+        targetRoleId: (request.params as any)?.roleId || (request.body as any)?.roleId,
+      }),
+    });
+  }
+
+  /**
    * Create middleware for permission management endpoints
    */
   requirePermissionManagement(): FastifyPluginAsync {
     return this.requirePermission({
+      resource: 'permissions',
+      action: 'manage',
+      skipIfAdmin: true,
+    });
+  }
+
+  /**
+   * Create preHandler function for permission management endpoints
+   */
+  requirePermissionManagementHandler() {
+    return this.requirePermissionHandler({
       resource: 'permissions',
       action: 'manage',
       skipIfAdmin: true,
@@ -146,6 +219,15 @@ export class AuthorizationMiddleware {
       fastify.addHook('preHandler', async (request, reply) => {
         await this.checkAuthentication(request, reply);
       });
+    };
+  }
+
+  /**
+   * Create preHandler function to require authentication
+   */
+  requireAuthenticationHandler() {
+    return async (request: FastifyRequest, reply: FastifyReply) => {
+      await this.checkAuthentication(request, reply);
     };
   }
 
@@ -584,7 +666,7 @@ export const createAuthorizationMiddleware = (
   return new AuthorizationMiddleware(authorizationService);
 };
 
-// Common middleware configurations
+// Common middleware configurations (Plugin style - for registration)
 export const requireUserRead = (authService: AuthorizationService) =>
   createAuthorizationMiddleware(authService).requirePermission({
     resource: 'users',
@@ -628,6 +710,54 @@ export const requireAdminRole = (authService: AuthorizationService) =>
 
 export const requireModeratorOrAdmin = (authService: AuthorizationService) =>
   createAuthorizationMiddleware(authService).requireRole({
+    roles: ['moderator', 'admin'],
+    requireAll: false,
+  });
+
+// Common middleware configurations (Handler style - for preHandler arrays)
+export const requireUserReadHandler = (authService: AuthorizationService) =>
+  createAuthorizationMiddleware(authService).requirePermissionHandler({
+    resource: 'users',
+    action: 'read',
+  });
+
+export const requireUserWriteHandler = (authService: AuthorizationService) =>
+  createAuthorizationMiddleware(authService).requirePermissionHandler({
+    resource: 'users',
+    action: 'write',
+  });
+
+export const requireRoleReadHandler = (authService: AuthorizationService) =>
+  createAuthorizationMiddleware(authService).requirePermissionHandler({
+    resource: 'roles',
+    action: 'read',
+  });
+
+export const requireRoleWriteHandler = (authService: AuthorizationService) =>
+  createAuthorizationMiddleware(authService).requirePermissionHandler({
+    resource: 'roles',
+    action: 'write',
+  });
+
+export const requirePermissionReadHandler = (authService: AuthorizationService) =>
+  createAuthorizationMiddleware(authService).requirePermissionHandler({
+    resource: 'permissions',
+    action: 'read',
+  });
+
+export const requirePermissionWriteHandler = (authService: AuthorizationService) =>
+  createAuthorizationMiddleware(authService).requirePermissionHandler({
+    resource: 'permissions',
+    action: 'write',
+  });
+
+export const requireAdminRoleHandler = (authService: AuthorizationService) =>
+  createAuthorizationMiddleware(authService).requireRoleHandler({
+    roles: ['admin'],
+  });
+
+export const requireModeratorOrAdminHandler = (authService: AuthorizationService) =>
+  createAuthorizationMiddleware(authService).requireRoleHandler({
     roles: ['moderator', 'admin'],
     requireAll: false,
   });

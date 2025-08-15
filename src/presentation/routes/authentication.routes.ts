@@ -210,7 +210,7 @@ export async function authenticationRoutes(
 
   fastify.post('/auth/logout', {
     preHandler: [
-      authMiddleware.requireAuthentication(),
+      authMiddleware.requireAuthenticationHandler(),
       validate({ body: LogoutRequestSchema }),
     ],
     schema: {
@@ -317,7 +317,7 @@ export async function authenticationRoutes(
 
   fastify.post('/auth/password/change', {
     preHandler: [
-      authMiddleware.requireAuthentication(),
+      authMiddleware.requireAuthenticationHandler(),
       validate({ body: ChangePasswordSchema }),
     ],
     schema: {
@@ -360,7 +360,7 @@ export async function authenticationRoutes(
   // MFA endpoints
   fastify.post('/auth/mfa/setup', {
     preHandler: [
-      authMiddleware.requireAuthentication(),
+      authMiddleware.requireAuthenticationHandler(),
       validate({ body: MFASetupRequestSchema }),
     ],
     schema: {
@@ -399,7 +399,7 @@ export async function authenticationRoutes(
 
   fastify.post('/auth/mfa/verify', {
     preHandler: [
-      authMiddleware.requireAuthentication(),
+      authMiddleware.requireAuthenticationHandler(),
       validate({ body: MFAVerifyRequestSchema }),
     ],
     schema: {
@@ -495,7 +495,7 @@ export async function authenticationRoutes(
 
   // User profile endpoint
   fastify.get('/auth/profile', {
-    preHandler: [authMiddleware.requireAuthentication()],
+    preHandler: [authMiddleware.requireAuthenticationHandler()],
     schema: {
       tags: ['Authentication'],
       summary: 'Get user profile',

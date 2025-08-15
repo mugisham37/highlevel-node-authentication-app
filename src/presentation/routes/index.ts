@@ -105,8 +105,7 @@ export async function registerRoutes(
 
   const adminController = new AdminController(
     userManagementService,
-    sessionService,
-    authorizationService
+    sessionService
   );
 
   const passwordlessAuthController = new PasswordlessAuthController(

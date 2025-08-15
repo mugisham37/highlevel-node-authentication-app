@@ -187,7 +187,7 @@ export async function oauthRoutes(
 
   fastify.post('/oauth/link', {
     preHandler: [
-      authMiddleware.requireAuthentication(),
+      authMiddleware.requireAuthenticationHandler(),
       validate({ body: OAuthLinkAccountRequestSchema }),
     ],
     schema: {
@@ -243,7 +243,7 @@ export async function oauthRoutes(
 
   fastify.post('/oauth/unlink', {
     preHandler: [
-      authMiddleware.requireAuthentication(),
+      authMiddleware.requireAuthenticationHandler(),
       validate({ body: OAuthUnlinkAccountRequestSchema }),
     ],
     schema: {
@@ -276,7 +276,7 @@ export async function oauthRoutes(
   });
 
   fastify.get('/oauth/accounts', {
-    preHandler: [authMiddleware.requireAuthentication()],
+    preHandler: [authMiddleware.requireAuthenticationHandler()],
     schema: {
       tags: ['OAuth Client'],
       summary: 'Get linked accounts',
@@ -314,7 +314,7 @@ export async function oauthRoutes(
   });
 
   fastify.post('/oauth/refresh/:provider', {
-    preHandler: [authMiddleware.requireAuthentication()],
+    preHandler: [authMiddleware.requireAuthenticationHandler()],
     schema: {
       tags: ['OAuth Client'],
       summary: 'Refresh provider token',
@@ -356,7 +356,7 @@ export async function oauthRoutes(
 
   fastify.get('/oauth/authorize', {
     preHandler: [
-      authMiddleware.requireAuthentication(),
+      authMiddleware.requireAuthenticationHandler(),
       validate({ querystring: OAuthServerAuthorizeRequestSchema }),
     ],
     schema: {
@@ -463,7 +463,7 @@ export async function oauthRoutes(
   });
 
   fastify.get('/oauth/userinfo', {
-    preHandler: [authMiddleware.requireAuthentication()],
+    preHandler: [authMiddleware.requireAuthenticationHandler()],
     schema: {
       tags: ['OAuth Server'],
       summary: 'OAuth user info endpoint',

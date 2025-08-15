@@ -6,7 +6,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import {
   healthCheckManager,
-  CommonHealthChecks,
 } from '../../infrastructure/health/health-check';
 import { correlationIdManager } from '../../infrastructure/tracing/correlation-id';
 import { logger } from '../../infrastructure/logging/winston-logger';
@@ -131,7 +130,7 @@ export async function registerHealthRoutes(fastify: FastifyInstance) {
         },
       },
     },
-    async (request: FastifyRequest, reply: FastifyReply) => {
+    async (_request: FastifyRequest, reply: FastifyReply) => {
       const correlationId = correlationIdManager.getCorrelationId();
 
       try {
@@ -224,7 +223,7 @@ export async function registerHealthRoutes(fastify: FastifyInstance) {
         tags: ['health'],
       },
     },
-    async (request: FastifyRequest, reply: FastifyReply) => {
+    async (_request: FastifyRequest, reply: FastifyReply) => {
       // Simple liveness check - just return OK if the process is running
       reply.code(200);
       return {
@@ -244,7 +243,7 @@ export async function registerHealthRoutes(fastify: FastifyInstance) {
         tags: ['health'],
       },
     },
-    async (request: FastifyRequest, reply: FastifyReply) => {
+    async (_request: FastifyRequest, reply: FastifyReply) => {
       const correlationId = correlationIdManager.getCorrelationId();
 
       try {
@@ -293,7 +292,7 @@ export async function registerHealthRoutes(fastify: FastifyInstance) {
         tags: ['health', 'resilience'],
       },
     },
-    async (request: FastifyRequest, reply: FastifyReply) => {
+    async (_request: FastifyRequest, reply: FastifyReply) => {
       const correlationId = correlationIdManager.getCorrelationId();
 
       try {
@@ -344,7 +343,7 @@ export async function registerHealthRoutes(fastify: FastifyInstance) {
         tags: ['health', 'resilience'],
       },
     },
-    async (request: FastifyRequest, reply: FastifyReply) => {
+    async (_request: FastifyRequest, reply: FastifyReply) => {
       const correlationId = correlationIdManager.getCorrelationId();
 
       try {
@@ -398,7 +397,7 @@ export async function registerHealthRoutes(fastify: FastifyInstance) {
         tags: ['health', 'metrics'],
       },
     },
-    async (request: FastifyRequest, reply: FastifyReply) => {
+    async (_request: FastifyRequest, reply: FastifyReply) => {
       const correlationId = correlationIdManager.getCorrelationId();
 
       try {

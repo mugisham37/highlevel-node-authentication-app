@@ -35,7 +35,7 @@ export async function roleManagementRoutes(
   // Role CRUD operations
   fastify.post('/roles', {
     preHandler: [
-      authMiddleware.requirePermission({
+      authMiddleware.requirePermissionHandler({
         resource: 'roles',
         action: 'create',
       }),
@@ -97,7 +97,7 @@ export async function roleManagementRoutes(
 
   fastify.get('/roles/:roleId', {
     preHandler: [
-      authMiddleware.requirePermission({
+      authMiddleware.requirePermissionHandler({
         resource: 'roles',
         action: 'read',
       }),
@@ -126,7 +126,7 @@ export async function roleManagementRoutes(
 
   fastify.put('/roles/:roleId', {
     preHandler: [
-      authMiddleware.requirePermission({
+      authMiddleware.requirePermissionHandler({
         resource: 'roles',
         action: 'update',
         context: (request) => ({
@@ -158,7 +158,7 @@ export async function roleManagementRoutes(
 
   fastify.delete('/roles/:roleId', {
     preHandler: [
-      authMiddleware.requirePermission({
+      authMiddleware.requirePermissionHandler({
         resource: 'roles',
         action: 'delete',
         context: (request) => ({
@@ -183,7 +183,7 @@ export async function roleManagementRoutes(
   // Role listing and search
   fastify.get('/roles', {
     preHandler: [
-      authMiddleware.requirePermission({
+      authMiddleware.requirePermissionHandler({
         resource: 'roles',
         action: 'list',
       }),
@@ -216,7 +216,7 @@ export async function roleManagementRoutes(
 
   fastify.get('/roles/search', {
     preHandler: [
-      authMiddleware.requirePermission({
+      authMiddleware.requirePermissionHandler({
         resource: 'roles',
         action: 'search',
       }),
@@ -242,7 +242,7 @@ export async function roleManagementRoutes(
   // Permission management for roles
   fastify.post('/roles/:roleId/permissions', {
     preHandler: [
-      authMiddleware.requirePermission({
+      authMiddleware.requirePermissionHandler({
         resource: 'roles',
         action: 'manage_permissions',
         context: (request) => ({
@@ -277,7 +277,7 @@ export async function roleManagementRoutes(
 
   fastify.delete('/roles/:roleId/permissions/:permissionId', {
     preHandler: [
-      authMiddleware.requirePermission({
+      authMiddleware.requirePermissionHandler({
         resource: 'roles',
         action: 'manage_permissions',
         context: (request) => ({
@@ -305,7 +305,7 @@ export async function roleManagementRoutes(
 
   fastify.get('/roles/:roleId/permissions', {
     preHandler: [
-      authMiddleware.requirePermission({
+      authMiddleware.requirePermissionHandler({
         resource: 'roles',
         action: 'read',
       }),
@@ -329,7 +329,7 @@ export async function roleManagementRoutes(
   // Role hierarchy and system roles
   fastify.get('/roles/hierarchy', {
     preHandler: [
-      authMiddleware.requirePermission({
+      authMiddleware.requirePermissionHandler({
         resource: 'roles',
         action: 'read_hierarchy',
       }),
@@ -345,7 +345,7 @@ export async function roleManagementRoutes(
 
   fastify.get('/roles/system', {
     preHandler: [
-      authMiddleware.requirePermission({
+      authMiddleware.requirePermissionHandler({
         resource: 'roles',
         action: 'read_system',
       }),
@@ -362,7 +362,7 @@ export async function roleManagementRoutes(
   // Role validation
   fastify.post('/roles/validate-assignment', {
     preHandler: [
-      authMiddleware.requirePermission({
+      authMiddleware.requirePermissionHandler({
         resource: 'roles',
         action: 'validate',
       }),
@@ -388,7 +388,7 @@ export async function roleManagementRoutes(
   // Statistics
   fastify.get('/roles/stats', {
     preHandler: [
-      authMiddleware.requirePermission({
+      authMiddleware.requirePermissionHandler({
         resource: 'roles',
         action: 'stats',
       }),

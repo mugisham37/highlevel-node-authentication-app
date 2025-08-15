@@ -37,7 +37,7 @@ export async function userManagementRoutes(
   // User CRUD operations
   fastify.post('/users', {
     preHandler: [
-      authMiddleware.requirePermission({
+      authMiddleware.requirePermissionHandler({
         resource: 'users',
         action: 'create',
       }),
@@ -110,7 +110,7 @@ export async function userManagementRoutes(
 
   fastify.get('/users/:userId', {
     preHandler: [
-      authMiddleware.requirePermission({
+      authMiddleware.requirePermissionHandler({
         resource: 'users',
         action: 'read',
         context: (request) => ({
@@ -142,7 +142,7 @@ export async function userManagementRoutes(
 
   fastify.put('/users/:userId', {
     preHandler: [
-      authMiddleware.requirePermission({
+      authMiddleware.requirePermissionHandler({
         resource: 'users',
         action: 'update',
         context: (request) => ({
@@ -177,7 +177,7 @@ export async function userManagementRoutes(
 
   fastify.delete('/users/:userId', {
     preHandler: [
-      authMiddleware.requirePermission({
+      authMiddleware.requirePermissionHandler({
         resource: 'users',
         action: 'delete',
         context: (request) => ({
@@ -202,7 +202,7 @@ export async function userManagementRoutes(
   // User listing and search
   fastify.get('/users', {
     preHandler: [
-      authMiddleware.requirePermission({
+      authMiddleware.requirePermissionHandler({
         resource: 'users',
         action: 'list',
       }),
@@ -243,7 +243,7 @@ export async function userManagementRoutes(
 
   fastify.get('/users/search', {
     preHandler: [
-      authMiddleware.requirePermission({
+      authMiddleware.requirePermissionHandler({
         resource: 'users',
         action: 'search',
       }),
@@ -269,7 +269,7 @@ export async function userManagementRoutes(
   // Role assignment
   fastify.post('/users/:userId/roles', {
     preHandler: [
-      authMiddleware.requirePermission({
+      authMiddleware.requirePermissionHandler({
         resource: 'users',
         action: 'assign_role',
         context: (request) => ({
@@ -302,7 +302,7 @@ export async function userManagementRoutes(
 
   fastify.delete('/users/:userId/roles/:roleId', {
     preHandler: [
-      authMiddleware.requirePermission({
+      authMiddleware.requirePermissionHandler({
         resource: 'users',
         action: 'remove_role',
         context: (request) => ({
@@ -329,7 +329,7 @@ export async function userManagementRoutes(
   // Bulk operations
   fastify.post('/users/bulk', {
     preHandler: [
-      authMiddleware.requirePermission({
+      authMiddleware.requirePermissionHandler({
         resource: 'users',
         action: 'bulk_create',
       }),
@@ -371,7 +371,7 @@ export async function userManagementRoutes(
   // Export/Import
   fastify.get('/users/export', {
     preHandler: [
-      authMiddleware.requirePermission({
+      authMiddleware.requirePermissionHandler({
         resource: 'users',
         action: 'export',
       }),
@@ -406,7 +406,7 @@ export async function userManagementRoutes(
   // User security operations
   fastify.post('/users/:userId/lock', {
     preHandler: [
-      authMiddleware.requirePermission({
+      authMiddleware.requirePermissionHandler({
         resource: 'users',
         action: 'lock',
         context: (request) => ({
@@ -438,7 +438,7 @@ export async function userManagementRoutes(
 
   fastify.post('/users/:userId/unlock', {
     preHandler: [
-      authMiddleware.requirePermission({
+      authMiddleware.requirePermissionHandler({
         resource: 'users',
         action: 'unlock',
         context: (request) => ({
@@ -463,7 +463,7 @@ export async function userManagementRoutes(
   // Statistics
   fastify.get('/users/stats', {
     preHandler: [
-      authMiddleware.requirePermission({
+      authMiddleware.requirePermissionHandler({
         resource: 'users',
         action: 'stats',
       }),

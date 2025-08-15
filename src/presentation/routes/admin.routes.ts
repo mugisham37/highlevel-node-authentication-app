@@ -35,8 +35,8 @@ export async function adminRoutes(
 
   // All admin routes require authentication and admin permissions
   const requireAdminAuth = [
-    authMiddleware.requireAuthentication(),
-    authMiddleware.requirePermission({
+    authMiddleware.requireAuthenticationHandler(),
+    authMiddleware.requirePermissionHandler({
       resource: 'system',
       action: 'admin',
     }),
