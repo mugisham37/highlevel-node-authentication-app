@@ -77,10 +77,6 @@ async function demonstratePasswordlessAuthFlow() {
     logger
   );
 
-  const _deviceManagementService = new DeviceManagementService(
-    webAuthnService,
-    logger
-  );
 
   const fallbackAuthService = new FallbackAuthService(
     userRepository,
@@ -288,7 +284,6 @@ async function demonstrateDeviceManagement() {
   console.log('\n=== Device Management Example ===\n');
 
   // Initialize services
-  const _userRepository = new PrismaUserRepository({} as any, logger);
   const webAuthnService = new WebAuthnService(
     {
       rpName: 'Enterprise Auth Demo',

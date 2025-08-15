@@ -10,7 +10,7 @@ import { logger } from '../infrastructure/logging/winston-logger';
 
 // Mock implementations for the example
 class MockWebhookRepository {
-  async findActiveWebhooksForEvent(eventType: string) {
+  async findActiveWebhooksForEvent() {
     return [];
   }
 }
@@ -20,29 +20,29 @@ class MockWebhookEventRepository {
     return event;
   }
 
-  async findById(id: string) {
+  async findById() {
     return null;
   }
 
-  async findWithQuery(query: any) {
+  async findWithQuery() {
     return { events: [], total: 0 };
   }
 
-  async deleteOldEvents(cutoffDate: Date) {
+  async deleteOldEvents() {
     return 0;
   }
 }
 
 class MockWebhookDeliveryService {
-  async deliverEvent(webhook: any, event: any) {
+  async deliverEvent() {
     return { success: true, httpStatus: 200, responseTime: 100 };
   }
 
-  async cancelPendingDeliveries(webhookId: string) {
+  async cancelPendingDeliveries() {
     return;
   }
 
-  async getDeliveryAttempts(query: any) {
+  async getDeliveryAttempts() {
     return { attempts: [] };
   }
 }
@@ -253,20 +253,6 @@ async function demonstrateHealthCheck(
   }
 }
 
-// Example of how to disconnect user sessions for security purposes
-async function demonstrateSecurityDisconnect(
-  integrationService: WebSocketIntegrationService
-) {
-  logger.info('🔐 Demonstrating security disconnect...');
-
-  // Disconnect all sessions for a user (e.g., after password change or security breach)
-  await integrationService.disconnectUserSessions(
-    'user-123',
-    'Password changed - security precaution'
-  );
-
-  logger.info('✅ User sessions disconnected for security');
-}
 
 // Example WebSocket client connection simulation
 function simulateWebSocketClient() {

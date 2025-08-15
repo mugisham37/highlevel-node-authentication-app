@@ -143,8 +143,8 @@ export class DeviceManagementService {
         deviceFingerprint: request.deviceInfo.fingerprint,
         deviceName,
         deviceType: this.categorizeDevice(request.deviceInfo),
-        platform: request.deviceInfo.platform,
-        browser: request.deviceInfo.browser,
+  platform: request.deviceInfo.platform ?? 'unknown',
+  browser: request.deviceInfo.browser ?? 'unknown',
         trusted: trustScore > 70,
         registeredAt: new Date(),
         lastUsedAt: new Date(),
@@ -624,7 +624,7 @@ export class DeviceManagementService {
     let score = 50; // Base score
 
     // Platform bonus/penalty
-    const platform = request.deviceInfo.platform.toLowerCase();
+  const platform = (request.deviceInfo.platform ?? 'unknown').toLowerCase();
     if (
       platform.includes('windows') ||
       platform.includes('macos') ||
@@ -640,7 +640,7 @@ export class DeviceManagementService {
     }
 
     // Browser bonus/penalty
-    const browser = request.deviceInfo.browser.toLowerCase();
+  const browser = (request.deviceInfo.browser ?? 'unknown').toLowerCase();
     if (
       browser.includes('chrome') ||
       browser.includes('firefox') ||
@@ -681,8 +681,8 @@ export class DeviceManagementService {
    * Generate a human-readable device name
    */
   private generateDeviceName(deviceInfo: DeviceInfo): string {
-    const platform = this.capitalizePlatform(deviceInfo.platform);
-    const browser = this.capitalizeBrowser(deviceInfo.browser);
+  const platform = this.capitalizePlatform(deviceInfo.platform ?? 'unknown');
+  const browser = this.capitalizeBrowser(deviceInfo.browser ?? 'unknown');
     const deviceType = deviceInfo.isMobile ? 'Mobile' : 'Desktop';
 
     return `${platform} ${deviceType} (${browser})`;
@@ -692,20 +692,21 @@ export class DeviceManagementService {
    * Categorize device type
    */
   private categorizeDevice(deviceInfo: DeviceInfo): string {
+    const platform = (deviceInfo.platform ?? 'unknown').toLowerCase();
     if (deviceInfo.isMobile) {
-      if (deviceInfo.platform.toLowerCase().includes('ios')) {
+      if (platform.includes('ios')) {
         return 'iPhone/iPad';
-      } else if (deviceInfo.platform.toLowerCase().includes('android')) {
+      } else if (platform.includes('android')) {
         return 'Android';
       } else {
         return 'Mobile';
       }
     } else {
-      if (deviceInfo.platform.toLowerCase().includes('windows')) {
+      if (platform.includes('windows')) {
         return 'Windows PC';
-      } else if (deviceInfo.platform.toLowerCase().includes('mac')) {
+      } else if (platform.includes('mac')) {
         return 'Mac';
-      } else if (deviceInfo.platform.toLowerCase().includes('linux')) {
+      } else if (platform.includes('linux')) {
         return 'Linux';
       } else {
         return 'Desktop';

@@ -3,13 +3,10 @@
  * Demonstrates how to use the Multi-Factor Authentication system
  */
 
-import { MFAService } from '../application/services/mfa.service';
 import { TOTPService } from '../infrastructure/security/totp.service';
 import { SMSService } from '../infrastructure/security/sms.service';
 import { EmailMFAService } from '../infrastructure/security/email-mfa.service';
 import { WebAuthnService } from '../infrastructure/security/webauthn.service';
-import { MFAChallengeRepository } from '../infrastructure/database/repositories/mfa-challenge.repository';
-import { PrismaUserRepository } from '../infrastructure/database/repositories/prisma-user-repository';
 import { SecureTokenGenerator } from '../infrastructure/security/secure-token-generator.service';
 import { Logger } from 'winston';
 
@@ -59,18 +56,7 @@ async function demonstrateMFASystem() {
   const webAuthnService = new WebAuthnService(webAuthnConfig, logger);
 
   // Mock repositories (in a real app, these would connect to actual databases)
-  const mockUserRepository = {} as PrismaUserRepository;
-  const mockChallengeRepository = {} as MFAChallengeRepository;
 
-  const _mfaService = new MFAService(
-    mockUserRepository,
-    mockChallengeRepository,
-    totpService,
-    smsService,
-    emailService,
-    webAuthnService,
-    logger
-  );
 
   // 1. TOTP (Time-based One-Time Password) Demo
   console.log('1️⃣ TOTP (Time-based One-Time Password) Demo');
@@ -205,7 +191,7 @@ async function demonstrateMFASystem() {
     console.log(`   User has ${credentials.length} credential(s)`);
 
     // Update credential name
-    if (credentials.length > 0) {
+    if (credentials.length > 0 && credentials[0]?.credentialId) {
       const updated = await webAuthnService.updateCredentialName(
         userId,
         credentials[0].credentialId,
