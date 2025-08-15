@@ -99,16 +99,27 @@ export class CryptographicService {
     return this.jwtTokenService.createRefreshToken(payload, options);
   }
 
-  createTokenPair(
+  async createTokenPair(
     payload: any,
     accessTokenOptions?: Partial<JWTSigningOptions>,
     refreshTokenOptions?: Partial<JWTSigningOptions>
-  ) {
-    return this.jwtTokenService.generateTokenPair(
+  ): Promise<{ accessToken: string; refreshToken: string; expiresIn: number }> {
+    const accessTokenExpiry = accessTokenOptions?.expiresIn || '15m';
+    const refreshTokenExpiry = refreshTokenOptions?.expiresIn || '7d';
+    
+    const tokenPair = await this.jwtTokenService.generateTokenPair(
       payload,
-      accessTokenOptions?.expiresIn || '15m',
-      refreshTokenOptions?.expiresIn || '7d'
+      accessTokenExpiry,
+      refreshTokenExpiry
     );
+
+    // Calculate expiresIn seconds from the expiry string
+    const expiresIn = this.parseExpiryToSeconds(accessTokenExpiry);
+
+    return {
+      ...tokenPair,
+      expiresIn
+    };
   }
 
   verifyAccessToken(token: string) {
@@ -459,6 +470,31 @@ export class CryptographicService {
       accessTokenSecret: secrets.accessTokenSecret,
       refreshTokenSecret: secrets.refreshTokenSecret,
     };
+  }
+
+  /**
+   * Parse expiry string to seconds
+   */
+  private parseExpiryToSeconds(expiry: string | number): number {
+    if (typeof expiry === 'number') {
+      return expiry;
+    }
+
+    const timeUnit = expiry.slice(-1);
+    const timeValue = parseInt(expiry.slice(0, -1));
+
+    switch (timeUnit) {
+      case 's':
+        return timeValue;
+      case 'm':
+        return timeValue * 60;
+      case 'h':
+        return timeValue * 60 * 60;
+      case 'd':
+        return timeValue * 24 * 60 * 60;
+      default:
+        return 900; // Default 15 minutes
+    }
   }
 
   /**

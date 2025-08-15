@@ -1,7 +1,6 @@
 import Fastify, { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
-import rateLimit from '@fastify/rate-limit';
 import { config } from '../config/environment';
 import { documentationPlugin } from '../documentation';
 import { logger } from '../logging/winston-logger';
@@ -15,7 +14,6 @@ import { scalingSystem } from '../scaling';
 
 // Import new security middleware
 import {
-  authenticationRateLimiter,
   apiRateLimiter,
 } from './middleware/intelligent-rate-limiter';
 import { standardZeroTrust } from './middleware/zero-trust-auth';

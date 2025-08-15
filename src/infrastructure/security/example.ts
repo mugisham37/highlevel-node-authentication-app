@@ -40,7 +40,7 @@ async function demonstrateCryptographicServices() {
     deviceId: cryptoService.generateDeviceId(),
   };
 
-  const tokenPair = cryptoService.createTokenPair(userPayload);
+  const tokenPair = await cryptoService.createTokenPair(userPayload);
   console.log(`Access Token: ${tokenPair.accessToken.substring(0, 50)}...`);
   console.log(`Refresh Token: ${tokenPair.refreshToken.substring(0, 50)}...`);
   console.log(`Expires In: ${tokenPair.expiresIn} seconds`);
