@@ -4,7 +4,6 @@
  */
 
 import { logger } from '../logging/winston-logger';
-import { metricsManager } from '../monitoring/prometheus-metrics';
 import { statelessManager } from './stateless-manager';
 
 export interface AutoScalingConfig {
@@ -82,34 +81,34 @@ export class AutoScaler {
    */
   private loadConfig(): AutoScalingConfig {
     return {
-      enabled: process.env.AUTO_SCALING_ENABLED === 'true',
-      minInstances: parseInt(process.env.MIN_INSTANCES || '2', 10),
-      maxInstances: parseInt(process.env.MAX_INSTANCES || '10', 10),
+      enabled: process.env['AUTO_SCALING_ENABLED'] === 'true',
+      minInstances: parseInt(process.env['MIN_INSTANCES'] || '2', 10),
+      maxInstances: parseInt(process.env['MAX_INSTANCES'] || '10', 10),
       targetCpuUtilization: parseInt(
-        process.env.TARGET_CPU_UTILIZATION || '70',
+        process.env['TARGET_CPU_UTILIZATION'] || '70',
         10
       ),
       targetMemoryUtilization: parseInt(
-        process.env.TARGET_MEMORY_UTILIZATION || '80',
+        process.env['TARGET_MEMORY_UTILIZATION'] || '80',
         10
       ),
       targetRequestRate: parseInt(
-        process.env.TARGET_REQUEST_RATE || '1000',
+        process.env['TARGET_REQUEST_RATE'] || '1000',
         10
       ), // requests per minute
       targetResponseTime: parseInt(
-        process.env.TARGET_RESPONSE_TIME || '200',
+        process.env['TARGET_RESPONSE_TIME'] || '200',
         10
       ), // milliseconds
-      scaleUpCooldown: parseInt(process.env.SCALE_UP_COOLDOWN || '300', 10), // seconds
-      scaleDownCooldown: parseInt(process.env.SCALE_DOWN_COOLDOWN || '600', 10), // seconds
-      scaleUpThreshold: parseFloat(process.env.SCALE_UP_THRESHOLD || '0.8'), // 80% of target
-      scaleDownThreshold: parseFloat(process.env.SCALE_DOWN_THRESHOLD || '0.5'), // 50% of target
+      scaleUpCooldown: parseInt(process.env['SCALE_UP_COOLDOWN'] || '300', 10), // seconds
+      scaleDownCooldown: parseInt(process.env['SCALE_DOWN_COOLDOWN'] || '600', 10), // seconds
+      scaleUpThreshold: parseFloat(process.env['SCALE_UP_THRESHOLD'] || '0.8'), // 80% of target
+      scaleDownThreshold: parseFloat(process.env['SCALE_DOWN_THRESHOLD'] || '0.5'), // 50% of target
       evaluationPeriod: parseInt(
-        process.env.SCALING_EVALUATION_PERIOD || '60',
+        process.env['SCALING_EVALUATION_PERIOD'] || '60',
         10
       ), // seconds
-      dataPointsToAlarm: parseInt(process.env.SCALING_DATA_POINTS || '3', 10),
+      dataPointsToAlarm: parseInt(process.env['SCALING_DATA_POINTS'] || '3', 10),
     };
   }
 
@@ -244,10 +243,6 @@ export class AutoScaler {
   private async collectMetrics(): Promise<ScalingMetrics> {
     const memUsage = process.memoryUsage();
     const cpuUsage = process.cpuUsage();
-
-    // Get metrics from Prometheus metrics manager
-    const httpMetrics = metricsManager.getHttpMetrics();
-    const systemMetrics = metricsManager.getSystemMetrics();
 
     // Calculate CPU utilization (simplified)
     const cpuUtilization = Math.min(

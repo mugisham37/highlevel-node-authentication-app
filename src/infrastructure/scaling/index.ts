@@ -5,7 +5,7 @@
 
 export * from './stateless-manager';
 export * from './load-balancer-config';
-export * from './session-affinity';
+export { SessionAffinityManager } from './session-affinity';
 export * from './auto-scaler';
 export * from './graceful-shutdown';
 
@@ -94,7 +94,7 @@ export class ScalingSystem {
    */
   private setupScalingEndpoints(server: FastifyInstance): void {
     // Scaling status endpoint
-    server.get('/scaling/status', async (request, reply) => {
+    server.get('/scaling/status', async (_request, reply) => {
       const status = {
         stateless: {
           enabled: statelessManager.isStateless(),
@@ -113,7 +113,7 @@ export class ScalingSystem {
     });
 
     // Active instances endpoint
-    server.get('/scaling/instances', async (request, reply) => {
+    server.get('/scaling/instances', async (_request, reply) => {
       const instances = await statelessManager.getActiveInstances();
       reply.send({
         total: instances.length,
@@ -123,24 +123,24 @@ export class ScalingSystem {
     });
 
     // Load balancer configuration endpoints
-    server.get('/scaling/load-balancer/nginx', async (request, reply) => {
+    server.get('/scaling/load-balancer/nginx', async (_request, reply) => {
       const config = loadBalancerConfigManager.generateNginxConfig();
       reply.type('text/plain').send(config);
     });
 
-    server.get('/scaling/load-balancer/haproxy', async (request, reply) => {
+    server.get('/scaling/load-balancer/haproxy', async (_request, reply) => {
       const config = loadBalancerConfigManager.generateHAProxyConfig();
       reply.type('text/plain').send(config);
     });
 
-    server.get('/scaling/load-balancer/aws-alb', async (request, reply) => {
+    server.get('/scaling/load-balancer/aws-alb', async (_request, reply) => {
       const config = loadBalancerConfigManager.generateAWSALBConfig();
       reply.send(config);
     });
 
     server.get(
       '/scaling/load-balancer/docker-compose',
-      async (request, reply) => {
+      async (_request, reply) => {
         const config = loadBalancerConfigManager.generateDockerComposeConfig();
         reply.send(config);
       }
@@ -174,7 +174,7 @@ export class ScalingSystem {
     });
 
     // Drain mode endpoint (for zero-downtime deployments)
-    server.post('/scaling/drain', async (request, reply) => {
+    server.post('/scaling/drain', async (_request, reply) => {
       try {
         // Send SIGUSR2 to self to initiate drain mode
         process.kill(process.pid, 'SIGUSR2');
@@ -223,7 +223,6 @@ export class ScalingSystem {
   } {
     const deploymentConfig = gracefulShutdownManager.getDeploymentConfig();
     const loadBalancerConfig = loadBalancerConfigManager.getConfig();
-    const instanceInfo = statelessManager.getInstanceInfo();
 
     return {
       kubernetes: this.generateKubernetesManifest(
@@ -251,7 +250,7 @@ export class ScalingSystem {
         name: 'enterprise-auth-backend',
         labels: {
           app: 'enterprise-auth-backend',
-          version: process.env.npm_package_version || '1.0.0',
+          version: process.env['npm_package_version'] || '1.0.0',
         },
       },
       spec: {

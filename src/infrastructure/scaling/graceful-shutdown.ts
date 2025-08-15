@@ -6,7 +6,6 @@
 import { FastifyInstance } from 'fastify';
 import { logger } from '../logging/winston-logger';
 import { statelessManager } from './stateless-manager';
-import { sessionAffinityManager } from './session-affinity';
 import { autoScaler } from './auto-scaler';
 
 export interface GracefulShutdownConfig {
@@ -75,25 +74,25 @@ export class GracefulShutdownManager {
    */
   private loadConfig(): GracefulShutdownConfig {
     return {
-      enabled: process.env.GRACEFUL_SHUTDOWN_ENABLED !== 'false',
+      enabled: process.env['GRACEFUL_SHUTDOWN_ENABLED'] !== 'false',
       gracePeriod: parseInt(
-        process.env.GRACEFUL_SHUTDOWN_GRACE_PERIOD || '30',
+        process.env['GRACEFUL_SHUTDOWN_GRACE_PERIOD'] || '30',
         10
       ),
       drainTimeout: parseInt(
-        process.env.GRACEFUL_SHUTDOWN_DRAIN_TIMEOUT || '60',
+        process.env['GRACEFUL_SHUTDOWN_DRAIN_TIMEOUT'] || '60',
         10
       ),
       healthCheckGracePeriod: parseInt(
-        process.env.HEALTH_CHECK_GRACE_PERIOD || '10',
+        process.env['HEALTH_CHECK_GRACE_PERIOD'] || '10',
         10
       ),
       forceShutdownTimeout: parseInt(
-        process.env.FORCE_SHUTDOWN_TIMEOUT || '120',
+        process.env['FORCE_SHUTDOWN_TIMEOUT'] || '120',
         10
       ),
-      enablePreShutdownHook: process.env.ENABLE_PRE_SHUTDOWN_HOOK !== 'false',
-      enablePostShutdownHook: process.env.ENABLE_POST_SHUTDOWN_HOOK !== 'false',
+      enablePreShutdownHook: process.env['ENABLE_PRE_SHUTDOWN_HOOK'] !== 'false',
+      enablePostShutdownHook: process.env['ENABLE_POST_SHUTDOWN_HOOK'] !== 'false',
     };
   }
 
@@ -102,32 +101,32 @@ export class GracefulShutdownManager {
    */
   private loadDeploymentConfig(): DeploymentConfig {
     return {
-      strategy: (process.env.DEPLOYMENT_STRATEGY as any) || 'rolling',
-      maxUnavailable: parseInt(process.env.MAX_UNAVAILABLE || '1', 10),
-      maxSurge: parseInt(process.env.MAX_SURGE || '1', 10),
+      strategy: (process.env['DEPLOYMENT_STRATEGY'] as any) || 'rolling',
+      maxUnavailable: parseInt(process.env['MAX_UNAVAILABLE'] || '1', 10),
+      maxSurge: parseInt(process.env['MAX_SURGE'] || '1', 10),
       readinessProbe: {
-        path: process.env.READINESS_PROBE_PATH || '/health/ready',
+        path: process.env['READINESS_PROBE_PATH'] || '/health/ready',
         initialDelaySeconds: parseInt(
-          process.env.READINESS_INITIAL_DELAY || '10',
+          process.env['READINESS_INITIAL_DELAY'] || '10',
           10
         ),
-        periodSeconds: parseInt(process.env.READINESS_PERIOD || '10', 10),
-        timeoutSeconds: parseInt(process.env.READINESS_TIMEOUT || '5', 10),
+        periodSeconds: parseInt(process.env['READINESS_PERIOD'] || '10', 10),
+        timeoutSeconds: parseInt(process.env['READINESS_TIMEOUT'] || '5', 10),
         failureThreshold: parseInt(
-          process.env.READINESS_FAILURE_THRESHOLD || '3',
+          process.env['READINESS_FAILURE_THRESHOLD'] || '3',
           10
         ),
       },
       livenessProbe: {
-        path: process.env.LIVENESS_PROBE_PATH || '/health/live',
+        path: process.env['LIVENESS_PROBE_PATH'] || '/health/live',
         initialDelaySeconds: parseInt(
-          process.env.LIVENESS_INITIAL_DELAY || '30',
+          process.env['LIVENESS_INITIAL_DELAY'] || '30',
           10
         ),
-        periodSeconds: parseInt(process.env.LIVENESS_PERIOD || '30', 10),
-        timeoutSeconds: parseInt(process.env.LIVENESS_TIMEOUT || '5', 10),
+        periodSeconds: parseInt(process.env['LIVENESS_PERIOD'] || '30', 10),
+        timeoutSeconds: parseInt(process.env['LIVENESS_TIMEOUT'] || '5', 10),
         failureThreshold: parseInt(
-          process.env.LIVENESS_FAILURE_THRESHOLD || '3',
+          process.env['LIVENESS_FAILURE_THRESHOLD'] || '3',
           10
         ),
       },
@@ -228,7 +227,7 @@ export class GracefulShutdownManager {
     });
 
     // Remove connection tracking on response
-    server.addHook('onResponse', async (request, reply) => {
+    server.addHook('onResponse', async (request) => {
       const connectionId = (request as any).connectionId;
       if (connectionId) {
         this.activeConnections.delete(connectionId);
@@ -236,7 +235,7 @@ export class GracefulShutdownManager {
     });
 
     // Handle connection errors
-    server.addHook('onError', async (request, reply, error) => {
+    server.addHook('onError', async (request) => {
       const connectionId = (request as any).connectionId;
       if (connectionId) {
         this.activeConnections.delete(connectionId);
@@ -336,7 +335,7 @@ export class GracefulShutdownManager {
    */
   private setupHealthCheckEndpoints(server: FastifyInstance): void {
     // Readiness probe - indicates if the instance is ready to receive traffic
-    server.get('/health/ready', async (request, reply) => {
+    server.get('/health/ready', async (_request, reply) => {
       if (this.isDraining || this.isShuttingDown) {
         reply.status(503).send({
           status: 'not_ready',
@@ -358,7 +357,7 @@ export class GracefulShutdownManager {
     });
 
     // Liveness probe - indicates if the instance is alive and should not be restarted
-    server.get('/health/live', async (request, reply) => {
+    server.get('/health/live', async (_request, reply) => {
       if (this.isShuttingDown) {
         reply.status(503).send({
           status: 'not_alive',
@@ -380,7 +379,7 @@ export class GracefulShutdownManager {
     });
 
     // Startup probe - indicates if the instance has finished starting up
-    server.get('/health/startup', async (request, reply) => {
+    server.get('/health/startup', async (_request, reply) => {
       // Check if the application has finished starting up
       const checks = await this.performStartupChecks();
       const allStarted = checks.every((check) => check.status === 'healthy');

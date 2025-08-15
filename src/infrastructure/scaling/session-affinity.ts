@@ -16,7 +16,7 @@ export interface SessionAffinityConfig {
   secure: boolean;
   httpOnly: boolean;
   sameSite: 'strict' | 'lax' | 'none';
-  domain?: string;
+  domain: string | undefined;
   path: string;
 }
 
@@ -50,15 +50,15 @@ export class SessionAffinityManager {
    */
   private loadConfig(): SessionAffinityConfig {
     return {
-      enabled: process.env.ENABLE_SESSION_AFFINITY === 'true',
-      method: (process.env.AFFINITY_METHOD as any) || 'cookie',
-      cookieName: process.env.AFFINITY_COOKIE_NAME || 'lb-session',
-      headerName: process.env.AFFINITY_HEADER_NAME || 'X-Session-Affinity',
-      duration: parseInt(process.env.AFFINITY_DURATION || '3600', 10), // 1 hour
+      enabled: process.env['ENABLE_SESSION_AFFINITY'] === 'true',
+      method: (process.env['AFFINITY_METHOD'] as any) || 'cookie',
+      cookieName: process.env['AFFINITY_COOKIE_NAME'] || 'lb-session',
+      headerName: process.env['AFFINITY_HEADER_NAME'] || 'X-Session-Affinity',
+      duration: parseInt(process.env['AFFINITY_DURATION'] || '3600', 10), // 1 hour
       secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
       sameSite: 'lax',
-      domain: process.env.COOKIE_DOMAIN,
+      domain: process.env['COOKIE_DOMAIN'],
       path: '/',
     };
   }
@@ -317,14 +317,24 @@ export class SessionAffinityManager {
     affinityId: string,
     duration: number
   ): void {
-    const cookieOptions = {
+    const cookieOptions: {
+      maxAge?: number;
+      secure?: boolean;
+      httpOnly?: boolean;
+      sameSite?: 'strict' | 'lax' | 'none';
+      domain?: string;
+      path?: string;
+    } = {
       maxAge: duration * 1000, // Convert to milliseconds
       secure: this.config.secure,
       httpOnly: this.config.httpOnly,
       sameSite: this.config.sameSite,
-      domain: this.config.domain,
       path: this.config.path,
     };
+
+    if (this.config.domain) {
+      cookieOptions.domain = this.config.domain;
+    }
 
     reply.setCookie(this.config.cookieName, affinityId, cookieOptions);
   }
@@ -393,10 +403,13 @@ export class SessionAffinityManager {
 
     switch (affinityMethod) {
       case 'cookie':
-        reply.clearCookie(this.config.cookieName, {
-          domain: this.config.domain,
+        const clearOptions: { domain?: string; path?: string } = {
           path: this.config.path,
-        });
+        };
+        if (this.config.domain) {
+          clearOptions.domain = this.config.domain;
+        }
+        reply.clearCookie(this.config.cookieName, clearOptions);
         break;
 
       case 'header':

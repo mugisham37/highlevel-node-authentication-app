@@ -389,6 +389,26 @@ export class MetricsManager {
   }
 
   /**
+   * Get HTTP metrics
+   */
+  getHttpMetrics() {
+    return {
+      requests: apiMetrics.httpRequests,
+      duration: apiMetrics.httpDuration,
+      requestSize: apiMetrics.httpRequestSize,
+      responseSize: apiMetrics.httpResponseSize,
+      rateLimitHits: apiMetrics.rateLimitHits,
+    };
+  }
+
+  /**
+   * Get system metrics
+   */
+  getSystemMetrics() {
+    return systemMetrics;
+  }
+
+  /**
    * Clear all metrics
    */
   clearMetrics(): void {

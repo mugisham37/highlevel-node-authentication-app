@@ -8,7 +8,7 @@ import { configManager } from '../config/config-manager';
 
 export interface StatelessConfig {
   instanceId: string;
-  sessionStorage: 'redis' | 'database';
+  sessionStorage: 'redis' | 'database' | 'local';
   cacheStrategy: 'distributed' | 'local';
   enableStickySessions: boolean;
   enableSessionReplication: boolean;
@@ -21,8 +21,8 @@ export interface InstanceInfo {
   startTime: Date;
   version: string;
   environment: string;
-  region?: string;
-  zone?: string;
+  region: string | undefined;
+  zone: string | undefined;
 }
 
 export class StatelessManager {
@@ -86,8 +86,8 @@ export class StatelessManager {
    * Generate unique instance information
    */
   private generateInstanceInfo(): InstanceInfo {
-    const hostname = process.env.HOSTNAME || require('os').hostname();
-    const port = parseInt(process.env.SERVER_PORT || '3000', 10);
+    const hostname = process.env['HOSTNAME'] || require('os').hostname();
+    const port = parseInt(process.env['SERVER_PORT'] || '3000', 10);
     const instanceId = `${hostname}-${port}-${Date.now()}`;
 
     return {
@@ -95,10 +95,10 @@ export class StatelessManager {
       hostname,
       port,
       startTime: new Date(),
-      version: process.env.npm_package_version || '1.0.0',
-      environment: process.env.NODE_ENV || 'development',
-      region: process.env.AWS_REGION || process.env.REGION,
-      zone: process.env.AWS_AVAILABILITY_ZONE || process.env.ZONE,
+      version: process.env['npm_package_version'] || '1.0.0',
+      environment: (process.env.NODE_ENV as any) || 'development',
+      region: process.env['AWS_REGION'] || process.env['REGION'],
+      zone: process.env['AWS_AVAILABILITY_ZONE'] || process.env['ZONE'],
     };
   }
 
@@ -106,18 +106,16 @@ export class StatelessManager {
    * Load stateless configuration
    */
   private loadStatelessConfig(): StatelessConfig {
-    const appConfig = configManager.getConfig();
-
     return {
       instanceId: this.instanceInfo.id,
       sessionStorage:
-        (process.env.SESSION_STORAGE as 'redis' | 'database') || 'redis',
+        (process.env['SESSION_STORAGE'] as 'redis' | 'database' | 'local') || 'redis',
       cacheStrategy:
-        (process.env.CACHE_STRATEGY as 'distributed' | 'local') ||
+        (process.env['CACHE_STRATEGY'] as 'distributed' | 'local') ||
         'distributed',
-      enableStickySessions: process.env.ENABLE_STICKY_SESSIONS === 'true',
+      enableStickySessions: process.env['ENABLE_STICKY_SESSIONS'] === 'true',
       enableSessionReplication:
-        process.env.ENABLE_SESSION_REPLICATION === 'true',
+        process.env['ENABLE_SESSION_REPLICATION'] === 'true',
     };
   }
 
@@ -335,9 +333,9 @@ export class StatelessManager {
   private hasLocalState(): boolean {
     // Check for in-memory caches, local file storage, etc.
     const localStateIndicators = [
-      process.env.USE_LOCAL_CACHE === 'true',
-      process.env.USE_FILE_SESSIONS === 'true',
-      process.env.STORE_UPLOADS_LOCALLY === 'true',
+      process.env['USE_LOCAL_CACHE'] === 'true',
+      process.env['USE_FILE_SESSIONS'] === 'true',
+      process.env['STORE_UPLOADS_LOCALLY'] === 'true',
     ];
 
     return localStateIndicators.some((indicator) => indicator);

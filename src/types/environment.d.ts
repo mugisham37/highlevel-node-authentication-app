@@ -136,6 +136,76 @@ declare global {
       CROSS_REGION_REPLICATION_ENABLED?: string;
       CROSS_REGION_TARGETS?: string;
       CROSS_REGION_DELAY?: string;
+      
+      // Scaling Configuration
+      AUTO_SCALING_ENABLED?: string;
+      MIN_INSTANCES?: string;
+      MAX_INSTANCES?: string;
+      TARGET_CPU_UTILIZATION?: string;
+      TARGET_MEMORY_UTILIZATION?: string;
+      TARGET_REQUEST_RATE?: string;
+      TARGET_RESPONSE_TIME?: string;
+      SCALE_UP_COOLDOWN?: string;
+      SCALE_DOWN_COOLDOWN?: string;
+      SCALE_UP_THRESHOLD?: string;
+      SCALE_DOWN_THRESHOLD?: string;
+      SCALING_EVALUATION_PERIOD?: string;
+      SCALING_DATA_POINTS?: string;
+      
+      // Graceful Shutdown
+      GRACEFUL_SHUTDOWN_ENABLED?: string;
+      GRACEFUL_SHUTDOWN_GRACE_PERIOD?: string;
+      GRACEFUL_SHUTDOWN_DRAIN_TIMEOUT?: string;
+      HEALTH_CHECK_GRACE_PERIOD?: string;
+      FORCE_SHUTDOWN_TIMEOUT?: string;
+      ENABLE_PRE_SHUTDOWN_HOOK?: string;
+      ENABLE_POST_SHUTDOWN_HOOK?: string;
+      DEPLOYMENT_STRATEGY?: string;
+      MAX_UNAVAILABLE?: string;
+      MAX_SURGE?: string;
+      READINESS_PROBE_PATH?: string;
+      READINESS_INITIAL_DELAY?: string;
+      READINESS_PERIOD?: string;
+      READINESS_TIMEOUT?: string;
+      READINESS_FAILURE_THRESHOLD?: string;
+      LIVENESS_PROBE_PATH?: string;
+      LIVENESS_INITIAL_DELAY?: string;
+      LIVENESS_PERIOD?: string;
+      LIVENESS_TIMEOUT?: string;
+      LIVENESS_FAILURE_THRESHOLD?: string;
+      
+      // Load Balancer Configuration
+      LOAD_BALANCER_TYPE?: string;
+      SERVER_PORT?: string;
+      SERVER_HOST?: string;
+      ENABLE_STICKY_SESSIONS?: string;
+      SSL_ENABLED?: string;
+      SSL_CERT_PATH?: string;
+      SSL_KEY_PATH?: string;
+      DOMAIN_NAME?: string;
+      ADDITIONAL_INSTANCES?: string;
+      
+      // Session Affinity
+      ENABLE_SESSION_AFFINITY?: string;
+      AFFINITY_METHOD?: string;
+      AFFINITY_COOKIE_NAME?: string;
+      AFFINITY_HEADER_NAME?: string;
+      AFFINITY_DURATION?: string;
+      COOKIE_DOMAIN?: string;
+      
+      // Stateless Manager
+      HOSTNAME?: string;
+      npm_package_version?: string;
+      AWS_REGION?: string;
+      REGION?: string;
+      AWS_AVAILABILITY_ZONE?: string;
+      ZONE?: string;
+      SESSION_STORAGE?: string;
+      CACHE_STRATEGY?: string;
+      ENABLE_SESSION_REPLICATION?: string;
+      USE_LOCAL_CACHE?: string;
+      USE_FILE_SESSIONS?: string;
+      STORE_UPLOADS_LOCALLY?: string;
     }
   }
 }

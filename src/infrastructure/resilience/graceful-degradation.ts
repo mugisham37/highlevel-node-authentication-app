@@ -5,13 +5,8 @@
 
 import { logger } from '../logging/winston-logger';
 import { correlationIdManager } from '../tracing/correlation-id';
-import { circuitBreakerManager } from './circuit-breaker';
-import { RetryManager, RetryUtils } from './retry';
 import {
   ServiceUnavailableError,
-  ExternalServiceError,
-  CacheError,
-  DatabaseError,
 } from '../../application/errors/base.errors';
 
 export interface DegradationOptions {
@@ -36,7 +31,7 @@ export interface DegradationState {
   isDegraded: boolean;
   activeFallbacks: string[];
   lastHealthCheck: Date;
-  degradationStartTime?: Date;
+  degradationStartTime: Date | undefined;
   totalDegradationTime: number;
   failureCount: number;
   successCount: number;
@@ -53,12 +48,12 @@ export class GracefulDegradationManager<T = any> {
     isDegraded: false,
     activeFallbacks: [],
     lastHealthCheck: new Date(),
+    degradationStartTime: undefined,
     totalDegradationTime: 0,
     failureCount: 0,
     successCount: 0,
   };
-  private healthCheckTimer?: NodeJS.Timeout;
-  private readonly retryManager: RetryManager;
+  private healthCheckTimer: NodeJS.Timeout | undefined;
 
   constructor(options: Partial<DegradationOptions> = {}) {
     this.options = {
@@ -70,13 +65,6 @@ export class GracefulDegradationManager<T = any> {
       name: 'GracefulDegradation',
       ...options,
     };
-
-    this.retryManager = new RetryManager({
-      maxAttempts: 2,
-      baseDelay: 1000,
-      maxDelay: 5000,
-      name: `${this.options.name}Retry`,
-    });
 
     this.startHealthChecking();
   }

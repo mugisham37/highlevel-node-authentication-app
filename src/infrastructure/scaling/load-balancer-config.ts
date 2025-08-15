@@ -4,7 +4,6 @@
  */
 
 import { logger } from '../logging/winston-logger';
-import { statelessManager } from './stateless-manager';
 
 export interface LoadBalancerConfig {
   type: 'nginx' | 'haproxy' | 'aws-alb' | 'gcp-lb' | 'azure-lb';
@@ -46,10 +45,10 @@ export interface ScalingConfig {
 
 export interface SSLConfig {
   enabled: boolean;
-  certificatePath?: string;
-  privateKeyPath?: string;
-  cipherSuites?: string[];
-  protocols?: string[];
+  certificatePath: string | undefined;
+  privateKeyPath: string | undefined;
+  cipherSuites: string[] | undefined;
+  protocols: string[] | undefined;
   redirectHttp: boolean;
 }
 
@@ -73,14 +72,14 @@ export class LoadBalancerConfigManager {
    */
   private generateDefaultConfig(): LoadBalancerConfig {
     return {
-      type: (process.env.LOAD_BALANCER_TYPE as any) || 'nginx',
+      type: (process.env['LOAD_BALANCER_TYPE'] as any) || 'nginx',
       healthCheck: {
         path: '/health',
         interval: 30000, // 30 seconds
         timeout: 5000, // 5 seconds
         healthyThreshold: 2,
         unhealthyThreshold: 3,
-        port: parseInt(process.env.SERVER_PORT || '3000', 10),
+        port: parseInt(process.env['SERVER_PORT'] || '3000', 10),
         protocol: 'http',
         expectedStatus: [200],
         headers: {
@@ -88,32 +87,32 @@ export class LoadBalancerConfigManager {
         },
       },
       sessionAffinity: {
-        enabled: process.env.ENABLE_STICKY_SESSIONS === 'true',
+        enabled: process.env['ENABLE_STICKY_SESSIONS'] === 'true',
         method: 'cookie',
         cookieName: 'lb-session',
         duration: 3600, // 1 hour
       },
       scaling: {
-        minInstances: parseInt(process.env.MIN_INSTANCES || '2', 10),
-        maxInstances: parseInt(process.env.MAX_INSTANCES || '10', 10),
+        minInstances: parseInt(process.env['MIN_INSTANCES'] || '2', 10),
+        maxInstances: parseInt(process.env['MAX_INSTANCES'] || '10', 10),
         targetCpuUtilization: parseInt(
-          process.env.TARGET_CPU_UTILIZATION || '70',
+          process.env['TARGET_CPU_UTILIZATION'] || '70',
           10
         ),
         targetMemoryUtilization: parseInt(
-          process.env.TARGET_MEMORY_UTILIZATION || '80',
+          process.env['TARGET_MEMORY_UTILIZATION'] || '80',
           10
         ),
-        scaleUpCooldown: parseInt(process.env.SCALE_UP_COOLDOWN || '300', 10), // 5 minutes
+        scaleUpCooldown: parseInt(process.env['SCALE_UP_COOLDOWN'] || '300', 10), // 5 minutes
         scaleDownCooldown: parseInt(
-          process.env.SCALE_DOWN_COOLDOWN || '600',
+          process.env['SCALE_DOWN_COOLDOWN'] || '600',
           10
         ), // 10 minutes
       },
       ssl: {
-        enabled: process.env.SSL_ENABLED === 'true',
-        certificatePath: process.env.SSL_CERT_PATH,
-        privateKeyPath: process.env.SSL_KEY_PATH,
+        enabled: process.env['SSL_ENABLED'] === 'true',
+        certificatePath: process.env['SSL_CERT_PATH'],
+        privateKeyPath: process.env['SSL_KEY_PATH'],
         cipherSuites: [
           'ECDHE-RSA-AES128-GCM-SHA256',
           'ECDHE-RSA-AES256-GCM-SHA384',
@@ -156,7 +155,7 @@ upstream auth_health {
 
 server {
     listen 80;
-    server_name ${process.env.DOMAIN_NAME || 'auth.example.com'};
+    server_name ${process.env['DOMAIN_NAME'] || 'auth.example.com'};
     
     ${
       config.ssl.enabled && config.ssl.redirectHttp
@@ -201,7 +200,7 @@ ${
     ? `
 server {
     listen 443 ssl http2;
-    server_name ${process.env.DOMAIN_NAME || 'auth.example.com'};
+    server_name ${process.env['DOMAIN_NAME'] || 'auth.example.com'};
     
     # SSL Configuration
     ssl_certificate ${config.ssl.certificatePath || '/etc/ssl/certs/auth.crt'};
@@ -473,7 +472,7 @@ backend health_backend
           Type: 'AWS::ElasticLoadBalancingV2::TargetGroup',
           Properties: {
             Name: 'enterprise-auth-targets',
-            Port: parseInt(process.env.SERVER_PORT || '3000', 10),
+            Port: parseInt(process.env['SERVER_PORT'] || '3000', 10),
             Protocol: 'HTTP',
             VpcId: { Ref: 'VpcId' },
             HealthCheckPath: config.healthCheck.path,
@@ -561,13 +560,13 @@ backend health_backend
     // For now, return current instance and any configured additional instances
     const instances = [
       {
-        hostname: process.env.SERVER_HOST || 'localhost',
-        port: parseInt(process.env.SERVER_PORT || '3000', 10),
+        hostname: process.env['SERVER_HOST'] || 'localhost',
+        port: parseInt(process.env['SERVER_PORT'] || '3000', 10),
       },
     ];
 
     // Add additional instances from environment
-    const additionalInstances = process.env.ADDITIONAL_INSTANCES;
+    const additionalInstances = process.env['ADDITIONAL_INSTANCES'];
     if (additionalInstances) {
       const instanceList = additionalInstances.split(',');
       for (const instance of instanceList) {

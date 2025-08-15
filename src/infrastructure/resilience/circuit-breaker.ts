@@ -5,7 +5,6 @@
 
 import { logger } from '../logging/winston-logger';
 import {
-  ExternalServiceError,
   ServiceUnavailableError,
 } from '../../application/errors/base.errors';
 
@@ -22,8 +21,8 @@ export interface CircuitBreakerStats {
   failures: number;
   successes: number;
   requests: number;
-  lastFailureTime?: Date;
-  nextAttemptTime?: Date;
+  lastFailureTime: Date | undefined;
+  nextAttemptTime: Date | undefined;
   uptime: number;
 }
 
@@ -38,16 +37,13 @@ export class CircuitBreaker {
   private failures = 0;
   private successes = 0;
   private requests = 0;
-  private lastFailureTime?: Date;
-  private nextAttemptTime?: Date;
+  private lastFailureTime: Date | undefined;
+  private nextAttemptTime: Date | undefined;
   private readonly options: Required<CircuitBreakerOptions>;
   private readonly startTime = Date.now();
 
   constructor(options: CircuitBreakerOptions) {
     this.options = {
-      failureThreshold: 5,
-      recoveryTimeout: 60000, // 1 minute
-      monitoringPeriod: 300000, // 5 minutes
       expectedErrors: [],
       name: 'CircuitBreaker',
       ...options,
