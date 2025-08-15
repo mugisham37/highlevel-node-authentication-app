@@ -290,7 +290,10 @@ export class SessionManagementService {
         refreshExpiresAt: new Date(sessionData.refreshExpiresAt),
         createdAt: new Date(sessionData.createdAt),
         lastActivity: new Date(sessionData.lastActivity),
-        deviceInfo: sessionData.deviceInfo,
+        deviceInfo: {
+          ...sessionData.deviceInfo,
+          platform: sessionData.deviceInfo.platform || 'unknown',
+        },
         ipAddress: sessionData.ipAddress,
         userAgent: sessionData.userAgent,
         riskScore: sessionData.riskScore,
@@ -542,7 +545,10 @@ export class SessionManagementService {
               refreshExpiresAt: new Date(sessionData.refreshExpiresAt),
               createdAt: new Date(sessionData.createdAt),
               lastActivity: new Date(sessionData.lastActivity),
-              deviceInfo: sessionData.deviceInfo,
+              deviceInfo: {
+                ...sessionData.deviceInfo,
+                platform: sessionData.deviceInfo.platform || 'unknown',
+              },
               ipAddress: sessionData.ipAddress,
               userAgent: sessionData.userAgent,
               riskScore: sessionData.riskScore,
@@ -648,9 +654,17 @@ export class SessionManagementService {
   /**
    * Get all active sessions for administrative purposes
    */
-  async getActiveSessions(): Promise<Session[]> {
+  async getActiveSessions(options?: { limit?: number; offset?: number }): Promise<Session[]> {
     try {
-      return await this.getAllActiveSessions();
+      const allSessions = await this.getAllActiveSessions();
+      
+      if (options?.limit || options?.offset) {
+        const offset = options.offset || 0;
+        const limit = options.limit || 100;
+        return allSessions.slice(offset, offset + limit);
+      }
+      
+      return allSessions;
     } catch (error) {
       this.logger.error('Failed to get active sessions', {
         error: error instanceof Error ? error.message : String(error),

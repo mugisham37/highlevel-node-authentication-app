@@ -33,18 +33,12 @@ export class OAuthController {
     try {
       const initiateData = request.body as OAuthInitiateRequest;
       const ipAddress = request.ip;
-      const userAgent = request.headers['user-agent'] || '';
 
       const result = await this.oauthService.initiateOAuthFlow(
         initiateData.provider,
         initiateData.redirectUri,
-        {
-          state: initiateData.state,
-          scopes: initiateData.scopes,
-          deviceInfo: initiateData.deviceInfo,
-          ipAddress,
-          userAgent,
-        }
+        initiateData.scopes,
+        initiateData.state
       );
 
       logger.info('OAuth flow initiated', {
@@ -93,17 +87,10 @@ export class OAuthController {
     try {
       const callbackData = request.body as OAuthCallbackRequest;
       const ipAddress = request.ip;
-      const userAgent = request.headers['user-agent'] || '';
 
       const result = await this.oauthService.handleCallback(
         callbackData.provider,
-        callbackData.code,
-        callbackData.state,
-        {
-          deviceInfo: callbackData.deviceInfo,
-          ipAddress,
-          userAgent,
-        }
+        callbackData
       );
 
       logger.info('OAuth callback processed', {
@@ -200,38 +187,48 @@ export class OAuthController {
         return;
       }
 
-      const result = await this.oauthService.linkAccount(
+      // First, handle the OAuth callback to get tokens and user info
+      const callbackResult = await this.oauthService.handleCallback(
+        linkData.provider,
+        {
+          code: linkData.code,
+          state: linkData.state,
+        }
+      );
+
+      if (!callbackResult.success || !callbackResult.tokens || !callbackResult.userInfo) {
+        reply.status(400).send({
+          success: false,
+          error: 'OAUTH_CALLBACK_FAILED',
+          message: 'Failed to process OAuth callback',
+          correlationId: request.correlationId,
+        });
+        return;
+      }
+
+      // Now link the account with the obtained tokens and user info
+      const account = await this.oauthService.linkAccount(
         userId,
         linkData.provider,
-        linkData.code,
-        linkData.state
+        callbackResult.tokens,
+        callbackResult.userInfo
       );
 
       logger.info('OAuth account linking', {
         correlationId: request.correlationId,
         userId,
         provider: linkData.provider,
-        success: result.success,
+        success: true,
       });
-
-      if (!result.success) {
-        reply.status(400).send({
-          success: false,
-          error: 'ACCOUNT_LINKING_FAILED',
-          message: 'Failed to link OAuth account',
-          correlationId: request.correlationId,
-        });
-        return;
-      }
 
       reply.status(200).send({
         success: true,
         data: {
           account: {
-            id: result.account!.id,
-            provider: result.account!.provider,
-            providerAccountId: result.account!.providerAccountId,
-            type: result.account!.type,
+            id: account.id,
+            provider: account.provider,
+            providerAccountId: account.providerAccountId,
+            type: account.type,
           },
         },
         message: 'Account linked successfully',
@@ -337,8 +334,6 @@ export class OAuthController {
           expiresAt: account.expiresAt,
           tokenType: account.tokenType,
           scope: account.scope,
-          createdAt: account.createdAt.toISOString(),
-          updatedAt: account.updatedAt.toISOString(),
         })),
       });
     } catch (error) {
@@ -373,30 +368,28 @@ export class OAuthController {
       }
 
       const result = await this.oauthServerService.authorize(
-        authorizeData,
-        userId
+        authorizeData.clientId,
+        authorizeData.redirectUri,
+        authorizeData.responseType,
+        authorizeData.scope ? authorizeData.scope.split(' ') : [],
+        authorizeData.state || '',
+        userId,
+        authorizeData.codeChallenge,
+        authorizeData.codeChallengeMethod
       );
 
       logger.info('OAuth server authorization', {
         correlationId: request.correlationId,
         clientId: authorizeData.clientId,
         userId,
-        success: result.success,
+        success: true,
       });
-
-      if (!result.success) {
-        reply.status(400).send({
-          success: false,
-          error: result.error?.code || 'AUTHORIZATION_FAILED',
-          message: result.error?.message || 'Authorization failed',
-          correlationId: request.correlationId,
-        });
-        return;
-      }
 
       // Redirect to client with authorization code
       const redirectUrl = new URL(authorizeData.redirectUri);
-      redirectUrl.searchParams.set('code', result.code!);
+      if (result.code) {
+        redirectUrl.searchParams.set('code', result.code);
+      }
       if (authorizeData.state) {
         redirectUrl.searchParams.set('state', authorizeData.state);
       }
@@ -425,22 +418,35 @@ export class OAuthController {
     try {
       const tokenData = request.body as OAuthServerTokenRequest;
 
-      const result = await this.oauthServerService.token(tokenData);
+      // Ensure required fields are provided
+      if (tokenData.grantType === 'authorization_code' && !tokenData.code) {
+        reply.status(400).send({
+          error: 'invalid_request',
+          error_description: 'Authorization code is required for authorization_code grant type',
+        });
+        return;
+      }
+
+      // Construct clean token request without undefined values
+      const cleanTokenData: any = {
+        grantType: tokenData.grantType,
+        clientId: tokenData.clientId,
+      };
+
+      if (tokenData.code) cleanTokenData.code = tokenData.code;
+      if (tokenData.redirectUri) cleanTokenData.redirectUri = tokenData.redirectUri;
+      if (tokenData.clientSecret) cleanTokenData.clientSecret = tokenData.clientSecret;
+      if (tokenData.refreshToken) cleanTokenData.refreshToken = tokenData.refreshToken;
+      if (tokenData.codeVerifier) cleanTokenData.codeVerifier = tokenData.codeVerifier;
+
+      const result = await this.oauthServerService.token(cleanTokenData);
 
       logger.info('OAuth server token exchange', {
         correlationId: request.correlationId,
         clientId: tokenData.clientId,
         grantType: tokenData.grantType,
-        success: result.success,
+        success: true,
       });
-
-      if (!result.success) {
-        reply.status(400).send({
-          error: result.error?.code || 'invalid_request',
-          error_description: result.error?.message || 'Token exchange failed',
-        });
-        return;
-      }
 
       reply.status(200).send({
         access_token: result.accessToken,
@@ -542,18 +548,8 @@ export class OAuthController {
         correlationId: request.correlationId,
         userId,
         provider,
-        success: result.success,
+        success: true,
       });
-
-      if (!result.success) {
-        reply.status(400).send({
-          success: false,
-          error: 'TOKEN_REFRESH_FAILED',
-          message: 'Failed to refresh OAuth provider token',
-          correlationId: request.correlationId,
-        });
-        return;
-      }
 
       reply.status(200).send({
         success: true,

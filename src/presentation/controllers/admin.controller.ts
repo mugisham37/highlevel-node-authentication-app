@@ -7,7 +7,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { UserManagementService } from '../../application/services/user-management.service';
 import { SessionManagementService } from '../../application/services/session-management.service';
-import { AuthorizationService } from '../../application/services/authorization.service';
 import { logger } from '../../infrastructure/logging/winston-logger';
 import {
   SystemConfigUpdate,
@@ -22,8 +21,7 @@ import {
 export class AdminController {
   constructor(
     private userManagementService: UserManagementService,
-    private sessionService: SessionManagementService,
-    private authorizationService: AuthorizationService
+    private sessionService: SessionManagementService
   ) {}
 
   /**
@@ -494,7 +492,7 @@ export class AdminController {
     };
   }
 
-  private async fetchAuditLogs(query: AuditLogQuery) {
+  private async fetchAuditLogs(_query: AuditLogQuery) {
     // This would typically query audit logs from a database
     return [
       {
@@ -522,7 +520,7 @@ export class AdminController {
     ];
   }
 
-  private async fetchSecurityEvents(query: SecurityEventQuery) {
+  private async fetchSecurityEvents(_query: SecurityEventQuery) {
     // This would typically query security events from a database
     return [
       {
@@ -592,7 +590,7 @@ export class AdminController {
           case 'lock':
             await this.userManagementService.lockUser(
               userId,
-              actionData.reason,
+              actionData.reason || 'Administrative action',
               performedBy
             );
             break;
@@ -624,7 +622,7 @@ export class AdminController {
 
   private async performBulkSessionAction(
     actionData: BulkSessionAction,
-    performedBy?: string
+    _performedBy?: string
   ) {
     // This would typically perform the bulk action on sessions
     const result = {

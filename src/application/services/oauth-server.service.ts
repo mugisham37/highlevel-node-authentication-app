@@ -192,6 +192,69 @@ export class OAuthServerService implements IOAuthServer {
   }
 
   /**
+   * Handle OAuth authorization endpoint
+   */
+  async authorize(
+    clientId: string,
+    redirectUri: string,
+    responseType: string,
+    scopes: string[],
+    state: string,
+    userId: string,
+    codeChallenge?: string,
+    codeChallengeMethod?: string
+  ): Promise<{ authorizationUrl: string; code?: string }> {
+    if (responseType !== 'code') {
+      throw new Error('Only authorization code flow is supported');
+    }
+
+    const code = await this.generateAuthorizationCode(
+      clientId,
+      userId,
+      scopes,
+      redirectUri,
+      codeChallenge,
+      codeChallengeMethod
+    );
+
+    const url = new URL(redirectUri);
+    url.searchParams.set('code', code);
+    url.searchParams.set('state', state);
+
+    return {
+      authorizationUrl: url.toString(),
+      code,
+    };
+  }
+
+  /**
+   * Handle OAuth token endpoint
+   */
+  async token(request: TokenExchangeRequest): Promise<OAuthTokens> {
+    return await this.exchangeCodeForTokens(request);
+  }
+
+  /**
+   * Get user info endpoint
+   */
+  async getUserInfo(accessToken: string): Promise<any> {
+    try {
+      const payload = await this.jwtService.verifyToken(accessToken);
+      
+      // In a real implementation, you would fetch user details from the database
+      // For now, return basic user info from the token
+      return {
+        sub: payload.sub,
+        name: payload['name'] || 'User',
+        email: payload['email'] || 'user@example.com',
+        picture: payload['picture'],
+      };
+    } catch (error) {
+      throw new Error('Invalid access token');
+    }
+  }
+
+  /**
    * Register OAuth client
    */
   registerClient(client: OAuthClient): void {

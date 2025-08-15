@@ -9,7 +9,7 @@ import { Password } from '../value-objects/password';
 export interface DeviceInfo {
   fingerprint: string;
   userAgent: string;
-  platform?: string;
+  platform: string;
   browser?: string;
   version?: string;
   isMobile: boolean;
@@ -22,46 +22,46 @@ export interface DeviceInfo {
 export interface UserProps {
   id: string;
   email: Email;
-  emailVerified?: Date | undefined;
-  name?: string | undefined;
-  image?: string | undefined;
-  password?: Password | undefined;
+  emailVerified?: Date | null;
+  name?: string | null;
+  image?: string | null;
+  password?: Password | null;
   createdAt: Date;
   updatedAt: Date;
 
   // MFA Properties
   mfaEnabled: boolean;
-  totpSecret?: string | undefined;
+  totpSecret?: string | null;
   backupCodes: string[];
 
   // Security Properties
   failedLoginAttempts: number;
-  lockedUntil?: Date | undefined;
-  lastLoginAt?: Date | undefined;
-  lastLoginIP?: string | undefined;
+  lockedUntil?: Date | null;
+  lastLoginAt?: Date | null;
+  lastLoginIP?: string | null;
   riskScore: number;
 }
 
 export class User {
   private readonly _id: string;
   private _email: Email;
-  private _emailVerified: Date | undefined;
-  private _name: string | undefined;
-  private _image: string | undefined;
-  private _password: Password | undefined;
+  private _emailVerified: Date | null;
+  private _name: string | null;
+  private _image: string | null;
+  private _password: Password | null;
   private readonly _createdAt: Date;
   private _updatedAt: Date;
 
   // MFA Properties
   private _mfaEnabled: boolean;
-  private _totpSecret: string | undefined;
+  private _totpSecret: string | null;
   private _backupCodes: string[];
 
   // Security Properties
   private _failedLoginAttempts: number;
-  private _lockedUntil: Date | undefined;
-  private _lastLoginAt: Date | undefined;
-  private _lastLoginIP: string | undefined;
+  private _lockedUntil: Date | null;
+  private _lastLoginAt: Date | null;
+  private _lastLoginIP: string | null;
   private _riskScore: number;
 
   constructor(props: UserProps) {
@@ -69,21 +69,21 @@ export class User {
 
     this._id = props.id;
     this._email = props.email;
-    this._emailVerified = props.emailVerified;
-    this._name = props.name;
-    this._image = props.image;
-    this._password = props.password;
+    this._emailVerified = props.emailVerified || null;
+    this._name = props.name || null;
+    this._image = props.image || null;
+    this._password = props.password || null;
     this._createdAt = props.createdAt;
     this._updatedAt = props.updatedAt;
 
     this._mfaEnabled = props.mfaEnabled;
-    this._totpSecret = props.totpSecret;
+    this._totpSecret = props.totpSecret || null;
     this._backupCodes = props.backupCodes;
 
     this._failedLoginAttempts = props.failedLoginAttempts;
-    this._lockedUntil = props.lockedUntil;
-    this._lastLoginAt = props.lastLoginAt;
-    this._lastLoginIP = props.lastLoginIP;
+    this._lockedUntil = props.lockedUntil || null;
+    this._lastLoginAt = props.lastLoginAt || null;
+    this._lastLoginIP = props.lastLoginIP || null;
     this._riskScore = props.riskScore;
   }
 
@@ -94,16 +94,16 @@ export class User {
   get email(): Email {
     return this._email;
   }
-  get emailVerified(): Date | undefined {
+  get emailVerified(): Date | null {
     return this._emailVerified;
   }
-  get name(): string | undefined {
+  get name(): string | null {
     return this._name;
   }
-  get image(): string | undefined {
+  get image(): string | null {
     return this._image;
   }
-  get password(): Password | undefined {
+  get password(): Password | null {
     return this._password;
   }
   get createdAt(): Date {
@@ -115,7 +115,7 @@ export class User {
   get mfaEnabled(): boolean {
     return this._mfaEnabled;
   }
-  get totpSecret(): string | undefined {
+  get totpSecret(): string | null {
     return this._totpSecret;
   }
   get backupCodes(): string[] {
@@ -124,13 +124,13 @@ export class User {
   get failedLoginAttempts(): number {
     return this._failedLoginAttempts;
   }
-  get lockedUntil(): Date | undefined {
+  get lockedUntil(): Date | null {
     return this._lockedUntil;
   }
-  get lastLoginAt(): Date | undefined {
+  get lastLoginAt(): Date | null {
     return this._lastLoginAt;
   }
-  get lastLoginIP(): string | undefined {
+  get lastLoginIP(): string | null {
     return this._lastLoginIP;
   }
   get riskScore(): number {
@@ -181,7 +181,7 @@ export class User {
    */
   resetFailedAttempts(): void {
     this._failedLoginAttempts = 0;
-    this._lockedUntil = undefined;
+    this._lockedUntil = null;
     this._updatedAt = new Date();
   }
 
@@ -276,7 +276,7 @@ export class User {
    */
   disableMFA(): void {
     this._mfaEnabled = false;
-    this._totpSecret = undefined;
+    this._totpSecret = null;
     this._backupCodes = [];
     this._updatedAt = new Date();
 
@@ -329,7 +329,7 @@ export class User {
       // If email changes, reset verification
       if (!this._email.equals(updates.email)) {
         this._email = updates.email;
-        this._emailVerified = undefined;
+        this._emailVerified = null;
         this._riskScore = Math.min(100, this._riskScore + 25);
       }
     }
@@ -407,11 +407,11 @@ export class User {
       throw new Error('Email must be an Email value object');
     }
 
-    if (props.name !== undefined) {
+    if (props.name !== null && props.name !== undefined) {
       this.validateName(props.name);
     }
 
-    if (props.image !== undefined) {
+    if (props.image !== null && props.image !== undefined) {
       this.validateImage(props.image);
     }
 

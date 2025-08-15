@@ -523,19 +523,24 @@ export class AuthenticationService {
   /**
    * Refresh access token using refresh token
    */
-  async refreshToken(request: RefreshTokenRequest): Promise<AuthResult> {
+  async refreshToken(
+    refreshToken: string,
+    context: {
+      deviceInfo: DeviceInfo;
+      ipAddress: string;
+      userAgent: string;
+    }
+  ): Promise<AuthResult> {
     const correlationId = SecureIdGenerator.generateCorrelationId();
 
     try {
       this.logger.info('Token refresh started', {
         correlationId,
-        ipAddress: request.ipAddress,
+        ipAddress: context.ipAddress,
       });
 
       // Verify refresh token
-      const tokenResult = this.jwtTokenService.verifyRefreshToken(
-        request.refreshToken
-      );
+      const tokenResult = this.jwtTokenService.verifyRefreshToken(refreshToken);
       if (!tokenResult.valid || !tokenResult.payload) {
         this.logger.warn('Token refresh failed - invalid refresh token', {
           correlationId,
@@ -555,9 +560,7 @@ export class AuthenticationService {
       const payload = tokenResult.payload as any;
 
       // Validate session
-      const session = await this.sessionRepository.refreshSession(
-        request.refreshToken
-      );
+      const session = await this.sessionRepository.refreshSession(refreshToken);
       if (!session) {
         this.logger.warn(
           'Token refresh failed - session not found or expired',
@@ -598,21 +601,21 @@ export class AuthenticationService {
         userEntity,
         {
           type: 'email_password',
-          deviceInfo: request.deviceInfo,
-          ipAddress: request.ipAddress,
-          userAgent: request.userAgent,
+          deviceInfo: context.deviceInfo,
+          ipAddress: context.ipAddress,
+          userAgent: context.userAgent,
         },
         correlationId
       );
 
       // Update session risk score
-      sessionEntity.calculateRiskScore(request.ipAddress, request.deviceInfo);
+      sessionEntity.calculateRiskScore(context.ipAddress, context.deviceInfo);
 
       // Create new token pair
       const tokens = await this.jwtTokenService.generateTokenPair({
         sub: user.id,
         sessionId: session.id,
-        deviceId: request.deviceInfo.fingerprint,
+        deviceId: context.deviceInfo.fingerprint,
         riskScore: riskAssessment.overallScore,
         permissions: [], // Would be populated from user roles
         roles: [], // Would be populated from user roles

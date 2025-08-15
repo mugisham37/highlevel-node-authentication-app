@@ -8,6 +8,16 @@ import { FastifyRequest as OriginalFastifyRequest, FastifyReply as OriginalFasti
 declare module 'fastify' {
   interface FastifyRequest {
     cookies: Record<string, string>;
+    user?: {
+      id: string;
+      email: string;
+      [key: string]: any;
+    };
+    session?: {
+      id: string;
+      [key: string]: any;
+    };
+    correlationId?: string;
   }
 
   interface FastifyReply {

@@ -26,6 +26,18 @@ export interface MFAVerificationResult {
   success: boolean;
   user?: User | undefined;
   backupCodeUsed?: boolean | undefined;
+  tokens?: {
+    accessToken: string;
+    refreshToken: string;
+    expiresIn: number;
+    tokenType: string;
+  } | undefined;
+  session?: {
+    id: string;
+    expiresAt: string;
+    deviceInfo: any;
+  } | undefined;
+  riskScore?: number | undefined;
   error?: MFAError | undefined;
 }
 

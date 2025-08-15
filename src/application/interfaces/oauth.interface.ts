@@ -22,6 +22,8 @@ export interface OAuthProvider {
 export interface OAuthInitiation {
   authorizationUrl: string;
   state: string;
+  codeChallenge?: string | undefined; // For PKCE
+  codeChallengeMethod?: string | undefined; // For PKCE
   codeVerifier?: string | undefined; // For PKCE
   nonce?: string | undefined; // For OIDC
 }
@@ -52,6 +54,8 @@ export interface OAuthResult {
   tokens?: OAuthTokens;
   userInfo?: OAuthUserInfo;
   isNewUser?: boolean;
+  requiresMFA?: boolean;
+  riskScore?: number;
   error?: OAuthError;
 }
 

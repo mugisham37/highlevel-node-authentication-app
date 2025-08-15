@@ -395,6 +395,21 @@ export class OAuthService implements IOAuthService {
   }
 
   /**
+   * Get all OAuth accounts for a user
+   */
+  async getUserAccounts(userId: string): Promise<Account[]> {
+    try {
+      return await this.accountRepository.findByUserId(userId);
+    } catch (error) {
+      throw this.createOAuthError(
+        'accounts_fetch_failed',
+        'Failed to fetch user OAuth accounts',
+        error instanceof Error ? error.message : 'Unknown error'
+      );
+    }
+  }
+
+  /**
    * Exchange authorization code for tokens
    */
   private async exchangeCodeForTokens(
@@ -512,9 +527,9 @@ export class OAuthService implements IOAuthService {
     const user = new User({
       id: nanoid(),
       email: new Email(userInfo.email || ''),
-      emailVerified: userInfo.emailVerified ? new Date() : undefined,
-      name: userInfo.name || undefined,
-      image: userInfo.picture || undefined,
+      emailVerified: userInfo.emailVerified ? new Date() : null,
+      name: userInfo.name || null,
+      image: userInfo.picture || null,
       createdAt: new Date(),
       updatedAt: new Date(),
       mfaEnabled: false,
