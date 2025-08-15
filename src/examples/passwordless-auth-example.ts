@@ -77,8 +77,7 @@ async function demonstratePasswordlessAuthFlow() {
     logger
   );
 
-  const deviceManagementService = new DeviceManagementService(
-    userRepository,
+  const _deviceManagementService = new DeviceManagementService(
     webAuthnService,
     logger
   );
@@ -289,7 +288,7 @@ async function demonstrateDeviceManagement() {
   console.log('\n=== Device Management Example ===\n');
 
   // Initialize services
-  const userRepository = new PrismaUserRepository({} as any, logger);
+  const _userRepository = new PrismaUserRepository({} as any, logger);
   const webAuthnService = new WebAuthnService(
     {
       rpName: 'Enterprise Auth Demo',
@@ -300,7 +299,6 @@ async function demonstrateDeviceManagement() {
   );
 
   const deviceManagementService = new DeviceManagementService(
-    userRepository,
     webAuthnService,
     logger
   );
@@ -345,7 +343,7 @@ async function demonstrateDeviceManagement() {
     );
 
     // Step 3: Assess device trust
-    if (devices.length > 0) {
+    if (devices.length > 0 && devices[0]) {
       console.log('\n3. Assessing device trust...');
       const trustAssessment = await deviceManagementService.assessDeviceTrust(
         devices[0].id
@@ -360,7 +358,7 @@ async function demonstrateDeviceManagement() {
     }
 
     // Step 4: Record authentication attempt
-    if (devices.length > 0) {
+    if (devices.length > 0 && devices[0]) {
       console.log('\n4. Recording authentication attempt...');
       await deviceManagementService.recordAuthenticationAttempt({
         deviceId: devices[0].id,

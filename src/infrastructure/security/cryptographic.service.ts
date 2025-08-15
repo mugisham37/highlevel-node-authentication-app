@@ -103,7 +103,7 @@ export class CryptographicService {
     payload: any,
     accessTokenOptions?: Partial<JWTSigningOptions>,
     refreshTokenOptions?: Partial<JWTSigningOptions>
-  ): Promise<{ accessToken: string; refreshToken: string; expiresIn: number }> {
+  ): Promise<{ accessToken: string; refreshToken: string; tokenType: string; expiresIn: number }> {
     const accessTokenExpiry = accessTokenOptions?.expiresIn || '15m';
     const refreshTokenExpiry = refreshTokenOptions?.expiresIn || '7d';
     
@@ -117,7 +117,9 @@ export class CryptographicService {
     const expiresIn = this.parseExpiryToSeconds(accessTokenExpiry);
 
     return {
-      ...tokenPair,
+      accessToken: tokenPair.accessToken,
+      refreshToken: tokenPair.refreshToken,
+      tokenType: tokenPair.tokenType,
       expiresIn
     };
   }

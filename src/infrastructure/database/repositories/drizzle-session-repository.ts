@@ -256,6 +256,35 @@ export class DrizzleSessionRepository {
     }
   }
 
+  async extendSession(sessionId: string, newExpiresAt: Date): Promise<void> {
+    try {
+      const result = await this.db
+        .update(activeSessions)
+        .set({ 
+          expiresAt: newExpiresAt,
+          lastActivity: new Date()
+        })
+        .where(
+          and(
+            eq(activeSessions.id, sessionId),
+            eq(activeSessions.isActive, true)
+          )
+        );
+
+      if (result.rowCount === 0) {
+        throw new Error('Session not found or inactive');
+      }
+
+      this.logger.info('Session extended', {
+        sessionId,
+        newExpiresAt,
+      });
+    } catch (error) {
+      this.logger.error('Failed to extend session', { error, sessionId });
+      throw error;
+    }
+  }
+
   // Authentication attempts tracking
   async recordAuthAttempt(data: {
     userId?: string;

@@ -646,6 +646,83 @@ export class SessionManagementService {
   }
 
   /**
+   * Get all active sessions for administrative purposes
+   */
+  async getActiveSessions(): Promise<Session[]> {
+    try {
+      return await this.getAllActiveSessions();
+    } catch (error) {
+      this.logger.error('Failed to get active sessions', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return [];
+    }
+  }
+
+  /**
+   * Extend session expiration time
+   */
+  async extendSession(
+    sessionId: string,
+    extensionMinutes: number = 30
+  ): Promise<void> {
+    const correlationId = SecureIdGenerator.generateCorrelationId();
+
+    try {
+      this.logger.debug('Extending session', {
+        correlationId,
+        sessionId,
+        extensionMinutes,
+      });
+
+      // Get current session
+      const sessionData = await this.sessionStorage.getSession(sessionId);
+      if (!sessionData) {
+        throw new Error('Session not found');
+      }
+
+      // Calculate new expiration time
+      const newExpiresAt = new Date(
+        sessionData.expiresAt + extensionMinutes * 60 * 1000
+      );
+
+      // Update in cache
+      const updatedSessionData = {
+        ...sessionData,
+        expiresAt: newExpiresAt.getTime(),
+      };
+      
+      await this.sessionStorage.updateSession(sessionId, updatedSessionData);
+
+      // Update in database
+      await this.sessionRepository.extendSession(sessionId, newExpiresAt);
+
+      this.logger.info('Session extended successfully', {
+        correlationId,
+        sessionId,
+        newExpiresAt,
+      });
+    } catch (error) {
+      this.logger.error('Failed to extend session', {
+        correlationId,
+        sessionId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Terminate all sessions for a user (alias for terminateUserSessions)
+   */
+  async terminateAllUserSessions(
+    userId: string,
+    excludeSessionId?: string
+  ): Promise<number> {
+    return this.terminateUserSessions(userId, excludeSessionId);
+  }
+
+  /**
    * Update session activity timestamp
    */
   async updateSessionActivity(

@@ -9,12 +9,14 @@ import { Password } from '../value-objects/password';
 export interface DeviceInfo {
   fingerprint: string;
   userAgent: string;
-  platform: string;
-  browser: string;
-  version: string;
+  platform?: string;
+  browser?: string;
+  version?: string;
   isMobile: boolean;
+  mobile?: boolean; // For backward compatibility
   screenResolution?: string;
   timezone?: string;
+  language?: string;
 }
 
 export interface UserProps {

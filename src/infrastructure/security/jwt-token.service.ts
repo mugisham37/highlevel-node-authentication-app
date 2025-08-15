@@ -32,6 +32,7 @@ export interface TokenOptions {
 export interface TokenPair {
   accessToken: string;
   refreshToken: string;
+  tokenType: string;
   expiresIn: number;
   refreshExpiresIn: number;
 }
@@ -231,6 +232,7 @@ export class JWTTokenService {
     return { 
       accessToken, 
       refreshToken,
+      tokenType: 'Bearer',
       expiresIn: accessExpirySeconds,
       refreshExpiresIn: refreshExpirySeconds
     };

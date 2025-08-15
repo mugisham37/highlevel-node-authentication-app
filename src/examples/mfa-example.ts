@@ -62,7 +62,7 @@ async function demonstrateMFASystem() {
   const mockUserRepository = {} as PrismaUserRepository;
   const mockChallengeRepository = {} as MFAChallengeRepository;
 
-  const mfaService = new MFAService(
+  const _mfaService = new MFAService(
     mockUserRepository,
     mockChallengeRepository,
     totpService,
@@ -217,7 +217,7 @@ async function demonstrateMFASystem() {
     }
 
     // Get service health
-    const health = await webAuthnService.getServiceHealth();
+    const health = await webAuthnService?.getServiceHealth();
     console.log(
       `   Service Health: ${health.healthy ? '✅ Healthy' : '❌ Unhealthy'}`
     );

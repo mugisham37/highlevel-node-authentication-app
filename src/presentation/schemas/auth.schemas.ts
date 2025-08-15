@@ -12,7 +12,8 @@ export const DeviceInfoSchema = z.object({
   platform: z.string().optional(),
   browser: z.string().optional(),
   version: z.string().optional(),
-  mobile: z.boolean().optional(),
+  isMobile: z.boolean(),
+  mobile: z.boolean().optional(), // For backward compatibility
   screenResolution: z.string().optional(),
   timezone: z.string().optional(),
   language: z.string().optional(),

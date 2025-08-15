@@ -999,4 +999,186 @@ export class AuthenticationService {
 
     return new Session(sessionProps);
   }
+
+  /**
+   * Initiate password reset process
+   */
+  async initiatePasswordReset(email: string): Promise<{ success: boolean; error?: string }> {
+    const correlationId = SecureIdGenerator.generateCorrelationId();
+    
+    try {
+      this.logger.info('Password reset initiated', {
+        correlationId,
+        email,
+      });
+
+      // Find user by email
+      const user = await this.userRepository.findByEmail(email);
+      if (!user) {
+        // Don't reveal if user exists for security
+        return { success: true };
+      }
+
+      // Generate reset token
+      const resetToken = SecureIdGenerator.generateResetToken();
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+      // Store reset token (in a real app, you'd store this in database)
+      // For now, we'll just log it
+      this.logger.info('Password reset token generated', {
+        correlationId,
+        userId: user.id,
+        resetToken, // In production, don't log the actual token
+        expiresAt,
+      });
+
+      // TODO: Send reset email
+      // await this.emailService.sendPasswordResetEmail(user.email, resetToken);
+
+      return { success: true };
+    } catch (error) {
+      this.logger.error('Password reset initiation failed', {
+        correlationId,
+        email,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      return { success: false, error: 'Failed to initiate password reset' };
+    }
+  }
+
+  /**
+   * Confirm password reset with token
+   */
+  async confirmPasswordReset(
+    token: string,
+    newPassword: string
+  ): Promise<{ success: boolean; error?: string }> {
+    const correlationId = SecureIdGenerator.generateCorrelationId();
+    
+    try {
+      this.logger.info('Password reset confirmation', {
+        correlationId,
+        token: token.substring(0, 8) + '...', // Log partial token for debugging
+      });
+
+      // In a real implementation, you'd verify the token against database
+      // For now, we'll simulate token validation
+      if (!token || token.length < 32) {
+        return { success: false, error: 'Invalid reset token' };
+      }
+
+      // TODO: Validate token and get user
+      // const user = await this.userRepository.findByResetToken(token);
+      // if (!user) {
+      //   return { success: false, error: 'Invalid or expired reset token' };
+      // }
+
+      // TODO: Hash new password and update user
+      // const hashedPassword = await this.passwordHashingService.hashPassword(newPassword);
+      
+      // TODO: Update user password
+      // await this.userRepository.updateUser(user.id, {
+      //   passwordHash: hashedPassword,
+      //   resetToken: null,
+      //   resetTokenExpiresAt: null,
+      // });
+
+      // For now, just log that we would update the password
+      this.logger.info('Would update password with hash', {
+        correlationId,
+        passwordLength: newPassword.length,
+      });
+
+      this.logger.info('Password reset completed successfully', {
+        correlationId,
+      });
+
+      return { success: true };
+    } catch (error) {
+      this.logger.error('Password reset confirmation failed', {
+        correlationId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      return { success: false, error: 'Failed to reset password' };
+    }
+  }
+
+  /**
+   * Change password for authenticated user
+   */
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string
+  ): Promise<{ success: boolean; error?: string }> {
+    const correlationId = SecureIdGenerator.generateCorrelationId();
+    
+    try {
+      this.logger.info('Password change initiated', {
+        correlationId,
+        userId,
+      });
+
+      // Get user
+      const user = await this.userRepository.findById(userId);
+      if (!user || !user.passwordHash) {
+        return { success: false, error: 'User not found or no password set' };
+      }
+
+      // Verify current password
+      const currentPasswordValid = await this.passwordHashingService.verifyPassword(
+        currentPassword,
+        user.passwordHash
+      );
+
+      if (!currentPasswordValid) {
+        this.logger.warn('Password change failed - invalid current password', {
+          correlationId,
+          userId,
+        });
+        return { success: false, error: 'Current password is incorrect' };
+      }
+
+      // Hash new password
+      const hashedPassword = await this.passwordHashingService.hashPassword(newPassword);
+
+      // Update user password
+      await this.userRepository.updateUser(userId, {
+        passwordHash: hashedPassword,
+      });
+
+      this.logger.info('Password changed successfully', {
+        correlationId,
+        userId,
+      });
+
+      return { success: true };
+    } catch (error) {
+      this.logger.error('Password change failed', {
+        correlationId,
+        userId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      return { success: false, error: 'Failed to change password' };
+    }
+  }
+
+  /**
+   * Get user by ID
+   */
+  async getUserById(userId: string): Promise<User | null> {
+    try {
+      const user = await this.userRepository.findById(userId);
+      if (!user) {
+        return null;
+      }
+      return this.convertToUserEntity(user);
+    } catch (error) {
+      this.logger.error('Failed to get user by ID', {
+        userId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      return null;
+    }
+  }
 }

@@ -97,6 +97,240 @@ export class MFAService {
   ) {}
 
   /**
+   * Setup MFA for a user
+   */
+  async setupMFA(
+    userId: string,
+    mfaType: 'totp' | 'sms' | 'email' = 'totp',
+    options?: {
+      phoneNumber?: string;
+      email?: string;
+      serviceName?: string;
+    }
+  ): Promise<MFASetupResult> {
+    const correlationId = SecureIdGenerator.generateCorrelationId();
+
+    try {
+      this.logger.info('MFA setup initiated', {
+        correlationId,
+        userId,
+        mfaType,
+      });
+
+      switch (mfaType) {
+        case 'totp':
+          return await this.setupTOTP(userId, options?.serviceName);
+        case 'sms':
+          if (!options?.phoneNumber) {
+            return {
+              success: false,
+              error: {
+                code: 'PHONE_NUMBER_REQUIRED',
+                message: 'Phone number is required for SMS MFA',
+              },
+            };
+          }
+          // For SMS, we just enable it and return success
+          await this.userRepository.updateUser(userId, {
+            mfaEnabled: true,
+          });
+          return {
+            success: true,
+          };
+        case 'email':
+          // For email MFA, we just enable it and return success
+          await this.userRepository.updateUser(userId, {
+            mfaEnabled: true,
+          });
+          return {
+            success: true,
+          };
+        default:
+          return {
+            success: false,
+            error: {
+              code: 'UNSUPPORTED_MFA_TYPE',
+              message: 'Unsupported MFA type',
+            },
+          };
+      }
+    } catch (error) {
+      this.logger.error('MFA setup error', {
+        correlationId,
+        userId,
+        mfaType,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      return {
+        success: false,
+        error: {
+          code: 'MFA_SETUP_ERROR',
+          message: 'Failed to setup MFA',
+        },
+      };
+    }
+  }
+
+  /**
+   * Verify MFA code/challenge
+   */
+  async verifyMFA(
+    challengeId: string,
+    mfaCode: string,
+    mfaType: 'totp' | 'sms' | 'email'
+  ): Promise<MFAVerificationResult> {
+    const correlationId = SecureIdGenerator.generateCorrelationId();
+
+    try {
+      this.logger.info('MFA verification initiated', {
+        correlationId,
+        challengeId,
+        mfaType,
+      });
+
+      switch (mfaType) {
+        case 'totp':
+          // For TOTP, we need to get the user from the challenge
+          const challenge = await this.challengeRepository.findById(challengeId);
+          if (!challenge) {
+            return {
+              success: false,
+              error: {
+                code: 'CHALLENGE_NOT_FOUND',
+                message: 'MFA challenge not found',
+              },
+            };
+          }
+          return await this.verifyTOTP(challenge.userId, mfaCode);
+        case 'sms':
+          return await this.verifySMSCode(challengeId, mfaCode);
+        case 'email':
+          return await this.verifyEmailCode(challengeId, mfaCode);
+        default:
+          return {
+            success: false,
+            error: {
+              code: 'UNSUPPORTED_MFA_TYPE',
+              message: 'Unsupported MFA type',
+            },
+          };
+      }
+    } catch (error) {
+      this.logger.error('MFA verification error', {
+        correlationId,
+        challengeId,
+        mfaType,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      return {
+        success: false,
+        error: {
+          code: 'MFA_VERIFICATION_ERROR',
+          message: 'Failed to verify MFA',
+        },
+      };
+    }
+  }
+
+  /**
+   * Complete MFA challenge (for multi-step flows)
+   */
+  async completeMFAChallenge(
+    challengeId: string,
+    challengeResponse: any,
+    userId: string
+  ): Promise<MFAVerificationResult> {
+    const correlationId = SecureIdGenerator.generateCorrelationId();
+
+    try {
+      this.logger.info('MFA challenge completion initiated', {
+        correlationId,
+        challengeId,
+        userId,
+      });
+
+      // Get challenge
+      const challenge = await this.challengeRepository.findById(challengeId);
+      if (!challenge) {
+        return {
+          success: false,
+          error: {
+            code: 'CHALLENGE_NOT_FOUND',
+            message: 'MFA challenge not found',
+          },
+        };
+      }
+
+      // Verify challenge belongs to user
+      if (challenge.userId !== userId) {
+        return {
+          success: false,
+          error: {
+            code: 'CHALLENGE_MISMATCH',
+            message: 'Challenge does not belong to user',
+          },
+        };
+      }
+
+      // Check if challenge is expired
+      if (new Date() > challenge.expiresAt) {
+        await this.challengeRepository.deleteChallenge(challengeId);
+        return {
+          success: false,
+          error: {
+            code: 'CHALLENGE_EXPIRED',
+            message: 'MFA challenge has expired',
+          },
+        };
+      }
+
+      // Handle different challenge types
+      switch (challenge.type) {
+        case 'webauthn':
+          return await this.verifyWebAuthn({
+            userId,
+            challengeId,
+            credentialId: challengeResponse.credentialId,
+            authenticatorData: challengeResponse.authenticatorData,
+            clientDataJSON: challengeResponse.clientDataJSON,
+            signature: challengeResponse.signature,
+          });
+        case 'totp':
+          return await this.verifyTOTP(userId, challengeResponse.code);
+        case 'sms':
+          return await this.verifySMSCode(challengeId, challengeResponse.code);
+        case 'email':
+          return await this.verifyEmailCode(challengeId, challengeResponse.code);
+        default:
+          return {
+            success: false,
+            error: {
+              code: 'UNSUPPORTED_CHALLENGE_TYPE',
+              message: 'Unsupported challenge type',
+            },
+          };
+      }
+    } catch (error) {
+      this.logger.error('MFA challenge completion error', {
+        correlationId,
+        challengeId,
+        userId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      return {
+        success: false,
+        error: {
+          code: 'MFA_CHALLENGE_COMPLETION_ERROR',
+          message: 'Failed to complete MFA challenge',
+        },
+      };
+    }
+  }
+
+  /**
    * Setup TOTP (Time-based One-Time Password) for a user
    */
   async setupTOTP(

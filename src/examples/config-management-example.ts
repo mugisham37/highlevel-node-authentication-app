@@ -10,9 +10,7 @@
 import {
   configManager,
   SecretsManager,
-  createSecretsManager,
 } from '../infrastructure/config';
-import { logger } from '../infrastructure/logging/winston-logger';
 
 async function demonstrateConfigurationSystem() {
   console.log('🔧 Configuration Management System Demo\n');
@@ -276,7 +274,8 @@ async function demonstrateAdvancedSecretsManagement() {
         description: 'Third-party service API key',
         tags: ['api', 'external'],
         rotationPolicy: {
-          enabled: false, // Manual rotation only
+          enabled: false,
+          intervalDays: 0, // Manual rotation only
         },
       }
     );
@@ -310,7 +309,7 @@ async function demonstrateAdvancedSecretsManagement() {
     console.log('3. Configuration Value Resolution:');
 
     // Set an environment variable
-    process.env.TEST_ENV_VAR = 'env-value';
+    process.env['TEST_ENV_VAR'] = 'env-value';
 
     const envValue = await customSecretsManager.getConfigValue('TEST_ENV_VAR');
     console.log(`   Environment variable: ${envValue}`);
@@ -326,7 +325,7 @@ async function demonstrateAdvancedSecretsManagement() {
     console.log(`   Default value: ${defaultValue}\n`);
 
     // Cleanup
-    delete process.env.TEST_ENV_VAR;
+    delete process.env['TEST_ENV_VAR'];
 
     console.log('🎉 Advanced secrets management demo completed!');
   } catch (error) {

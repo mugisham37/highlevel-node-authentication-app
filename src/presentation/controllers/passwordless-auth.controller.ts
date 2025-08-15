@@ -15,12 +15,14 @@ import { DeviceInfo } from '../../domain/entities/user';
 const DeviceInfoSchema = z.object({
   fingerprint: z.string().min(1),
   userAgent: z.string().min(1),
-  platform: z.string().min(1),
-  browser: z.string().min(1),
-  version: z.string().min(1),
+  platform: z.string().optional(),
+  browser: z.string().optional(),
+  version: z.string().optional(),
   isMobile: z.boolean(),
+  mobile: z.boolean().optional(), // For backward compatibility
   screenResolution: z.string().optional(),
   timezone: z.string().optional(),
+  language: z.string().optional(),
 });
 
 const InitiatePasswordlessAuthSchema = z.object({

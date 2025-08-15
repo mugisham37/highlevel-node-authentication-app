@@ -23,12 +23,14 @@ export interface SessionData {
 export interface DeviceInfo {
   fingerprint: string;
   userAgent: string;
-  platform: string;
-  browser: string;
-  version: string;
+  platform?: string;
+  browser?: string;
+  version?: string;
   isMobile: boolean;
+  mobile?: boolean; // For backward compatibility
   screenResolution?: string;
   timezone?: string;
+  language?: string;
 }
 
 export interface SessionStorageConfig {
@@ -252,6 +254,52 @@ export class SessionStorage {
       return true;
     } catch (error) {
       logger.error('Failed to update session activity:', { sessionId, error });
+      return false;
+    }
+  }
+
+  async updateSession(sessionId: string, updatedData: Partial<SessionData>): Promise<boolean> {
+    try {
+      const sessionData = await this.getSession(sessionId);
+
+      if (!sessionData) {
+        return false;
+      }
+
+      // Update session data
+      const updatedSession = {
+        ...sessionData,
+        ...updatedData,
+      };
+
+      const now = Date.now();
+      const cacheOptions: CacheOptions = {
+        ttl: Math.ceil((updatedSession.expiresAt - now) / 1000),
+        tags: [
+          `user:${updatedSession.userId}`,
+          'session',
+          `device:${updatedSession.deviceInfo.fingerprint}`,
+        ],
+      };
+
+      await this.cache.set(
+        this.getSessionKey(sessionId),
+        updatedSession,
+        cacheOptions
+      );
+
+      logger.debug('Session updated', {
+        sessionId,
+        userId: updatedSession.userId,
+        updates: Object.keys(updatedData),
+      });
+
+      return true;
+    } catch (error) {
+      logger.error('Failed to update session:', {
+        sessionId,
+        error,
+      });
       return false;
     }
   }

@@ -5,13 +5,11 @@
 
 import { OAuthService } from '../application/services/oauth.service';
 import { OAuthServerService } from '../application/services/oauth-server.service';
-import { OAuthProviderFactory } from '../application/factories/oauth-provider.factory';
 import { PKCEService } from '../infrastructure/security/pkce.service';
 import { JWTTokenService } from '../infrastructure/security/jwt-token.service';
 import { OAuthUserRepository } from '../infrastructure/database/repositories/oauth-user.repository';
 import { OAuthAccountRepository } from '../infrastructure/database/repositories/oauth-account.repository';
 import { OAuthStateRepository } from '../infrastructure/database/repositories/oauth-state.repository';
-import { OAuthAuthorizationCodeRepository } from '../infrastructure/database/repositories/oauth-authorization-code.repository';
 import { PrismaClient } from '../generated/prisma/client';
 import Redis from 'ioredis';
 
@@ -132,7 +130,7 @@ export class OAuthClientExample {
   /**
    * Example: Link additional OAuth account
    */
-  async linkGitHubAccount(userId: string): Promise<void> {
+  async linkGitHubAccount(_userId: string): Promise<void> {
     try {
       console.log('🔗 Linking GitHub account...');
 
@@ -262,7 +260,7 @@ export class OAuthServerExample {
           code,
           clientId,
           redirectUri: 'http://localhost:3000/callback', // Should match authorization request
-          codeVerifier,
+          ...(codeVerifier && { codeVerifier }),
         });
       } else if (grantType === 'refresh_token' && refreshToken) {
         tokens = await this.oauthServer.exchangeCodeForTokens({
