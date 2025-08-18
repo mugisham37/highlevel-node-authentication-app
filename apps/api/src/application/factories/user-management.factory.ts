@@ -9,9 +9,9 @@ import { UserManagementService } from '../services/user-management.service';
 import { RoleManagementService } from '../services/role-management.service';
 import { PermissionManagementService } from '../services/permission-management.service';
 import { AuthorizationService } from '../services/authorization.service';
-import { PrismaUserRepository } from '../../infrastructure/database/repositories/prisma-user-repository';
-import { PrismaRoleRepository } from '../../infrastructure/database/repositories/prisma-role-repository';
-import { PrismaPermissionRepository } from '../../infrastructure/database/repositories/prisma-permission-repository';
+import { PrismaUserRepository } from '@company/database';
+import { PrismaRoleRepository } from '@company/database';
+import { PrismaPermissionRepository } from '@company/database';
 import { UserManagementController } from '../../presentation/controllers/user-management.controller';
 import { RoleManagementController } from '../../presentation/controllers/role-management.controller';
 
@@ -370,3 +370,4 @@ export class UserManagementFactory {
     await this.services.authorizationService.clearAuthorizationCache();
   }
 }
+

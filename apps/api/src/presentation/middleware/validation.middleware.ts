@@ -5,7 +5,7 @@
 
 import { FastifyRequest, FastifyReply, FastifyPluginCallback } from 'fastify';
 import { ZodSchema, ZodError } from 'zod';
-import { logger } from '../../infrastructure/logging/winston-logger';
+import { logger } from '@company/logger';
 
 export interface ValidationOptions {
   body?: ZodSchema;
@@ -191,3 +191,4 @@ export function validateResponse<T>(
   }
   return result.data;
 }
+

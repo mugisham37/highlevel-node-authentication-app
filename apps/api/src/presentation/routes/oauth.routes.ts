@@ -3,18 +3,18 @@
  * Defines API endpoints for OAuth2/OpenID Connect operations
  */
 
+import { createAuthorizationMiddleware } from '@company/auth';
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
-import { OAuthController } from '../controllers/oauth.controller';
-import { createAuthorizationMiddleware } from '../../infrastructure/server/middleware/authorization';
 import { AuthorizationService } from '../../application/services/authorization.service';
+import { OAuthController } from '../controllers/oauth.controller';
 import { validate } from '../middleware/validation.middleware';
 import {
-  OAuthInitiateRequestSchema,
   OAuthCallbackRequestSchema,
+  OAuthInitiateRequestSchema,
   OAuthLinkAccountRequestSchema,
-  OAuthUnlinkAccountRequestSchema,
   OAuthServerAuthorizeRequestSchema,
   OAuthServerTokenRequestSchema,
+  OAuthUnlinkAccountRequestSchema,
 } from '../schemas/oauth.schemas';
 
 export interface OAuthRoutesOptions extends FastifyPluginOptions {

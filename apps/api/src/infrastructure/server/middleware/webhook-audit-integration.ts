@@ -6,7 +6,7 @@
 import { FastifyPluginAsync } from 'fastify';
 import { AuditEvent } from './audit-logging';
 import { WebhookFactory } from '../../../application/factories/webhook.factory';
-import { WebhookEvent } from "@company/shared"entities/webhook';
+import { WebhookEvent } from "@company/shared/entities/webhook';
 import { logger } from '../../logging/winston-logger';
 
 export interface WebhookAuditConfig {
@@ -392,4 +392,5 @@ export const complianceWebhookAuditIntegration =
     batchSize: 1, // Immediate publishing for compliance
     batchTimeout: 1000,
   });
+
 

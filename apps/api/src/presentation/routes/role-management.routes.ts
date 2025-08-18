@@ -3,18 +3,18 @@
  * Defines API endpoints for role management
  */
 
+import { createAuthorizationMiddleware } from '@company/auth';
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
-import { RoleManagementController } from '../controllers/role-management.controller';
-import { createAuthorizationMiddleware } from '../../infrastructure/server/middleware/authorization';
 import { AuthorizationService } from '../../application/services/authorization.service';
+import { RoleManagementController } from '../controllers/role-management.controller';
 import { validate } from '../middleware/validation.middleware';
 import {
   CreateRoleSchema,
-  UpdateRoleSchema,
+  PermissionAssignmentSchema,
   RoleQuerySchema,
   RoleSearchSchema,
-  PermissionAssignmentSchema,
   RoleValidationSchema,
+  UpdateRoleSchema,
 } from '../schemas/role-management.schemas';
 
 export interface RoleManagementRoutesOptions extends FastifyPluginOptions {

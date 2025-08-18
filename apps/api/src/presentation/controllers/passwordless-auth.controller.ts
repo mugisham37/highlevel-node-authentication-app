@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { PasswordlessAuthService } from '../../application/services/passwordless-auth.service';
 import { DeviceManagementService } from '../../application/services/device-management.service';
 import { FallbackAuthService } from '../../application/services/fallback-auth.service';
-import { DeviceInfo } from "@company/shared"entities/user';
+import { DeviceInfo } from "@company/shared/entities/user';
 
 // Helper function to filter out undefined values from deviceInfo
 function filterDeviceInfo(deviceInfo: any): DeviceInfo {
@@ -800,4 +800,5 @@ export class PasswordlessAuthController {
     }
   }
 }
+
 

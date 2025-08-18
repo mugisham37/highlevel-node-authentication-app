@@ -7,7 +7,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { OAuthService } from '../../application/services/oauth.service';
 import { OAuthServerService } from '../../application/services/oauth-server.service';
-import { logger } from '../../infrastructure/logging/winston-logger';
+import { logger } from '@company/logger';
 import {
   OAuthInitiateRequest,
   OAuthCallbackRequest,
@@ -577,3 +577,4 @@ export class OAuthController {
     }
   }
 }
+

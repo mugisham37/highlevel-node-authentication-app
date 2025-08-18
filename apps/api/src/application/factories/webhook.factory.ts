@@ -25,16 +25,16 @@ import { WebhookDeliveryService } from '../services/webhook-delivery.service';
 import { WebhookService } from '../services/webhook.service';
 
 // Infrastructure
-import { WebhookDeliveryRepository } from '../../infrastructure/database/repositories/webhook-delivery.repository';
-import { WebhookEventRepository } from '../../infrastructure/database/repositories/webhook-event.repository';
-import { WebhookRepository } from '../../infrastructure/database/repositories/webhook.repository';
-import { WebhookSignatureService } from '../../infrastructure/security/webhook-signature.service';
+import { WebhookDeliveryRepository } from '@company/database';
+import { WebhookEventRepository } from '@company/database';
+import { WebhookRepository } from '@company/database';
+import { WebhookSignatureService } from '@company/auth';
 
 // Controllers
 import { WebhookWebSocketController } from '../../presentation/controllers/webhook-websocket.controller';
 import { WebhookController } from '../../presentation/controllers/webhook.controller';
 
-import { logger } from '../../infrastructure/logging/winston-logger';
+import { logger } from '@company/logger';
 
 export interface WebhookFactoryDependencies {
   prisma: PrismaClient;
@@ -253,3 +253,4 @@ export class WebhookFactory {
     }
   }
 }
+

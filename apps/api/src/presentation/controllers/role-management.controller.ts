@@ -5,7 +5,7 @@
 
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { RoleManagementService } from '../../application/services/role-management.service';
-import { logger } from '../../infrastructure/logging/winston-logger';
+import { logger } from '@company/logger';
 import {
   CreateRoleData,
   UpdateRoleData,
@@ -643,3 +643,4 @@ export class RoleManagementController {
     }
   }
 }
+

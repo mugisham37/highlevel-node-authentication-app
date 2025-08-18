@@ -10,7 +10,7 @@ import {
   IWebhookDeliveryService,
 } from '../interfaces/webhook.interface';
 import { WebhookEvent } from "@company/shared"entities/webhook';
-import { logger } from '../../infrastructure/logging/winston-logger';
+import { logger } from '@company/logger';
 import { EventEmitter } from 'events';
 
 export interface EventStreamSubscription {

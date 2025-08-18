@@ -4,13 +4,10 @@
  */
 
 import { Logger } from 'winston';
-import { SecureIdGenerator } from '../../infrastructure/security/secure-id-generator.service';
-import { SecureTokenGenerator } from '../../infrastructure/security/secure-token-generator.service';
-import {
-  WebAuthnService,
-} from '../../infrastructure/security/webauthn.service';
-// import { PrismaUserRepository } from '../../infrastructure/database/repositories/prisma-user-repository'; // TODO: Remove if not needed
-import { DeviceInfo } from "@company/shared"entities/user';
+import { SecureIdGenerator, SecureTokenGenerator } from '@company/auth';
+import { WebAuthnService } from '@company/auth';
+// import { PrismaUserRepository } from '@company/database'; // TODO: Remove if not needed
+import { DeviceInfo } from "@company/shared/entities/user';
 
 export interface DeviceRegistration {
   id: string;
@@ -758,4 +755,6 @@ export class DeviceManagementService {
     return browser;
   }
 }
+
+
 

@@ -4,18 +4,18 @@
  * system configuration, audit logs, security events, and bulk operations
  */
 
-import { FastifyRequest, FastifyReply } from 'fastify';
-import { UserManagementService } from '../../application/services/user-management.service';
+import { logger } from '@company/logger';
+import { FastifyReply, FastifyRequest } from 'fastify';
 import { SessionManagementService } from '../../application/services/session-management.service';
-import { logger } from '../../infrastructure/logging/winston-logger';
+import { UserManagementService } from '../../application/services/user-management.service';
 import {
-  SystemConfigUpdate,
   AuditLogQuery,
+  BulkSessionAction,
+  BulkUserAction,
   SecurityEventQuery,
   SecurityEventUpdate,
+  SystemConfigUpdate,
   SystemStatsQuery,
-  BulkUserAction,
-  BulkSessionAction,
 } from '../schemas/admin.schemas';
 
 export class AdminController {

@@ -11,7 +11,7 @@ import {
   UpdateWebhookRequest,
   WebhookQuery,
 } from '../../application/interfaces/webhook.interface';
-import { logger } from '../../infrastructure/logging/winston-logger';
+import { logger } from '@company/logger';
 
 export class WebhookController {
   constructor(
@@ -608,3 +608,4 @@ export class WebhookController {
     return descriptions[eventType] || 'Unknown event type';
   }
 }
+

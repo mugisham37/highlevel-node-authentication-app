@@ -5,12 +5,12 @@
 
 import { Logger } from 'winston';
 import { User } from "@company/shared"entities/user';
-import { SecureIdGenerator } from '../../infrastructure/security/secure-id-generator.service';
-import { SecureTokenGenerator } from '../../infrastructure/security/secure-token-generator.service';
+import { SecureIdGenerator } from '@company/auth';
+import { SecureTokenGenerator } from '@company/auth';
 import { MFAService } from './mfa.service';
-import { EmailMFAService } from '../../infrastructure/security/email-mfa.service';
-import { PrismaUserRepository } from '../../infrastructure/database/repositories/prisma-user-repository';
-import { MFAChallengeRepository } from '../../infrastructure/database/repositories/mfa-challenge.repository';
+import { EmailMFAService } from '@company/auth';
+import { PrismaUserRepository } from '@company/database';
+import { MFAChallengeRepository } from '@company/database';
 import { DeviceInfo } from "@company/shared"entities/user';
 
 export interface FallbackAuthRequest {
@@ -834,4 +834,5 @@ export class FallbackAuthService {
     return `${maskedLocal}@${domain}`;
   }
 }
+
 

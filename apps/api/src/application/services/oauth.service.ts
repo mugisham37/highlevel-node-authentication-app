@@ -20,7 +20,7 @@ import {
   IOAuthStateRepository,
 } from '../interfaces/oauth-repository.interface';
 import { OAuthProviderFactory } from '../factories/oauth-provider.factory';
-import { PKCEService } from '../../infrastructure/security/pkce.service';
+import { PKCEService } from '@company/auth';
 import { User } from "@company/shared"entities/user';
 import { Account } from "@company/shared"entities/account';
 import { Email } from "@company/shared"value-objects/email';
@@ -598,4 +598,5 @@ export class OAuthService implements IOAuthService {
     };
   }
 }
+
 

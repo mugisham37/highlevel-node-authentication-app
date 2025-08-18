@@ -3,21 +3,21 @@
  * Handles security compliance and standards implementation endpoints
  */
 
-import { FastifyRequest, FastifyReply } from 'fastify';
-import { z } from 'zod';
-import { logger } from '../../infrastructure/logging/winston-logger';
 import {
-  gdprComplianceService,
-  complianceReportingService,
-} from '../../infrastructure/compliance';
-import {
+  complianceScannerService,
   dataEncryptionService,
-  vulnerabilityScannerService,
+  EncryptionOptions,
   secureConfigManager,
-} from '../../infrastructure/security';
-import { tamperProtectionService } from '../../infrastructure/security/tamper-protection.service';
-import { complianceScannerService } from '../../infrastructure/security/compliance-scanner.service';
-import { EncryptionOptions } from '../../infrastructure/security/types';
+  tamperProtectionService,
+  vulnerabilityScannerService,
+} from '@company/auth';
+import { logger } from '@company/logger';
+import {
+  complianceReportingService,
+  gdprComplianceService,
+} from '@company/shared';
+import { FastifyReply, FastifyRequest } from 'fastify';
+import { z } from 'zod';
 
 // Request schemas
 const ConsentRequestSchema = z.object({
@@ -89,7 +89,7 @@ export class SecurityComplianceController {
       const metadata: any = {
         ipAddress: clientIP,
       };
-      
+
       if (userAgent !== undefined) {
         metadata.userAgent = userAgent;
       }
@@ -148,7 +148,7 @@ export class SecurityComplianceController {
       const metadata: any = {
         ipAddress: clientIP,
       };
-      
+
       if (userAgent !== undefined) {
         metadata.userAgent = userAgent;
       }
@@ -425,7 +425,7 @@ export class SecurityComplianceController {
       const configOptions: any = {
         actor: 'api-user', // This would come from authentication context
       };
-      
+
       if (validatedData.reason !== undefined) {
         configOptions.reason = validatedData.reason;
       }
@@ -482,7 +482,7 @@ export class SecurityComplianceController {
       const configOptions: any = {
         actor: 'api-user', // This would come from authentication context
       };
-      
+
       if (environment !== undefined) {
         configOptions.environment = environment;
       }
@@ -569,25 +569,25 @@ export class SecurityComplianceController {
       let filteredOptions: Partial<EncryptionOptions> | undefined;
       if (options) {
         filteredOptions = {};
-        
+
         // Validate algorithm
         if (options.algorithm) {
-          const validAlgorithms: ('aes-256-gcm' | 'aes-256-cbc' | 'chacha20-poly1305')[] = [
-            'aes-256-gcm', 
-            'aes-256-cbc', 
-            'chacha20-poly1305'
-          ];
+          const validAlgorithms: (
+            | 'aes-256-gcm'
+            | 'aes-256-cbc'
+            | 'chacha20-poly1305'
+          )[] = ['aes-256-gcm', 'aes-256-cbc', 'chacha20-poly1305'];
           if (validAlgorithms.includes(options.algorithm as any)) {
             filteredOptions.algorithm = options.algorithm as any;
           }
         }
-        
+
         // Validate keyDerivation
         if (options.keyDerivation) {
           const validKeyDerivations: ('pbkdf2' | 'scrypt' | 'argon2')[] = [
             'pbkdf2',
             'scrypt',
-            'argon2'
+            'argon2',
           ];
           if (validKeyDerivations.includes(options.keyDerivation as any)) {
             filteredOptions.keyDerivation = options.keyDerivation as any;

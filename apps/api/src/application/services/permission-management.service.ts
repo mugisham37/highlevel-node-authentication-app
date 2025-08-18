@@ -5,7 +5,7 @@
 
 import { Logger } from 'winston';
 import { Permission } from "@company/shared"entities/permission';
-import { PrismaPermissionRepository } from '../../infrastructure/database/repositories/prisma-permission-repository';
+import { PrismaPermissionRepository } from '@company/database';
 import {
   IPermissionManagementService,
   CreatePermissionData,
@@ -467,4 +467,5 @@ export class PermissionManagementService
     }
   }
 }
+
 

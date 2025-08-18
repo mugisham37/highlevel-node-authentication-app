@@ -18,8 +18,8 @@ import {
   WebhookConfig,
   WebhookEvent,
 } from "@company/shared"entities/webhook';
-import { WebhookSignatureService } from '../../infrastructure/security/webhook-signature.service';
-import { logger } from '../../infrastructure/logging/winston-logger';
+import { WebhookSignatureService } from '@company/auth';
+import { logger } from '@company/logger';
 
 export class WebhookService implements IWebhookService {
   constructor(
@@ -479,4 +479,5 @@ export class WebhookService implements IWebhookService {
     ];
   }
 }
+
 

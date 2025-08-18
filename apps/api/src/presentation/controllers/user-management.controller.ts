@@ -5,7 +5,7 @@
 
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { UserManagementService } from '../../application/services/user-management.service';
-import { logger } from '../../infrastructure/logging/winston-logger';
+import { logger } from '@company/logger';
 import {
   CreateUserData,
   UpdateUserData,
@@ -700,3 +700,4 @@ export class UserManagementController {
     }
   }
 }
+

@@ -4,7 +4,7 @@
  */
 
 import { FastifyRequest, FastifyReply, FastifyPluginCallback } from 'fastify';
-import { logger } from '../../infrastructure/logging/winston-logger';
+import { logger } from '@company/logger';
 
 export interface VersioningOptions {
   defaultVersion?: string;
@@ -288,3 +288,4 @@ export function createDeprecationNotice(
     }
   };
 }
+

@@ -6,8 +6,8 @@
 import { FastifyInstance } from 'fastify';
 import { WebSocket } from 'ws';
 import { IEventPublisher } from '../../application/interfaces/webhook.interface';
-import { WebhookEvent } from "@company/shared"entities/webhook';
-import { logger } from '../../infrastructure/logging/winston-logger';
+import { WebhookEvent } from "@company/shared/entities/webhook';
+import { logger } from '@company/logger';
 import { EventSubscriptionSchema } from '../schemas/webhook.schemas';
 
 interface WebSocketConnection {
@@ -504,4 +504,6 @@ export class WebhookWebSocketController {
     };
   }
 }
+
+
 

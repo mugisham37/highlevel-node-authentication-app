@@ -3,8 +3,8 @@
  * Defines contracts for OAuth data persistence
  */
 
-import { User } from "@company/shared"entities/user';
-import { Account } from "@company/shared"entities/account';
+import { User } from "@company/shared/entities/user';
+import { Account } from "@company/shared/entities/account';
 
 export interface IOAuthUserRepository {
   /**
@@ -151,4 +151,5 @@ export interface IOAuthAuthorizationCodeRepository {
    */
   cleanupExpiredCodes(): Promise<number>;
 }
+
 

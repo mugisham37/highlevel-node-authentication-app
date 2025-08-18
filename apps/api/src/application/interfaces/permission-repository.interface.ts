@@ -3,7 +3,7 @@
  * Defines data access operations for permissions
  */
 
-import { Permission } from "@company/shared"entities/permission';
+import { Permission } from "@company/shared/entities/permission';
 
 export interface CreatePermissionData {
   name: string;
@@ -110,4 +110,5 @@ export interface IPermissionRepository {
     }>
   >;
 }
+
 

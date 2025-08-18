@@ -3,21 +3,21 @@
  * Defines API endpoints for core authentication operations
  */
 
+import { createAuthorizationMiddleware } from '@company/auth';
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
-import { AuthenticationController } from '../controllers/authentication.controller';
-import { createAuthorizationMiddleware } from '../../infrastructure/server/middleware/authorization';
 import { AuthorizationService } from '../../application/services/authorization.service';
+import { AuthenticationController } from '../controllers/authentication.controller';
 import { validate } from '../middleware/validation.middleware';
 import {
-  LoginRequestSchema,
-  RefreshTokenRequestSchema,
-  LogoutRequestSchema,
-  PasswordResetRequestSchema,
-  PasswordResetConfirmSchema,
   ChangePasswordSchema,
+  LoginRequestSchema,
+  LogoutRequestSchema,
+  MFAChallengeRequestSchema,
   MFASetupRequestSchema,
   MFAVerifyRequestSchema,
-  MFAChallengeRequestSchema,
+  PasswordResetConfirmSchema,
+  PasswordResetRequestSchema,
+  RefreshTokenRequestSchema,
 } from '../schemas/auth.schemas';
 
 export interface AuthenticationRoutesOptions extends FastifyPluginOptions {

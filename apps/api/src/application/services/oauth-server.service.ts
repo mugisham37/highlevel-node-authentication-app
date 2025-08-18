@@ -9,8 +9,8 @@ import {
   OAuthTokens,
   TokenExchangeRequest,
 } from '../interfaces/oauth.interface';
-import { JWTTokenService } from '../../infrastructure/security/jwt-token.service';
-import { PKCEService } from '../../infrastructure/security/pkce.service';
+import { JWTTokenService } from '@company/auth';
+import { PKCEService } from '@company/auth';
 
 interface OAuthClient {
   clientId: string;
@@ -542,3 +542,4 @@ export class OAuthServerService implements IOAuthServer {
     expiredCodes.forEach((code) => this.authorizationCodes.delete(code));
   }
 }
+

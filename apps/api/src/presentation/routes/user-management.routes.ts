@@ -3,20 +3,20 @@
  * Defines API endpoints for user and role management
  */
 
+import { createAuthorizationMiddleware } from '@company/auth';
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
-import { UserManagementController } from '../controllers/user-management.controller';
-import { createAuthorizationMiddleware } from '../../infrastructure/server/middleware/authorization';
 import { AuthorizationService } from '../../application/services/authorization.service';
+import { UserManagementController } from '../controllers/user-management.controller';
 import { validate } from '../middleware/validation.middleware';
 import {
+  BulkCreateUsersSchema,
   CreateUserSchema,
+  RoleAssignmentSchema,
   UpdateUserSchema,
+  UserExportQuerySchema,
+  UserLockSchema,
   UserQuerySchema,
   UserSearchSchema,
-  RoleAssignmentSchema,
-  BulkCreateUsersSchema,
-  UserLockSchema,
-  UserExportQuerySchema,
 } from '../schemas/user-management.schemas';
 
 export interface UserManagementRoutesOptions extends FastifyPluginOptions {

@@ -3,14 +3,12 @@
  * Provides HTTP endpoints for system health monitoring
  */
 
-import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import {
-  healthCheckManager,
-} from '../../infrastructure/health/health-check';
-import { correlationIdManager } from '../../infrastructure/tracing/correlation-id';
-import { logger } from '../../infrastructure/logging/winston-logger';
+import { logger } from '@company/logger';
+import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { healthCheckManager } from '../../infrastructure/health/health-check';
 import { circuitBreakerManager } from '../../infrastructure/resilience/circuit-breaker';
 import { degradationManagers } from '../../infrastructure/resilience/graceful-degradation';
+import { correlationIdManager } from '../../infrastructure/tracing/correlation-id';
 
 interface HealthQueryParams {
   check?: string;

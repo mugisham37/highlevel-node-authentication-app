@@ -12,10 +12,10 @@ import { Logger } from 'winston';
 import { User } from "@company/shared"entities/user';
 import { Role } from "@company/shared"entities/role';
 import { Permission } from "@company/shared"entities/permission';
-import { Email } from "@company/shared"value-objects/email';
-import { Password } from "@company/shared"value-objects/password';
-import { PrismaUserRepository } from '../../infrastructure/database/repositories/prisma-user-repository';
-import { PrismaRoleRepository } from '../../infrastructure/database/repositories/prisma-role-repository';
+import { Email } from '@company/shared/value-objects/email';
+import { Password } from '@company/shared/value-objects/password';
+import { PrismaUserRepository } from '@company/database';
+import { PrismaRoleRepository } from '@company/database';
 import {
   IUserManagementService,
   CreateUserData,
@@ -716,4 +716,5 @@ export class UserManagementService implements IUserManagementService {
     } as UserWithRoles;
   }
 }
+
 

@@ -3,19 +3,19 @@
  * Defines API endpoints for administrative operations with elevated permissions
  */
 
+import { createAuthorizationMiddleware } from '@company/auth';
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
-import { AdminController } from '../controllers/admin.controller';
-import { createAuthorizationMiddleware } from '../../infrastructure/server/middleware/authorization';
 import { AuthorizationService } from '../../application/services/authorization.service';
+import { AdminController } from '../controllers/admin.controller';
 import { validate } from '../middleware/validation.middleware';
 import {
-  SystemConfigUpdateSchema,
   AuditLogQuerySchema,
+  BulkSessionActionSchema,
+  BulkUserActionSchema,
   SecurityEventQuerySchema,
   SecurityEventUpdateSchema,
+  SystemConfigUpdateSchema,
   SystemStatsQuerySchema,
-  BulkUserActionSchema,
-  BulkSessionActionSchema,
 } from '../schemas/admin.schemas';
 
 export interface AdminRoutesOptions extends FastifyPluginOptions {
