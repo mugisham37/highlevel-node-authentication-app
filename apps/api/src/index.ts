@@ -1,10 +1,10 @@
 /**
  * Enterprise Authentication Backend - Main Application Entry Point
- * 
+ *
  * This is the primary gateway to the enterprise-grade authentication system.
  * It orchestrates all components to provide a comprehensive authentication
  * and authorization backend with enterprise scalability and security.
- * 
+ *
  * Primary Responsibilities:
  * - Application Gateway: First point of entry that initializes everything
  * - Server Bootstrap: Sets up and starts the HTTP/HTTPS Fastify server
@@ -16,7 +16,7 @@
  * - Service Initializer: Starts background services, monitoring, caching
  * - Security Layer: Implements zero-trust architecture and rate limiting
  * - Health & Monitoring: Configures observability and health checks
- * 
+ *
  * Architecture Highlights:
  * - Dual ORM Strategy: Prisma for complex queries, Drizzle for performance
  * - Zero-Trust Security: Multi-layer verification for every request
@@ -26,10 +26,10 @@
  * - OAuth Integration: Complete OAuth2/OIDC server and client support
  * - MFA & Passwordless: TOTP, SMS, Email, WebAuthn authentication
  * - Role-Based Access Control: Hierarchical permissions and authorization
- * 
+ *
  * Development: npm run dev
  * Production: npm run build && npm start
- * 
+ *
  * @version 1.0.0
  * @author Enterprise Auth Team
  */
@@ -46,17 +46,19 @@ import { performance } from 'perf_hooks';
 // ============================================================================
 
 // Server and Configuration
+import { configManager } from '@company/config';
 import { createServer } from './infrastructure/server/fastify-server';
-import { configManager } from './infrastructure/config/config-manager';
-import { config } from './infrastructure/config/environment';
 
 // Logging and Monitoring
-import { logger, configureLogger } from './infrastructure/logging/winston-logger';
+import {
+  configureLogger,
+  logger,
+} from './infrastructure/logging/winston-logger';
 import { monitoringSystem } from './infrastructure/monitoring';
 
 // Database and Caching
-import { createDatabaseModule } from './infrastructure/database';
 import { createCacheSystem } from './infrastructure/cache';
+import { createDatabaseModule } from './infrastructure/database';
 
 // Security and Performance
 import { scalingSystem } from './infrastructure/scaling';
@@ -109,7 +111,7 @@ let appState: ApplicationState = {
  */
 async function preInitialize(): Promise<void> {
   const phaseStart = performance.now();
-  
+
   try {
     logger.info('🔧 Phase 1: Pre-initialization starting...');
 
@@ -127,11 +129,14 @@ async function preInitialize(): Promise<void> {
     logger.info('✅ System validation completed');
 
     const phaseTime = performance.now() - phaseStart;
-    logger.info(`✅ Phase 1: Pre-initialization completed in ${phaseTime.toFixed(2)}ms`);
-
+    logger.info(
+      `✅ Phase 1: Pre-initialization completed in ${phaseTime.toFixed(2)}ms`
+    );
   } catch (error) {
     logger.error('❌ Phase 1: Pre-initialization failed:', error);
-    throw new Error(`Pre-initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Pre-initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 }
 
@@ -141,9 +146,11 @@ async function preInitialize(): Promise<void> {
  */
 async function initializeInfrastructure(): Promise<void> {
   const phaseStart = performance.now();
-  
+
   try {
-    logger.info('🏗️ Phase 2: Infrastructure services initialization starting...');
+    logger.info(
+      '🏗️ Phase 2: Infrastructure services initialization starting...'
+    );
 
     // Initialize database connections (dual ORM strategy)
     logger.info('📊 Initializing database connections...');
@@ -152,7 +159,10 @@ async function initializeInfrastructure(): Promise<void> {
       appState.services.database = true;
       logger.info('✅ Database connections established (Prisma + Drizzle)');
     } catch (error) {
-      logger.warn('⚠️ Database initialization failed, continuing without database:', error);
+      logger.warn(
+        '⚠️ Database initialization failed, continuing without database:',
+        error
+      );
       appState.services.database = false;
     }
 
@@ -185,7 +195,10 @@ async function initializeInfrastructure(): Promise<void> {
       appState.services.cache = true;
       logger.info('✅ Cache layer initialized');
     } catch (error) {
-      logger.warn('⚠️ Cache initialization failed, continuing without cache:', error);
+      logger.warn(
+        '⚠️ Cache initialization failed, continuing without cache:',
+        error
+      );
       appState.services.cache = false;
     }
 
@@ -212,11 +225,14 @@ async function initializeInfrastructure(): Promise<void> {
     }
 
     const phaseTime = performance.now() - phaseStart;
-    logger.info(`✅ Phase 2: Infrastructure services completed in ${phaseTime.toFixed(2)}ms`);
-
+    logger.info(
+      `✅ Phase 2: Infrastructure services completed in ${phaseTime.toFixed(2)}ms`
+    );
   } catch (error) {
     logger.error('❌ Phase 2: Infrastructure initialization failed:', error);
-    throw new Error(`Infrastructure initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Infrastructure initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 }
 
@@ -226,7 +242,7 @@ async function initializeInfrastructure(): Promise<void> {
  */
 async function initializeApplication(): Promise<void> {
   const phaseStart = performance.now();
-  
+
   try {
     logger.info('🚀 Phase 3: Application server initialization starting...');
 
@@ -254,11 +270,14 @@ async function initializeApplication(): Promise<void> {
 
     appState.isInitialized = true;
     const phaseTime = performance.now() - phaseStart;
-    logger.info(`✅ Phase 3: Application server completed in ${phaseTime.toFixed(2)}ms`);
-
+    logger.info(
+      `✅ Phase 3: Application server completed in ${phaseTime.toFixed(2)}ms`
+    );
   } catch (error) {
     logger.error('❌ Phase 3: Application initialization failed:', error);
-    throw new Error(`Application initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Application initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 }
 
@@ -276,8 +295,8 @@ async function startServer(): Promise<void> {
 
     // Start listening for connections
     await appState.server.listen({
-      port: config.server.port,
-      host: config.server.host,
+      port: env.PORT,
+      host: env.HOST,
     });
 
     appState.startupTime = performance.now();
@@ -291,41 +310,57 @@ async function startServer(): Promise<void> {
     logger.info('🎉 ENTERPRISE AUTH BACKEND SUCCESSFULLY STARTED');
     logger.info('🎉 ===============================================');
     logger.info('');
-    
+
     // Server Information
     logger.info('📍 SERVER INFORMATION:');
-    logger.info(`   🚀 Host: ${config.server.host}:${config.server.port}`);
-    logger.info(`   🌍 Environment: ${config.isDevelopment ? 'Development' : 'Production'}`);
+    logger.info(`   🚀 Host: ${env.HOST}:${env.PORT}`);
+    logger.info(`   🌍 Environment: ${env.NODE_ENV}`);
     logger.info(`   ⏱️  Startup Time: ${totalTime.toFixed(2)}ms`);
     logger.info(`   🆔 Process ID: ${process.pid}`);
     logger.info('');
 
     // API Endpoints
     logger.info('🔗 AVAILABLE ENDPOINTS:');
-    logger.info(`   📚 API Documentation: http://${config.server.host}:${config.server.port}/docs`);
-    logger.info(`   🏥 Health Checks: http://${config.server.host}:${config.server.port}/health`);
-    logger.info(`   🔐 Authentication API: http://${config.server.host}:${config.server.port}/api/auth`);
-    logger.info(`   👥 User Management: http://${config.server.host}:${config.server.port}/api/users`);
-    logger.info(`   🎭 Role Management: http://${config.server.host}:${config.server.port}/api/roles`);
-    logger.info(`   🔑 OAuth Server: http://${config.server.host}:${config.server.port}/api/oauth`);
-    logger.info(`   🚫 Passwordless Auth: http://${config.server.host}:${config.server.port}/api/auth/passwordless`);
-    logger.info(`   👑 Admin Panel: http://${config.server.host}:${config.server.port}/api/admin`);
+    logger.info(`   📚 API Documentation: http://${env.HOST}:${env.PORT}/docs`);
+    logger.info(`   🏥 Health Checks: http://${env.HOST}:${env.PORT}/health`);
+    logger.info(
+      `   🔐 Authentication API: http://${env.HOST}:${env.PORT}/api/auth`
+    );
+    logger.info(
+      `   👥 User Management: http://${env.HOST}:${env.PORT}/api/users`
+    );
+    logger.info(
+      `   🎭 Role Management: http://${env.HOST}:${env.PORT}/api/roles`
+    );
+    logger.info(`   🔑 OAuth Server: http://${env.HOST}:${env.PORT}/api/oauth`);
+    logger.info(
+      `   🚫 Passwordless Auth: http://${env.HOST}:${env.PORT}/api/auth/passwordless`
+    );
+    logger.info(`   👑 Admin Panel: http://${env.HOST}:${env.PORT}/api/admin`);
     logger.info('');
 
     // Real-time and Advanced Features
     logger.info('🔌 REAL-TIME & ADVANCED FEATURES:');
-    logger.info(`   🌐 WebSocket Events: ws://${config.server.host}:${config.server.port}/ws/events`);
-    logger.info(`   ⚖️  Load Balancing: http://${config.server.host}:${config.server.port}/scaling`);
-    logger.info(`   📊 Metrics: http://${config.server.host}:${config.server.port}/metrics`);
-    logger.info(`   🔍 Security Compliance: http://${config.server.host}:${config.server.port}/api/compliance`);
+    logger.info(
+      `   🌐 WebSocket Events: ws://${env.HOST}:${env.PORT}/ws/events`
+    );
+    logger.info(
+      `   ⚖️  Load Balancing: http://${env.HOST}:${env.PORT}/scaling`
+    );
+    logger.info(`   📊 Metrics: http://${env.HOST}:${env.PORT}/metrics`);
+    logger.info(
+      `   🔍 Security Compliance: http://${env.HOST}:${env.PORT}/api/compliance`
+    );
     logger.info('');
 
     // Health & Monitoring
     logger.info('🏥 HEALTH & MONITORING:');
-    logger.info(`   ❤️  Liveness: http://${config.server.host}:${config.server.port}/health/live`);
-    logger.info(`   ✅ Readiness: http://${config.server.host}:${config.server.port}/health/ready`);
-    logger.info(`   🚀 Startup: http://${config.server.host}:${config.server.port}/health/startup`);
-    logger.info(`   📈 Detailed: http://${config.server.host}:${config.server.port}/health/detailed`);
+    logger.info(`   ❤️  Liveness: http://${env.HOST}:${env.PORT}/health/live`);
+    logger.info(`   ✅ Readiness: http://${env.HOST}:${env.PORT}/health/ready`);
+    logger.info(`   🚀 Startup: http://${env.HOST}:${env.PORT}/health/startup`);
+    logger.info(
+      `   📈 Detailed: http://${env.HOST}:${env.PORT}/health/detailed`
+    );
     logger.info('');
 
     // Authentication Methods
@@ -364,13 +399,16 @@ async function startServer(): Promise<void> {
     // Log service status
     logger.info('📊 SERVICE STATUS:');
     Object.entries(appState.services).forEach(([service, status]) => {
-      logger.info(`   ${status ? '✅' : '❌'} ${service.toUpperCase()}: ${status ? 'Active' : 'Inactive'}`);
+      logger.info(
+        `   ${status ? '✅' : '❌'} ${service.toUpperCase()}: ${status ? 'Active' : 'Inactive'}`
+      );
     });
     logger.info('');
-
   } catch (error) {
     logger.error('❌ Phase 4: Server startup failed:', error);
-    throw new Error(`Server startup failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Server startup failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 }
 
@@ -384,7 +422,7 @@ async function startServer(): Promise<void> {
  */
 async function bootstrap(): Promise<void> {
   const bootstrapStart = performance.now();
-  
+
   try {
     logger.info('🚀 ===============================================');
     logger.info('🚀 ENTERPRISE AUTHENTICATION BACKEND STARTING');
@@ -392,7 +430,9 @@ async function bootstrap(): Promise<void> {
     logger.info(`   🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
     logger.info(`   📦 Node.js Version: ${process.version}`);
     logger.info(`   🆔 Process ID: ${process.pid}`);
-    logger.info(`   💾 Memory Usage: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`);
+    logger.info(
+      `   💾 Memory Usage: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`
+    );
     logger.info('');
 
     // Execute all initialization phases
@@ -405,11 +445,11 @@ async function bootstrap(): Promise<void> {
     logger.info(`🎉 Total bootstrap time: ${totalBootstrapTime.toFixed(2)}ms`);
     logger.info('🎉 Ready to handle authentication requests!');
     logger.info('');
-
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error';
     const bootstrapTime = performance.now() - bootstrapStart;
-    
+
     logger.error('');
     logger.error('💥 ===============================================');
     logger.error('💥 ENTERPRISE AUTH BACKEND STARTUP FAILED');
@@ -418,23 +458,25 @@ async function bootstrap(): Promise<void> {
     logger.error(`   ⏱️  Failed after: ${bootstrapTime.toFixed(2)}ms`);
     logger.error(`   🆔 Process ID: ${process.pid}`);
     logger.error('');
-    
+
     // Log service status at failure
     logger.error('📊 SERVICE STATUS AT FAILURE:');
     Object.entries(appState.services).forEach(([service, status]) => {
-      logger.error(`   ${status ? '✅' : '❌'} ${service.toUpperCase()}: ${status ? 'Active' : 'Failed'}`);
+      logger.error(
+        `   ${status ? '✅' : '❌'} ${service.toUpperCase()}: ${status ? 'Active' : 'Failed'}`
+      );
     });
     logger.error('');
-    
+
     logger.error('💥 ===============================================');
-    
+
     // Attempt graceful cleanup
     try {
       await cleanup();
     } catch (cleanupError) {
       logger.error('Failed to cleanup during error handling:', cleanupError);
     }
-    
+
     process.exit(1);
   }
 }
@@ -450,7 +492,7 @@ async function cleanup(): Promise<void> {
   if (appState.isShuttingDown) {
     return;
   }
-  
+
   appState.isShuttingDown = true;
   logger.info('🔄 Starting graceful shutdown...');
 
@@ -493,7 +535,10 @@ async function cleanup(): Promise<void> {
 
     if (appState.services.database && appState.modules.database) {
       try {
-        if (typeof appState.modules.database.connectionManager?.shutdown === 'function') {
+        if (
+          typeof appState.modules.database.connectionManager?.shutdown ===
+          'function'
+        ) {
           await appState.modules.database.connectionManager.shutdown();
         }
         logger.info('✅ Database connections closed');
@@ -544,9 +589,9 @@ process.on('unhandledRejection', (reason, promise) => {
     stack: reason instanceof Error ? reason.stack : undefined,
     correlationId: 'system',
   });
-  
+
   // In production, we might want to exit
-  if (!config.isDevelopment) {
+  if (env.NODE_ENV === 'production') {
     process.exit(1);
   }
 });
@@ -558,7 +603,7 @@ process.on('uncaughtException', (error) => {
     stack: error.stack,
     correlationId: 'system',
   });
-  
+
   // Always exit on uncaught exception
   process.exit(1);
 });

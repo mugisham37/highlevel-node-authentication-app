@@ -3,9 +3,8 @@
  * Advanced security headers configuration with CSP and additional protections
  */
 
-import { FastifyRequest, FastifyReply, FastifyPluginAsync } from 'fastify';
+import { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import { logger } from '../../logging/winston-logger';
-import { config } from '../../config/environment';
 
 export interface SecurityHeadersConfig {
   enableCSP?: boolean;
@@ -459,7 +458,7 @@ export class SecurityHeadersMiddleware {
     return (
       request.protocol === 'https' ||
       request.headers['x-forwarded-proto'] === 'https' ||
-      config.isProduction
+      env.NODE_ENV === 'production'
     ); // Assume HTTPS in production
   }
 

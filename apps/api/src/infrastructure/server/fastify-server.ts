@@ -1,27 +1,24 @@
-import Fastify, { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
-import { config } from '../config/environment';
+import Fastify, { FastifyInstance } from 'fastify';
+import { createRouteRegistration } from '../../presentation/routes/index';
 import { documentationPlugin } from '../documentation';
 import { logger } from '../logging/winston-logger';
+import { monitoringSystem } from '../monitoring';
+import { scalingSystem } from '../scaling';
+import { WebSocketServer } from '../websocket/websocket-server';
 import { errorHandler } from './error-handler';
 import { correlationIdPlugin } from './plugins/correlation-id';
 import { requestLoggingPlugin } from './plugins/request-logging';
-import { createRouteRegistration } from '../../presentation/routes/index';
-import { WebSocketServer } from '../websocket/websocket-server';
-import { monitoringSystem } from '../monitoring';
-import { scalingSystem } from '../scaling';
 
 // Import new security middleware
-import {
-  apiRateLimiter,
-} from './middleware/intelligent-rate-limiter';
-import { standardZeroTrust } from './middleware/zero-trust-auth';
 import { standardAuditLogger } from './middleware/audit-logging';
+import { apiRateLimiter } from './middleware/intelligent-rate-limiter';
 import {
-  standardSecurityHeaders,
   developmentSecurityHeaders,
+  standardSecurityHeaders,
 } from './middleware/security-headers';
+import { standardZeroTrust } from './middleware/zero-trust-auth';
 
 export async function createServer(): Promise<FastifyInstance> {
   const server = Fastify({
@@ -45,7 +42,7 @@ export async function createServer(): Promise<FastifyInstance> {
   await server.register(standardAuditLogger);
 
   // Register enhanced security headers middleware
-  if (config.isDevelopment) {
+  if (env.NODE_ENV === 'development') {
     await server.register(developmentSecurityHeaders);
   } else {
     await server.register(standardSecurityHeaders);
@@ -61,7 +58,7 @@ export async function createServer(): Promise<FastifyInstance> {
 
   // CORS configuration
   await server.register(cors, {
-    origin: config.isDevelopment ? true : false, // Configure properly for production
+    origin: env.NODE_ENV === 'development' ? true : env.CORS_ORIGIN, // Configure properly for production
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: [
@@ -81,9 +78,9 @@ export async function createServer(): Promise<FastifyInstance> {
 
   // Comprehensive API documentation
   await server.register(documentationPlugin, {
-    enableDocs: config.isDevelopment || config.env === 'staging',
+    enableDocs: env.NODE_ENV === 'development' || env.NODE_ENV === 'staging',
     enableSwaggerUi: true,
-    environment: config.env,
+    environment: env.NODE_ENV,
   });
 
   // Initialize monitoring system

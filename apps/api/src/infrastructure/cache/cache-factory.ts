@@ -1,9 +1,8 @@
-import { RedisClient, createRedisClient } from './redis-client';
-import { RedisCache } from './redis-cache';
-import { MultiLayerCache, MultiLayerCacheConfig } from './multi-layer-cache';
-import { SessionStorage } from './session-storage';
-import { config } from '../config/environment';
 import { logger } from '../logging/winston-logger';
+import { MultiLayerCache, MultiLayerCacheConfig } from './multi-layer-cache';
+import { RedisCache } from './redis-cache';
+import { RedisClient, createRedisClient } from './redis-client';
+import { SessionStorage } from './session-storage';
 
 export interface CacheSystemConfig {
   redis: {
@@ -49,7 +48,7 @@ export class CacheFactory {
   private multiLayerCache: MultiLayerCache | null = null;
   private sessionStorage: SessionStorage | null = null;
 
-  private constructor(private cacheConfig: CacheSystemConfig) { }
+  private constructor(private cacheConfig: CacheSystemConfig) {}
 
   static getInstance(cacheConfig?: CacheSystemConfig): CacheFactory {
     if (!CacheFactory.instance) {
@@ -69,20 +68,19 @@ export class CacheFactory {
 
       // Initialize Redis client with proper type casting
       const redisConfig: any = {
-        host: config.redis.host,
-        port: config.redis.port,
-        db: config.redis.db,
-        cluster: config.redis.cluster,
-        maxRetriesPerRequest: config.redis.maxRetriesPerRequest,
-        lazyConnect: config.redis.lazyConnect,
-        keepAlive: config.redis.keepAlive,
-        connectTimeout: config.redis.connectTimeout,
-        commandTimeout: config.redis.commandTimeout,
+        host: env.REDIS_HOST || 'localhost',
+        port: env.REDIS_PORT || 6379,
+        db: env.REDIS_DB,
+        maxRetriesPerRequest: 3,
+        lazyConnect: true,
+        keepAlive: 30000,
+        connectTimeout: 10000,
+        commandTimeout: 5000,
       };
 
       // Only add password if it's defined
-      if (config.redis.password !== undefined) {
-        redisConfig.password = config.redis.password;
+      if (env.REDIS_PASSWORD) {
+        redisConfig.password = env.REDIS_PASSWORD;
       }
 
       this.redisClient = createRedisClient(redisConfig);

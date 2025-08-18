@@ -3,8 +3,8 @@
  * Ensures the application can scale horizontally by managing stateless operations
  */
 
+import { configManager } from '@company/config';
 import { logger } from '../logging/winston-logger';
-import { configManager } from '../config/config-manager';
 
 export interface StatelessConfig {
   instanceId: string;
@@ -109,7 +109,8 @@ export class StatelessManager {
     return {
       instanceId: this.instanceInfo.id,
       sessionStorage:
-        (process.env['SESSION_STORAGE'] as 'redis' | 'database' | 'local') || 'redis',
+        (process.env['SESSION_STORAGE'] as 'redis' | 'database' | 'local') ||
+        'redis',
       cacheStrategy:
         (process.env['CACHE_STRATEGY'] as 'distributed' | 'local') ||
         'distributed',

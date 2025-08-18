@@ -13,7 +13,6 @@ import { UserManagementFactory } from '../../application/factories/user-manageme
 
 // Import infrastructure services
 import { logger } from '../../infrastructure/logging/winston-logger';
-import { config } from '../../infrastructure/config/environment';
 
 export interface ServiceFactoryDependencies {
   prismaClient?: PrismaClient;
@@ -136,8 +135,8 @@ export class ServiceFactory {
         prismaClient,
         drizzleDb,
         logger: serviceLogger!,
-        jwtAccessSecret: config.jwt.accessSecret,
-        jwtRefreshSecret: config.jwt.refreshSecret,
+        jwtAccessSecret: env.JWT_SECRET,
+        jwtRefreshSecret: env.JWT_REFRESH_SECRET,
       });
     }
     return this.createMockAuthenticationService();

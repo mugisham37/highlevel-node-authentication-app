@@ -5,15 +5,14 @@
 
 import winston from 'winston';
 import { correlationIdManager } from '../tracing/correlation-id';
-import { config } from '../config/environment';
-import { 
-  LogContext, 
-  ErrorLogContext, 
-  PerformanceLogContext, 
-  SecurityLogContext, 
+import {
   AuditLogContext,
+  AuthLogContext,
   BusinessLogContext,
-  AuthLogContext
+  ErrorLogContext,
+  LogContext,
+  PerformanceLogContext,
+  SecurityLogContext,
 } from '../utils/monitoring-types';
 
 /**
@@ -41,9 +40,9 @@ export class StructuredLogger {
     this.component = component;
     this.defaultContext = {
       component,
-      service: config.SERVICE_NAME || 'auth-backend',
-      version: config.APP_VERSION || '1.0.0',
-      environment: config.NODE_ENV || 'development',
+      service: process.env.SERVICE_NAME || 'auth-backend',
+      version: process.env.APP_VERSION || '1.0.0',
+      environment: env.NODE_ENV,
       ...defaultContext,
     };
 
@@ -95,7 +94,7 @@ export class StructuredLogger {
     const transports: winston.transport[] = [];
 
     // Console transport (always present in development)
-    if (config.NODE_ENV === 'development' || config.NODE_ENV === 'test') {
+    if (env.NODE_ENV === 'development' || env.NODE_ENV === 'test') {
       transports.push(
         new winston.transports.Console({
           format: winston.format.combine(
@@ -108,7 +107,7 @@ export class StructuredLogger {
     }
 
     // File transports (production and staging)
-    if (config.NODE_ENV === 'production' || config.NODE_ENV === 'staging') {
+    if (env.NODE_ENV === 'production' || env.NODE_ENV === 'staging') {
       // Application logs
       transports.push(
         new winston.transports.File({
@@ -136,11 +135,11 @@ export class StructuredLogger {
    * Get log level based on environment
    */
   private getLogLevel(): string {
-    if (config.LOG_LEVEL) {
-      return config.LOG_LEVEL;
+    if (env.LOG_LEVEL) {
+      return env.LOG_LEVEL;
     }
 
-    switch (config.NODE_ENV) {
+    switch (env.NODE_ENV) {
       case 'production':
         return 'info';
       case 'staging':
@@ -175,13 +174,13 @@ export class StructuredLogger {
   private formatConsoleEntry(info: winston.Logform.TransformableInfo): string {
     const { timestamp, level, message, ...meta } = info;
     const correlationId = correlationIdManager.getCorrelationId();
-    
+
     let formatted = `${timestamp} [${level}] [${this.component}]`;
-    
+
     if (correlationId) {
       formatted += ` [${correlationId}]`;
     }
-    
+
     formatted += `: ${message}`;
 
     // Add meta information if present
@@ -314,14 +313,17 @@ export class StructuredLogger {
   /**
    * HTTP request/response logging
    */
-  http(message: string, context: LogContext & {
-    method?: string;
-    url?: string;
-    statusCode?: number;
-    responseTime?: number;
-    userAgent?: string;
-    ipAddress?: string;
-  }): void {
+  http(
+    message: string,
+    context: LogContext & {
+      method?: string;
+      url?: string;
+      statusCode?: number;
+      responseTime?: number;
+      userAgent?: string;
+      ipAddress?: string;
+    }
+  ): void {
     const enhancedContext = {
       ...this.buildContext(context),
       timestamp: new Date().toISOString(),
@@ -334,12 +336,15 @@ export class StructuredLogger {
   /**
    * Metric logging for monitoring systems
    */
-  metric(message: string, context: LogContext & {
-    metricName: string;
-    metricValue: number;
-    metricType: 'counter' | 'gauge' | 'histogram' | 'summary';
-    tags?: Record<string, string>;
-  }): void {
+  metric(
+    message: string,
+    context: LogContext & {
+      metricName: string;
+      metricValue: number;
+      metricType: 'counter' | 'gauge' | 'histogram' | 'summary';
+      tags?: Record<string, string>;
+    }
+  ): void {
     const enhancedContext = {
       ...this.buildContext(context),
       timestamp: new Date().toISOString(),
@@ -352,13 +357,16 @@ export class StructuredLogger {
   /**
    * Database operation logging
    */
-  database(message: string, context: LogContext & {
-    operation: string;
-    table?: string;
-    query?: string;
-    duration?: number;
-    affectedRows?: number;
-  }): void {
+  database(
+    message: string,
+    context: LogContext & {
+      operation: string;
+      table?: string;
+      query?: string;
+      duration?: number;
+      affectedRows?: number;
+    }
+  ): void {
     const enhancedContext = {
       ...this.buildContext(context),
       timestamp: new Date().toISOString(),
@@ -371,13 +379,16 @@ export class StructuredLogger {
   /**
    * External service call logging
    */
-  external(message: string, context: LogContext & {
-    service: string;
-    endpoint?: string;
-    method?: string;
-    statusCode?: number;
-    duration?: number;
-  }): void {
+  external(
+    message: string,
+    context: LogContext & {
+      service: string;
+      endpoint?: string;
+      method?: string;
+      statusCode?: number;
+      duration?: number;
+    }
+  ): void {
     const enhancedContext = {
       ...this.buildContext(context),
       timestamp: new Date().toISOString(),
@@ -390,12 +401,15 @@ export class StructuredLogger {
   /**
    * Cache operation logging
    */
-  cache(message: string, context: LogContext & {
-    operation: 'hit' | 'miss' | 'set' | 'delete' | 'clear';
-    key?: string;
-    ttl?: number;
-    size?: number;
-  }): void {
+  cache(
+    message: string,
+    context: LogContext & {
+      operation: 'hit' | 'miss' | 'set' | 'delete' | 'clear';
+      key?: string;
+      ttl?: number;
+      size?: number;
+    }
+  ): void {
     const enhancedContext = {
       ...this.buildContext(context),
       timestamp: new Date().toISOString(),
@@ -507,7 +521,7 @@ export class LoggerFactory {
     defaultContext: LogContext = {}
   ): StructuredLogger {
     const key = `${component}:${JSON.stringify(defaultContext)}`;
-    
+
     if (!this.loggers.has(key)) {
       this.loggers.set(key, new StructuredLogger(component, defaultContext));
     }
@@ -542,26 +556,26 @@ export const loggers = {
   auth: LoggerFactory.getLogger('auth'),
   database: LoggerFactory.getLogger('database'),
   cache: LoggerFactory.getLogger('cache'),
-  
+
   // Infrastructure loggers
   server: LoggerFactory.getLogger('server'),
   middleware: LoggerFactory.getLogger('middleware'),
   validation: LoggerFactory.getLogger('validation'),
-  
+
   // Monitoring and observability
   monitoring: LoggerFactory.getLogger('monitoring'),
   metrics: LoggerFactory.getLogger('metrics'),
   health: LoggerFactory.getLogger('health'),
   tracing: LoggerFactory.getLogger('tracing'),
-  
+
   // Security and compliance
   security: LoggerFactory.getLogger('security'),
   audit: LoggerFactory.getLogger('audit'),
-  
+
   // External integrations
   external: LoggerFactory.getLogger('external'),
   webhooks: LoggerFactory.getLogger('webhooks'),
-  
+
   // Background processes
   jobs: LoggerFactory.getLogger('jobs'),
   scheduler: LoggerFactory.getLogger('scheduler'),
@@ -580,10 +594,10 @@ export function createCorrelatedLogger(
   baseContext: LogContext = {}
 ): StructuredLogger {
   const correlationId = correlationIdManager.getCorrelationId();
-  const context = correlationId 
+  const context = correlationId
     ? { ...baseContext, correlationId }
     : baseContext;
-    
+
   return LoggerFactory.createLogger(component, context);
 }
 

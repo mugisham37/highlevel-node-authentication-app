@@ -1,0 +1,68 @@
+{
+  "name": "@company/config",
+  "version": "1.0.0",
+  "description": "Configuration management package with environment validation, feature flags, and secret management",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rimraf dist",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "zod": "^3.22.4",
+    "node-config": "^0.0.2",
+    "@company/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.0",
+    "typescript": "^5.2.2",
+    "vitest": "^0.34.6",
+    "rimraf": "^5.0.5",
+    "eslint": "^8.51.0",
+    "@typescript-eslint/eslint-plugin": "^6.7.4",
+    "@typescript-eslint/parser": "^6.7.4"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./env": {
+      "import": "./dist/env.js",
+      "require": "./dist/env.js",
+      "types": "./dist/env.d.ts"
+    },
+    "./features": {
+      "import": "./dist/features/index.js",
+      "require": "./dist/features/index.js",
+      "types": "./dist/features/index.d.ts"
+    },
+    "./secrets": {
+      "import": "./dist/secrets/index.js",
+      "require": "./dist/secrets/index.js",
+      "types": "./dist/secrets/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "configuration",
+    "environment",
+    "feature-flags",
+    "secrets",
+    "validation",
+    "zod"
+  ],
+  "author": "Your Company",
+  "license": "MIT"
+}
