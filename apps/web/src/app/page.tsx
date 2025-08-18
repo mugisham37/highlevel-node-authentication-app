@@ -81,12 +81,15 @@ export default function Home() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="/auth/login" className="btn-primary px-8 py-3 text-lg font-medium rounded-lg">
+            <a
+              href="/auth/login"
+              className="inline-flex items-center justify-center px-8 py-3 text-lg font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 transition-colors"
+            >
               Get Started
             </a>
             <a
               href="/auth/register"
-              className="btn-secondary px-8 py-3 text-lg font-medium rounded-lg"
+              className="inline-flex items-center justify-center px-8 py-3 text-lg font-medium rounded-lg text-primary-600 bg-white border border-primary-600 hover:bg-primary-50 transition-colors"
             >
               Create Account
             </a>

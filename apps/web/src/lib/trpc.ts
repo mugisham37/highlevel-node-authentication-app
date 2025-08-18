@@ -1,9 +1,5 @@
+import type { AppRouter } from '@company/api-contracts';
 import { createTRPCReact } from '@trpc/react-query';
-// Import the AppRouter type from api-contracts when available
-// import type { AppRouter } from '@company/api-contracts';
-
-// For now, we'll use a placeholder type until the API contracts are available
-type AppRouter = any;
 
 export const trpc = createTRPCReact<AppRouter>();
 
