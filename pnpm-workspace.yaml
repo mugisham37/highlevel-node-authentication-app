@@ -1,0 +1,68 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "tools/*"
+  - "infrastructure/*"
+
+# Catalog for shared dependencies
+catalog:
+  # Core dependencies
+  react: ^18.2.0
+  react-dom: ^18.2.0
+  next: ^14.0.4
+  typescript: ^5.3.3
+  
+  # Database
+  prisma: ^5.7.1
+  "@prisma/client": ^5.7.1
+  drizzle-orm: ^0.29.1
+  drizzle-kit: ^0.20.6
+  pg: ^8.11.3
+  "@types/pg": ^8.10.9
+  
+  # Authentication
+  jsonwebtoken: ^9.0.2
+  "@types/jsonwebtoken": ^9.0.5
+  bcrypt: ^5.1.1
+  "@types/bcrypt": ^5.0.2
+  argon2: ^0.31.2
+  passport: ^0.7.0
+  
+  # Validation
+  zod: ^3.22.4
+  class-validator: ^0.14.0
+  class-transformer: ^0.5.1
+  
+  # Utilities
+  lodash: ^4.17.21
+  "@types/lodash": ^4.14.202
+  date-fns: ^2.30.0
+  nanoid: ^5.0.4
+  
+  # Caching
+  redis: ^4.6.12
+  ioredis: ^5.3.2
+  node-cache: ^5.1.2
+  
+  # Logging
+  winston: ^3.11.0
+  winston-daily-rotate-file: ^4.7.1
+  
+  # Testing
+  jest: ^29.7.0
+  "@types/jest": ^29.5.8
+  ts-jest: ^29.1.1
+  "@testing-library/react": ^14.1.2
+  "@testing-library/jest-dom": ^6.1.5
+  playwright: ^1.40.1
+  
+  # Build tools
+  turbo: ^1.11.2
+  tsup: ^8.0.1
+  rollup: ^4.9.1
+  
+  # Linting and formatting
+  eslint: ^8.56.0
+  prettier: ^3.1.1
+  "@typescript-eslint/eslint-plugin": ^6.15.0
+  "@typescript-eslint/parser": ^6.15.0

@@ -1,0 +1,85 @@
+{
+  "compilerOptions": {
+    // Language and Environment
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowJs": true,
+    "checkJs": false,
+    "jsx": "preserve",
+    "incremental": true,
+    "isolatedModules": true,
+    
+    // Type Checking
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+    
+    // Modules
+    "baseUrl": ".",
+    "paths": {
+      "@company/shared": ["./packages/shared/src"],
+      "@company/shared/*": ["./packages/shared/src/*"],
+      "@company/database": ["./packages/database/src"],
+      "@company/database/*": ["./packages/database/src/*"],
+      "@company/auth": ["./packages/auth/src"],
+      "@company/auth/*": ["./packages/auth/src/*"],
+      "@company/config": ["./packages/config/src"],
+      "@company/config/*": ["./packages/config/src/*"],
+      "@company/cache": ["./packages/cache/src"],
+      "@company/cache/*": ["./packages/cache/src/*"],
+      "@company/logger": ["./packages/logger/src"],
+      "@company/logger/*": ["./packages/logger/src/*"],
+      "@company/notifications": ["./packages/notifications/src"],
+      "@company/notifications/*": ["./packages/notifications/src/*"],
+      "@company/ui": ["./packages/ui/src"],
+      "@company/ui/*": ["./packages/ui/src/*"],
+      "@company/api-contracts": ["./packages/api-contracts/src"],
+      "@company/api-contracts/*": ["./packages/api-contracts/src/*"],
+      "@/*": ["./src/*"]
+    },
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    
+    // Emit
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "removeComments": false,
+    "noEmitOnError": true,
+    "preserveWatchOutput": true,
+    
+    // Interop Constraints
+    "verbatimModuleSyntax": false,
+    
+    // Completeness
+    "skipLibCheck": true,
+    
+    // Experimental
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    ".next",
+    ".turbo",
+    "coverage",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx"
+  ]
+}

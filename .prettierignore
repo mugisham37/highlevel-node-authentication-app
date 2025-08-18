@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Production builds
+dist/
+build/
+.next/
+out/
+
+# Development
+.turbo/
+.cache/
+
+# Generated files
+*.generated.*
+*.gen.*
+
+# Logs
+*.log
+
+# Coverage
+coverage/
+
+# Database
+*.db
+*.sqlite
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Package manager
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
+
+# Specific file types that shouldn't be formatted
+*.min.js
+*.min.css
+*.bundle.js
+
+# Documentation that should preserve formatting
+CHANGELOG.md
+LICENSE
