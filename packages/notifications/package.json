@@ -1,0 +1,46 @@
+{
+  "name": "@company/notifications",
+  "version": "1.0.0",
+  "description": "Comprehensive notification services for email, SMS, and push notifications",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix"
+  },
+  "dependencies": {
+    "nodemailer": "^6.9.8",
+    "twilio": "^4.19.3",
+    "firebase-admin": "^12.0.0",
+    "@company/shared": "workspace:*",
+    "@company/config": "workspace:*",
+    "@company/logger": "workspace:*",
+    "handlebars": "^4.7.8",
+    "mjml": "^4.14.1",
+    "bull": "^4.12.2",
+    "ioredis": "^5.3.2",
+    "uuid": "^9.0.1",
+    "@sendgrid/mail": "^7.7.0",
+    "@aws-sdk/client-ses": "^3.450.0",
+    "@aws-sdk/client-sns": "^3.450.0"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "^6.4.14",
+    "@types/uuid": "^9.0.7",
+    "@types/jest": "^29.5.8",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.3.2",
+    "eslint": "^8.54.0",
+    "@typescript-eslint/eslint-plugin": "^6.12.0",
+    "@typescript-eslint/parser": "^6.12.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
