@@ -1,0 +1,41 @@
+import type { Meta, StoryObj } from '@storybook/react';
+import { {{pascalCase name}} } from './{{pascalCase name}}';
+
+const meta: Meta<typeof {{pascalCase name}}> = {
+  title: 'Components/{{pascalCase name}}',
+  component: {{pascalCase name}},
+  parameters: {
+    layout: 'centered',
+  },
+  tags: ['autodocs'],
+  argTypes: {
+    className: {
+      control: 'text',
+      description: 'Additional CSS classes',
+    },
+    children: {
+      control: 'text',
+      description: 'Content to display inside the component',
+    },
+  },
+};
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Default: Story = {
+  args: {},
+};
+
+export const WithCustomContent: Story = {
+  args: {
+    children: 'Custom content for {{pascalCase name}}',
+  },
+};
+
+export const WithClassName: Story = {
+  args: {
+    className: 'border-2 border-blue-500 p-4 rounded-lg',
+    children: 'Styled {{pascalCase name}}',
+  },
+};

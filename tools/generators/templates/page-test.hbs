@@ -1,0 +1,29 @@
+import React from 'react';
+import { render, screen } from '@testing-library/react';
+import {{pascalCase name}}Page from './{{pascalCase name}}';
+
+{{#if (eq app 'web')}}
+// Mock Next.js router
+jest.mock('next/router', () => ({
+  useRouter: () => ({
+    push: jest.fn(),
+    pathname: '{{route}}',
+    query: {},
+    asPath: '{{route}}',
+  }),
+}));
+{{/if}}
+
+describe('{{pascalCase name}}Page', () => {
+  it('should render successfully', () => {
+    render(<{{pascalCase name}}Page />);
+    
+    expect(screen.getByText('{{pascalCase name}}')).toBeInTheDocument();
+  });
+
+  it('should display the correct content', () => {
+    render(<{{pascalCase name}}Page />);
+    
+    expect(screen.getByText(/This is the {{pascalCase name}}/)).toBeInTheDocument();
+  });
+});

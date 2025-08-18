@@ -1,0 +1,44 @@
+import React from 'react';
+{{#if (eq app 'web')}}
+import { NextPage } from 'next';
+import Head from 'next/head';
+{{/if}}
+
+{{#if (eq app 'web')}}
+const {{pascalCase name}}Page: NextPage = () => {
+{{else}}
+export const {{pascalCase name}}Page: React.FC = () => {
+{{/if}}
+  return (
+    {{#if (eq app 'web')}}
+    <>
+      <Head>
+        <title>{{pascalCase name}} | Your App</title>
+        <meta name="description" content="{{pascalCase name}} page" />
+      </Head>
+      
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold mb-6">{{pascalCase name}}</h1>
+        
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <p className="text-gray-600">
+            This is the {{pascalCase name}} page. Add your content here.
+          </p>
+        </div>
+      </div>
+    </>
+    {{else}}
+    <div className="flex-1 justify-center items-center p-4">
+      <h1 className="text-2xl font-bold text-center mb-4">{{pascalCase name}}</h1>
+      
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <p className="text-gray-600 text-center">
+          This is the {{pascalCase name}} screen. Add your content here.
+        </p>
+      </div>
+    </div>
+    {{/if}}
+  );
+};
+
+export default {{pascalCase name}}Page;

@@ -1,0 +1,52 @@
+import { z } from 'zod';
+
+{{#each methods}}
+{{#if (eq this 'GET')}}
+export const get{{pascalCase ../name}}Schema = z.object({
+  id: z.string().uuid().optional(),
+  // Add more fields as needed
+});
+
+export type Get{{pascalCase ../name}}Input = z.infer<typeof get{{pascalCase ../name}}Schema>;
+{{/if}}
+
+{{#if (eq this 'POST')}}
+export const create{{pascalCase ../name}}Schema = z.object({
+  // Add required fields for creation
+  name: z.string().min(1, 'Name is required'),
+  // Add more fields as needed
+});
+
+export type Create{{pascalCase ../name}}Input = z.infer<typeof create{{pascalCase ../name}}Schema>;
+{{/if}}
+
+{{#if (eq this 'PUT')}}
+export const update{{pascalCase ../name}}Schema = z.object({
+  id: z.string().uuid(),
+  // Add fields that can be updated
+  name: z.string().min(1, 'Name is required'),
+  // Add more fields as needed
+});
+
+export type Update{{pascalCase ../name}}Input = z.infer<typeof update{{pascalCase ../name}}Schema>;
+{{/if}}
+
+{{#if (eq this 'PATCH')}}
+export const patch{{pascalCase ../name}}Schema = z.object({
+  id: z.string().uuid(),
+  // Add optional fields that can be patched
+  name: z.string().min(1, 'Name is required').optional(),
+  // Add more fields as needed
+});
+
+export type Patch{{pascalCase ../name}}Input = z.infer<typeof patch{{pascalCase ../name}}Schema>;
+{{/if}}
+
+{{#if (eq this 'DELETE')}}
+export const delete{{pascalCase ../name}}Schema = z.object({
+  id: z.string().uuid(),
+});
+
+export type Delete{{pascalCase ../name}}Input = z.infer<typeof delete{{pascalCase ../name}}Schema>;
+{{/if}}
+{{/each}}

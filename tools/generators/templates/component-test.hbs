@@ -1,0 +1,28 @@
+import React from 'react';
+import { render, screen } from '@testing-library/react';
+import { {{pascalCase name}} } from './{{pascalCase name}}';
+
+describe('{{pascalCase name}}', () => {
+  it('should render successfully', () => {
+    render(<{{pascalCase name}} />);
+    
+    expect(screen.getByText('{{pascalCase name}} Component')).toBeInTheDocument();
+  });
+
+  it('should render children when provided', () => {
+    const testContent = 'Test content';
+    
+    render(<{{pascalCase name}}>{testContent}</{{pascalCase name}}>);
+    
+    expect(screen.getByText(testContent)).toBeInTheDocument();
+  });
+
+  it('should apply custom className', () => {
+    const customClass = 'custom-class';
+    
+    render(<{{pascalCase name}} className={customClass} />);
+    
+    const element = screen.getByText('{{pascalCase name}} Component').parentElement;
+    expect(element).toHaveClass(customClass);
+  });
+});

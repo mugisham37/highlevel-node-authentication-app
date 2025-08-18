@@ -1,0 +1,72 @@
+import { z } from 'zod';
+import { t } from '../trpc';
+{{#if withValidation}}
+import { 
+  {{#each methods}}
+  {{#if (eq this 'GET')}}get{{pascalCase ../name}}Schema,{{/if}}
+  {{#if (eq this 'POST')}}create{{pascalCase ../name}}Schema,{{/if}}
+  {{#if (eq this 'PUT')}}update{{pascalCase ../name}}Schema,{{/if}}
+  {{#if (eq this 'PATCH')}}patch{{pascalCase ../name}}Schema,{{/if}}
+  {{#if (eq this 'DELETE')}}delete{{pascalCase ../name}}Schema,{{/if}}
+  {{/each}}
+} from '../schemas/{{camelCase name}}';
+{{/if}}
+
+export const {{camelCase name}}Router = t.router({
+  {{#each methods}}
+  {{#if (eq this 'GET')}}
+  get{{pascalCase ../name}}: t.procedure
+    {{#if ../withValidation}}
+    .input(get{{pascalCase ../name}}Schema)
+    {{/if}}
+    .query(async ({ input, ctx }) => {
+      // TODO: Implement get{{pascalCase ../name}} logic
+      throw new Error('Not implemented');
+    }),
+  {{/if}}
+  
+  {{#if (eq this 'POST')}}
+  create{{pascalCase ../name}}: t.procedure
+    {{#if ../withValidation}}
+    .input(create{{pascalCase ../name}}Schema)
+    {{/if}}
+    .mutation(async ({ input, ctx }) => {
+      // TODO: Implement create{{pascalCase ../name}} logic
+      throw new Error('Not implemented');
+    }),
+  {{/if}}
+  
+  {{#if (eq this 'PUT')}}
+  update{{pascalCase ../name}}: t.procedure
+    {{#if ../withValidation}}
+    .input(update{{pascalCase ../name}}Schema)
+    {{/if}}
+    .mutation(async ({ input, ctx }) => {
+      // TODO: Implement update{{pascalCase ../name}} logic
+      throw new Error('Not implemented');
+    }),
+  {{/if}}
+  
+  {{#if (eq this 'PATCH')}}
+  patch{{pascalCase ../name}}: t.procedure
+    {{#if ../withValidation}}
+    .input(patch{{pascalCase ../name}}Schema)
+    {{/if}}
+    .mutation(async ({ input, ctx }) => {
+      // TODO: Implement patch{{pascalCase ../name}} logic
+      throw new Error('Not implemented');
+    }),
+  {{/if}}
+  
+  {{#if (eq this 'DELETE')}}
+  delete{{pascalCase ../name}}: t.procedure
+    {{#if ../withValidation}}
+    .input(delete{{pascalCase ../name}}Schema)
+    {{/if}}
+    .mutation(async ({ input, ctx }) => {
+      // TODO: Implement delete{{pascalCase ../name}} logic
+      throw new Error('Not implemented');
+    }),
+  {{/if}}
+  {{/each}}
+});

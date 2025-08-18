@@ -1,0 +1,37 @@
+import React from 'react';
+{{#if (eq package 'ui')}}
+import { cn } from '../../../utils/cn';
+{{/if}}
+
+export interface {{pascalCase name}}Props {
+  className?: string;
+  children?: React.ReactNode;
+}
+
+export const {{pascalCase name}}: React.FC<{{pascalCase name}}Props> = ({
+  className,
+  children,
+  ...props
+}) => {
+  return (
+    <div
+      {{#if (eq package 'ui')}}
+      className={cn('{{kebabCase name}}', className)}
+      {{else}}
+      className={className}
+      {{/if}}
+      {...props}
+    >
+      {children || (
+        <div>
+          <h2>{{pascalCase name}} Component</h2>
+          <p>This is the {{pascalCase name}} component.</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+{{pascalCase name}}.displayName = '{{pascalCase name}}';
+
+export default {{pascalCase name}};
