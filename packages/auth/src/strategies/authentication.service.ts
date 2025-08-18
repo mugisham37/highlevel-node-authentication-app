@@ -4,25 +4,24 @@
  * account lockout logic, and risk scoring integration
  */
 
+import { DrizzleSessionRepository, PrismaUserRepository } from '@company/database';
+import { Session } from '@company/shared/entities/session';
+import { DeviceInfo, User } from '@company/shared/entities/user';
+import { Email } from '@company/shared/value-objects/email';
+import { Password } from '@company/shared/value-objects/password';
 import { Logger } from 'winston';
-import { User } from "@company/shared"entities/user';
-import { Session } from "@company/shared"entities/session';
-import { Email } from "@company/shared"value-objects/email';
-import { Password } from "@company/shared"value-objects/password';
-import { DeviceInfo } from "@company/shared"entities/user';
-import { PrismaUserRepository, DrizzleSessionRepository } from '@company/database';
-import { PasswordHashingService } from '../../infrastructure/security/password-hashing.service';
+import { PasswordHashingService } from '../encryption/password-hashing.service';
 import {
-  JWTTokenService,
-  TokenPair,
-} from '../../infrastructure/security/jwt-token.service';
-import { RiskScoringService } from '../../infrastructure/security/risk-scoring.service';
-import { DeviceFingerprintingService } from '../../infrastructure/security/device-fingerprinting.service';
-import { SecureIdGenerator } from '../../infrastructure/security/secure-id-generator.service';
+    JWTTokenService,
+    TokenPair,
+} from '../tokens/jwt-token.service';
+import { SecureIdGenerator } from '../tokens/secure-id-generator.service';
 import {
-  SecurityContext,
-  RiskAssessment,
-} from '../../infrastructure/security/types';
+    RiskAssessment,
+    SecurityContext,
+} from '../types';
+import { DeviceFingerprintingService } from '../validation/device-fingerprinting.service';
+import { RiskScoringService } from '../validation/risk-scoring.service';
 
 export interface AuthCredentials {
   type: 'email_password' | 'oauth' | 'passwordless' | 'mfa';

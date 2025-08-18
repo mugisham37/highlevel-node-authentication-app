@@ -3,16 +3,15 @@
  * Demonstrates how to use the passwordless authentication system
  */
 
+import { EmailMFAService, WebAuthnService } from '@company/auth';
 import { Logger } from 'winston';
-import { PasswordlessAuthService } from '../application/services/passwordless-auth.service';
 import { DeviceManagementService } from '../application/services/device-management.service';
 import { FallbackAuthService } from '../application/services/fallback-auth.service';
-import { WebAuthnService } from '../infrastructure/security/webauthn.service';
 import { MFAService } from '../application/services/mfa.service';
-import { EmailMFAService } from '../infrastructure/security/email-mfa.service';
+import { PasswordlessAuthService } from '../application/services/passwordless-auth.service';
+import { DeviceInfo } from '../domain/entities/user';
 import { MFAChallengeRepository } from '../infrastructure/database/repositories/mfa-challenge.repository';
 import { PrismaUserRepository } from '../infrastructure/database/repositories/prisma-user-repository';
-import { DeviceInfo } from '../domain/entities/user';
 
 // Mock logger for example
 const logger: Logger = {
@@ -76,7 +75,6 @@ async function demonstratePasswordlessAuthFlow() {
     emailService,
     logger
   );
-
 
   const fallbackAuthService = new FallbackAuthService(
     userRepository,
@@ -537,11 +535,11 @@ async function runAllExamples() {
 
 // Export functions for use in other files
 export {
+  demonstrateBiometricAuth,
+  demonstrateDeviceManagement,
+  demonstrateMagicLinkAuth,
   demonstratePasswordlessAuthFlow,
   demonstrateWebAuthnRegistration,
-  demonstrateDeviceManagement,
-  demonstrateBiometricAuth,
-  demonstrateMagicLinkAuth,
   runAllExamples,
 };
 
