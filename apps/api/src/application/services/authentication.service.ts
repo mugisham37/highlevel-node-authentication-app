@@ -5,11 +5,11 @@
  */
 
 import { Logger } from 'winston';
-import { User } from '../../domain/entities/user';
-import { Session } from '../../domain/entities/session';
-import { Email } from '../../domain/value-objects/email';
-import { Password } from '../../domain/value-objects/password';
-import { DeviceInfo } from '../../domain/entities/user';
+import { User } from "@company/shared"entities/user';
+import { Session } from "@company/shared"entities/session';
+import { Email } from "@company/shared"value-objects/email';
+import { Password } from "@company/shared"value-objects/password';
+import { DeviceInfo } from "@company/shared"entities/user';
 import { PrismaUserRepository } from '../../infrastructure/database/repositories/prisma-user-repository';
 import { DrizzleSessionRepository } from '../../infrastructure/database/repositories/drizzle-session-repository';
 import { PasswordHashingService } from '../../infrastructure/security/password-hashing.service';
@@ -1185,3 +1185,4 @@ export class AuthenticationService {
     }
   }
 }
+

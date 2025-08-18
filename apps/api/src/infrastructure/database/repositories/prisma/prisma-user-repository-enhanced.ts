@@ -7,7 +7,7 @@ import { PrismaClient } from '@prisma/client';
 import { Logger } from 'winston';
 import { BaseRepository } from '../base/base-repository';
 import { TransactionManager } from '../base/transaction-manager';
-import { ICache } from '../../../types/cache';
+import { ICache } from "@company/shared/types"cache';
 import {
   IUserRepository,
   CreateUserData,
@@ -16,8 +16,8 @@ import {
   UserWithRelations,
 } from '../interfaces/user-repository.interface';
 import { ITransactionContext } from '../interfaces/base-repository.interface';
-import { Role } from '../../../../domain/entities/role';
-import { Permission } from '../../../../domain/entities/permission';
+import { Role } from "@company/shared"entities/role';
+import { Permission } from "@company/shared"entities/permission';
 
 export class PrismaUserRepositoryEnhanced
   extends BaseRepository
@@ -1008,3 +1008,4 @@ export class PrismaUserRepositoryEnhanced
     await Promise.all(patterns.map((pattern) => this.invalidateCache(pattern)));
   }
 }
+

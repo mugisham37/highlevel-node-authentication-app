@@ -4,7 +4,7 @@
  */
 
 import { Logger } from 'winston';
-import { Permission } from '../../domain/entities/permission';
+import { Permission } from "@company/shared"entities/permission';
 import { PrismaRoleRepository } from '../../infrastructure/database/repositories/prisma-role-repository';
 import { PrismaPermissionRepository } from '../../infrastructure/database/repositories/prisma-permission-repository';
 import {
@@ -446,3 +446,4 @@ export class RoleManagementService implements IRoleManagementService {
     }
   }
 }
+

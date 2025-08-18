@@ -9,11 +9,11 @@
  */
 
 import { Logger } from 'winston';
-import { User } from '../../domain/entities/user';
-import { Role } from '../../domain/entities/role';
-import { Permission } from '../../domain/entities/permission';
-import { Email } from '../../domain/value-objects/email';
-import { Password } from '../../domain/value-objects/password';
+import { User } from "@company/shared"entities/user';
+import { Role } from "@company/shared"entities/role';
+import { Permission } from "@company/shared"entities/permission';
+import { Email } from "@company/shared"value-objects/email';
+import { Password } from "@company/shared"value-objects/password';
 import { PrismaUserRepository } from '../../infrastructure/database/repositories/prisma-user-repository';
 import { PrismaRoleRepository } from '../../infrastructure/database/repositories/prisma-role-repository';
 import {
@@ -716,3 +716,4 @@ export class UserManagementService implements IUserManagementService {
     } as UserWithRoles;
   }
 }
+

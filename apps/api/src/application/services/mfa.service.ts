@@ -4,7 +4,7 @@
  */
 
 import { Logger } from 'winston';
-import { User } from '../../domain/entities/user';
+import { User } from "@company/shared"entities/user';
 import { SecureIdGenerator } from '../../infrastructure/security/secure-id-generator.service';
 import { SecureTokenGenerator } from '../../infrastructure/security/secure-token-generator.service';
 import { TOTPService } from '../../infrastructure/security/totp.service';
@@ -1303,3 +1303,4 @@ export class MFAService {
     return user as User;
   }
 }
+

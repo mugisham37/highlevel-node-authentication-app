@@ -10,7 +10,7 @@ import {
   WebAuthnService,
 } from '../../infrastructure/security/webauthn.service';
 // import { PrismaUserRepository } from '../../infrastructure/database/repositories/prisma-user-repository'; // TODO: Remove if not needed
-import { DeviceInfo } from '../../domain/entities/user';
+import { DeviceInfo } from "@company/shared"entities/user';
 
 export interface DeviceRegistration {
   id: string;
@@ -758,3 +758,4 @@ export class DeviceManagementService {
     return browser;
   }
 }
+

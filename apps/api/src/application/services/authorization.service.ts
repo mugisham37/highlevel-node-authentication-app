@@ -4,8 +4,8 @@
  */
 
 import { Logger } from 'winston';
-import { Permission } from '../../domain/entities/permission';
-import { Role } from '../../domain/entities/role';
+import { Permission } from "@company/shared"entities/permission';
+import { Role } from "@company/shared"entities/role';
 import { PrismaUserRepository } from '../../infrastructure/database/repositories/prisma-user-repository';
 import { PrismaRoleRepository } from '../../infrastructure/database/repositories/prisma-role-repository';
 import { PrismaPermissionRepository } from '../../infrastructure/database/repositories/prisma-permission-repository';
@@ -760,3 +760,4 @@ export class AuthorizationService implements IAuthorizationService {
     }
   }
 }
+

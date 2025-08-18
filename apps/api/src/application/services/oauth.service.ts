@@ -21,9 +21,9 @@ import {
 } from '../interfaces/oauth-repository.interface';
 import { OAuthProviderFactory } from '../factories/oauth-provider.factory';
 import { PKCEService } from '../../infrastructure/security/pkce.service';
-import { User } from '../../domain/entities/user';
-import { Account } from '../../domain/entities/account';
-import { Email } from '../../domain/value-objects/email';
+import { User } from "@company/shared"entities/user';
+import { Account } from "@company/shared"entities/account';
+import { Email } from "@company/shared"value-objects/email';
 
 export class OAuthService implements IOAuthService {
   private providerFactory: OAuthProviderFactory;
@@ -598,3 +598,4 @@ export class OAuthService implements IOAuthService {
     };
   }
 }
+

@@ -1,0 +1,66 @@
+{
+  "name": "@company/shared",
+  "version": "1.0.0",
+  "description": "Shared domain entities, value objects, types, and utilities for the fullstack monolith",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix"
+  },
+  "dependencies": {
+    "zod": "^3.22.4",
+    "date-fns": "^2.30.0",
+    "lodash": "^4.17.21",
+    "class-validator": "^0.14.0",
+    "class-transformer": "^0.5.1",
+    "nanoid": "^5.0.4"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.14.202",
+    "@types/node": "^20.10.5",
+    "typescript": "^5.3.3",
+    "vitest": "^1.1.0",
+    "eslint": "^8.56.0",
+    "@typescript-eslint/eslint-plugin": "^6.16.0",
+    "@typescript-eslint/parser": "^6.16.0"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./entities": {
+      "import": "./dist/entities/index.js",
+      "require": "./dist/entities/index.js",
+      "types": "./dist/entities/index.d.ts"
+    },
+    "./value-objects": {
+      "import": "./dist/value-objects/index.js",
+      "require": "./dist/value-objects/index.js",
+      "types": "./dist/value-objects/index.d.ts"
+    },
+    "./types": {
+      "import": "./dist/types/index.js",
+      "require": "./dist/types/index.js",
+      "types": "./dist/types/index.d.ts"
+    },
+    "./utils": {
+      "import": "./dist/utils/index.js",
+      "require": "./dist/utils/index.js",
+      "types": "./dist/utils/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "restricted"
+  }
+}

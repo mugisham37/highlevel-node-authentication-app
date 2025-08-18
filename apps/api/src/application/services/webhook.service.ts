@@ -17,7 +17,7 @@ import {
   Webhook,
   WebhookConfig,
   WebhookEvent,
-} from '../../domain/entities/webhook';
+} from "@company/shared"entities/webhook';
 import { WebhookSignatureService } from '../../infrastructure/security/webhook-signature.service';
 import { logger } from '../../infrastructure/logging/winston-logger';
 
@@ -479,3 +479,4 @@ export class WebhookService implements IWebhookService {
     ];
   }
 }
+

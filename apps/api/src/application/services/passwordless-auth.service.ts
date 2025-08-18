@@ -5,7 +5,7 @@
  */
 
 import { Logger } from 'winston';
-import { User } from '../../domain/entities/user';
+import { User } from "@company/shared"entities/user';
 import { SecureIdGenerator } from '../../infrastructure/security/secure-id-generator.service';
 import { SecureTokenGenerator } from '../../infrastructure/security/secure-token-generator.service';
 import {
@@ -14,7 +14,7 @@ import {
 import { MFAChallengeRepository } from '../../infrastructure/database/repositories/mfa-challenge.repository';
 import { PrismaUserRepository } from '../../infrastructure/database/repositories/prisma-user-repository';
 import { EmailMFAService } from '../../infrastructure/security/email-mfa.service';
-import { DeviceInfo } from '../../domain/entities/user';
+import { DeviceInfo } from "@company/shared"entities/user';
 
 export interface PasswordlessAuthRequest {
   email: string;
@@ -1061,3 +1061,4 @@ export class PasswordlessAuthService {
     return `${maskedLocal}@${domain}`;
   }
 }
+

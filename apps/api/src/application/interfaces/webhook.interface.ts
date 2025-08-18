@@ -7,7 +7,7 @@ import {
   Webhook,
   WebhookEvent,
   WebhookDeliveryAttempt,
-} from '../../domain/entities/webhook';
+} from "@company/shared"entities/webhook';
 
 export interface CreateWebhookRequest {
   userId: string;
@@ -439,3 +439,4 @@ export interface IDeadLetterQueue {
     failuresByWebhook: Record<string, number>;
   }>;
 }
+

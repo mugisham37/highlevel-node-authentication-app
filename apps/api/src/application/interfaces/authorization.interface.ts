@@ -3,8 +3,8 @@
  * Defines permission checking and authorization middleware functionality
  */
 
-import { Permission } from '../../domain/entities/permission';
-import { Role } from '../../domain/entities/role';
+import { Permission } from "@company/shared"entities/permission';
+import { Role } from "@company/shared"entities/role';
 
 export interface AuthorizationContext {
   userId: string;
@@ -161,3 +161,4 @@ export interface IAuthorizationService {
     }>
   >;
 }
+

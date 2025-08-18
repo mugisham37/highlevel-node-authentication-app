@@ -3,8 +3,8 @@
  * Defines role-based access control with hierarchical permissions
  */
 
-import { Role } from '../../domain/entities/role';
-import { Permission } from '../../domain/entities/permission';
+import { Role } from "@company/shared"entities/role';
+import { Permission } from "@company/shared"entities/permission';
 import { RoleWithPermissions } from './role-repository.interface';
 
 export interface CreateRoleData {
@@ -113,3 +113,4 @@ export interface IRoleManagementService {
     mostUsedRoles: Array<{ roleId: string; name: string; userCount: number }>;
   }>;
 }
+

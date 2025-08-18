@@ -3,8 +3,8 @@
  * Defines data access operations for roles
  */
 
-import { Role } from '../../domain/entities/role';
-import { Permission } from '../../domain/entities/permission';
+import { Role } from "@company/shared"entities/role';
+import { Permission } from "@company/shared"entities/permission';
 
 export interface CreateRoleData {
   name: string;
@@ -114,3 +114,4 @@ export interface IRoleRepository {
   exists(id: string): Promise<boolean>;
   nameExists(name: string, excludeId?: string): Promise<boolean>;
 }
+

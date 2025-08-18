@@ -3,8 +3,8 @@
  * Defines contracts for OAuth integration
  */
 
-import { User } from '../../domain/entities/user';
-import { Account } from '../../domain/entities/account';
+import { User } from "@company/shared"entities/user';
+import { Account } from "@company/shared"entities/account';
 
 export interface OAuthProvider {
   name: string;
@@ -187,3 +187,4 @@ export interface IOAuthServer {
     scopes: string[]
   ): Promise<OAuthTokens>;
 }
+

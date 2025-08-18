@@ -9,7 +9,7 @@ import {
   IWebhookEventRepository,
   IWebhookDeliveryService,
 } from '../interfaces/webhook.interface';
-import { WebhookEvent } from '../../domain/entities/webhook';
+import { WebhookEvent } from "@company/shared"entities/webhook';
 import { logger } from '../../infrastructure/logging/winston-logger';
 import { EventEmitter } from 'events';
 
@@ -402,3 +402,4 @@ export class EventPublisherService
     };
   }
 }
+

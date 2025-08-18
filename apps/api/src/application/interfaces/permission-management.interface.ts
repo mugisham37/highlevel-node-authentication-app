@@ -3,7 +3,7 @@
  * Defines permission management for RBAC system
  */
 
-import { Permission } from '../../domain/entities/permission';
+import { Permission } from "@company/shared"entities/permission';
 
 export interface CreatePermissionData {
   name: string;
@@ -133,3 +133,4 @@ export interface IPermissionManagementService {
     }>;
   }>;
 }
+
