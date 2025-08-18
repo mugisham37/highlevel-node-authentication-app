@@ -1,0 +1,45 @@
+{
+  "name": "Mobile",
+  "displayName": "Company Mobile App",
+  "version": "1.0.0",
+  "versionCode": 1,
+  "buildNumber": 1,
+  "description": "React Native mobile application for fullstack monolith authentication system",
+  "orientation": "portrait",
+  "icon": "./assets/icon.png",
+  "splash": {
+    "image": "./assets/splash.png",
+    "resizeMode": "contain",
+    "backgroundColor": "#ffffff"
+  },
+  "platforms": ["ios", "android"],
+  "ios": {
+    "bundleIdentifier": "com.company.mobile",
+    "buildNumber": "1.0.0",
+    "supportsTablet": true,
+    "infoPlist": {
+      "NSCameraUsageDescription": "This app uses the camera for profile pictures and document scanning.",
+      "NSMicrophoneUsageDescription": "This app uses the microphone for voice authentication.",
+      "NSFaceIDUsageDescription": "This app uses Face ID for biometric authentication.",
+      "NSLocationWhenInUseUsageDescription": "This app uses location for security and fraud prevention."
+    }
+  },
+  "android": {
+    "package": "com.company.mobile",
+    "versionCode": 1,
+    "permissions": [
+      "CAMERA",
+      "RECORD_AUDIO",
+      "USE_FINGERPRINT",
+      "USE_BIOMETRIC",
+      "ACCESS_FINE_LOCATION",
+      "ACCESS_COARSE_LOCATION",
+      "INTERNET",
+      "ACCESS_NETWORK_STATE"
+    ],
+    "adaptiveIcon": {
+      "foregroundImage": "./assets/adaptive-icon.png",
+      "backgroundColor": "#ffffff"
+    }
+  }
+}
