@@ -8,7 +8,7 @@
 import { Logger } from 'winston';
 import { Session } from "@company/shared"entities/session';
 import { DeviceInfo } from "@company/shared"entities/user';
-import { DrizzleSessionRepository } from '../../infrastructure/database/repositories/drizzle-session-repository';
+import { DrizzleSessionRepository } from '@company/database';
 import { SessionStorage } from '../../infrastructure/cache/session-storage';
 import { SecureIdGenerator } from '../../infrastructure/security/secure-id-generator.service';
 import { RiskScoringService } from '../../infrastructure/security/risk-scoring.service';

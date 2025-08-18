@@ -10,8 +10,7 @@ import { Session } from "@company/shared"entities/session';
 import { Email } from "@company/shared"value-objects/email';
 import { Password } from "@company/shared"value-objects/password';
 import { DeviceInfo } from "@company/shared"entities/user';
-import { PrismaUserRepository } from '../../infrastructure/database/repositories/prisma-user-repository';
-import { DrizzleSessionRepository } from '../../infrastructure/database/repositories/drizzle-session-repository';
+import { PrismaUserRepository, DrizzleSessionRepository } from '@company/database';
 import { PasswordHashingService } from '../../infrastructure/security/password-hashing.service';
 import {
   JWTTokenService,

@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 
+import {
+  createDatabaseConfig,
+  DatabaseConnectionManager,
+} from '@company/database';
 import { Command } from 'commander';
-import { BackupManager } from '../backup-manager';
-import { DisasterRecoveryManager } from '../disaster-recovery';
-import { CrossRegionReplicationManager } from '../cross-region-replication';
-import { createBackupConfig, validateBackupConfig } from '../config';
-import { DatabaseConnectionManager } from '../../database/connection-manager';
-import { createDatabaseConfig } from '../../database/config';
 import { createLogger } from '../../logging';
+import { BackupManager } from '../backup-manager';
+import { createBackupConfig, validateBackupConfig } from '../config';
+import { CrossRegionReplicationManager } from '../cross-region-replication';
+import { DisasterRecoveryManager } from '../disaster-recovery';
 
 const program = new Command();
 
