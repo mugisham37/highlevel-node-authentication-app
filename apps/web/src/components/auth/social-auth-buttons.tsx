@@ -1,8 +1,6 @@
 'use client';
 
-import { trpc } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Button } from '../ui/button';
 
@@ -13,29 +11,8 @@ interface SocialAuthButtonsProps {
 
 type OAuthProvider = 'google' | 'github' | 'microsoft';
 
-export function SocialAuthButtons({
-  className,
-  redirectTo = '/dashboard',
-}: SocialAuthButtonsProps) {
-  const router = useRouter();
+export function SocialAuthButtons({ className }: SocialAuthButtonsProps) {
   const [loadingProvider, setLoadingProvider] = useState<OAuthProvider | null>(null);
-
-  const oauthCallbackMutation = trpc.auth.oauthCallback.useMutation({
-    onSuccess: data => {
-      if (data.success) {
-        // Store tokens in localStorage (in production, consider more secure storage)
-        localStorage.setItem('auth-token', data.data.tokens.accessToken);
-        localStorage.setItem('refresh-token', data.data.tokens.refreshToken);
-
-        router.push(redirectTo);
-      }
-    },
-    onError: error => {
-      console.error('OAuth authentication failed:', error);
-      setLoadingProvider(null);
-      // You might want to show a toast notification here
-    },
-  });
 
   const handleOAuthLogin = async (provider: OAuthProvider) => {
     setLoadingProvider(provider);
@@ -59,7 +36,6 @@ export function SocialAuthButtons({
   };
 
   const getOAuthUrl = (provider: OAuthProvider, state: string): string => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     const redirectUri = `${window.location.origin}/auth/callback/${provider}`;
 
     switch (provider) {

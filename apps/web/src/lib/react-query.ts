@@ -6,7 +6,7 @@ export const queryClient = new QueryClient({
       // Stale time: 5 minutes
       staleTime: 5 * 60 * 1000,
       // Cache time: 10 minutes
-      gcTime: 10 * 60 * 1000,
+      cacheTime: 10 * 60 * 1000,
       // Retry failed requests 3 times
       retry: 3,
       // Retry delay increases exponentially

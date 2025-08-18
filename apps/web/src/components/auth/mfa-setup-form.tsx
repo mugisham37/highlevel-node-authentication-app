@@ -24,9 +24,9 @@ export function MfaSetupForm({ className, onSuccess, onCancel }: MfaSetupFormPro
   const [currentStep, setCurrentStep] = useState<SetupStep>('method');
   const [selectedMethod, setSelectedMethod] = useState<'totp' | 'sms' | 'email'>('totp');
   const [setupData, setSetupData] = useState<{
-    secret?: string;
-    qrCode?: string;
-    backupCodes?: string[];
+    secret?: string | undefined;
+    qrCode?: string | undefined;
+    backupCodes?: string[] | undefined;
   }>({});
 
   // Form for method selection and phone number (if SMS)
@@ -61,7 +61,7 @@ export function MfaSetupForm({ className, onSuccess, onCancel }: MfaSetupFormPro
 
   const setupMfaMutation = trpc.auth.setupMfa.useMutation({
     onSuccess: data => {
-      if (data.success) {
+      if (data.success && data.data) {
         setSetupData({
           secret: data.data.secret,
           qrCode: data.data.qrCode,
@@ -72,13 +72,10 @@ export function MfaSetupForm({ className, onSuccess, onCancel }: MfaSetupFormPro
       }
     },
     onError: error => {
-      if (error.data?.code === 'VALIDATION_ERROR') {
-        setErrorSetup('root', { message: 'Please check your information and try again' });
-      } else {
-        setErrorSetup('root', {
-          message: error.message || 'Failed to setup MFA. Please try again.',
-        });
-      }
+      console.error('MFA setup error:', error);
+      setErrorSetup('root', {
+        message: error.message || 'Failed to setup MFA. Please try again.',
+      });
     },
   });
 
@@ -89,13 +86,10 @@ export function MfaSetupForm({ className, onSuccess, onCancel }: MfaSetupFormPro
       }
     },
     onError: error => {
-      if (error.data?.code === 'INVALID_CODE') {
-        setErrorVerify('code', { message: 'Invalid verification code' });
-      } else {
-        setErrorVerify('root', {
-          message: error.message || 'Verification failed. Please try again.',
-        });
-      }
+      console.error('MFA verification error:', error);
+      setErrorVerify('root', {
+        message: error.message || 'Verification failed. Please try again.',
+      });
     },
   });
 

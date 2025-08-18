@@ -50,13 +50,8 @@ export function RegisterForm({ className, onSuccess }: RegisterFormProps) {
       }
     },
     onError: error => {
-      if (error.data?.code === 'CONFLICT') {
-        setError('email', { message: 'An account with this email already exists' });
-      } else if (error.data?.code === 'VALIDATION_ERROR') {
-        setError('root', { message: 'Please check your information and try again' });
-      } else {
-        setError('root', { message: error.message || 'Registration failed. Please try again.' });
-      }
+      console.error('Registration error:', error);
+      setError('root', { message: error.message || 'Registration failed. Please try again.' });
     },
   });
 

@@ -52,15 +52,8 @@ export function MfaVerificationForm({
       }
     },
     onError: error => {
-      if (error.data?.code === 'INVALID_CODE') {
-        setError('code', { message: 'Invalid verification code. Please try again.' });
-      } else if (error.data?.code === 'EXPIRED_CODE') {
-        setError('code', { message: 'Verification code has expired. Please request a new one.' });
-      } else if (error.data?.code === 'TOO_MANY_ATTEMPTS') {
-        setError('root', { message: 'Too many failed attempts. Please try again later.' });
-      } else {
-        setError('root', { message: error.message || 'Verification failed. Please try again.' });
-      }
+      console.error('MFA verification error:', error);
+      setError('root', { message: error.message || 'Verification failed. Please try again.' });
     },
   });
 

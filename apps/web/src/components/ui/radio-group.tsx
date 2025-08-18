@@ -2,9 +2,9 @@ import { cn } from '@/lib/utils';
 import { createContext, forwardRef, useContext } from 'react';
 
 interface RadioGroupContextValue {
-  value?: string;
-  onValueChange?: (value: string) => void;
-  name?: string;
+  value?: string | undefined;
+  onValueChange?: ((value: string) => void) | undefined;
+  name?: string | undefined;
 }
 
 const RadioGroupContext = createContext<RadioGroupContextValue>({});

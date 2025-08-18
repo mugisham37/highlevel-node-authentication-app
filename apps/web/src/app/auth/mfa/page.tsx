@@ -8,13 +8,14 @@ export const metadata: Metadata = {
 };
 
 interface MfaPageProps {
-  searchParams: {
+  searchParams: Promise<{
     method?: 'totp' | 'sms' | 'email';
-  };
+  }>;
 }
 
-export default function MfaPage({ searchParams }: MfaPageProps) {
-  const method = searchParams.method || 'totp';
+export default async function MfaPage({ searchParams }: MfaPageProps) {
+  const params = await searchParams;
+  const method = params.method || 'totp';
 
   // Validate method
   if (!['totp', 'sms', 'email'].includes(method)) {
@@ -22,26 +23,20 @@ export default function MfaPage({ searchParams }: MfaPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Almost there!</h1>
-          <p className="text-gray-600">Complete your authentication to continue</p>
-        </div>
-      </div>
+    <div className="text-center mb-8">
+      <h1 className="text-3xl font-bold text-gray-900 mb-2">Almost there!</h1>
+      <p className="text-gray-600">Complete your authentication to continue</p>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <MfaVerificationForm
-            method={method}
-            onCancel={() => {
-              // Handle logout and redirect to login
-              localStorage.removeItem('auth-token');
-              localStorage.removeItem('refresh-token');
-              window.location.href = '/auth/login';
-            }}
-          />
-        </div>
+      <div className="mt-8 bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+        <MfaVerificationForm
+          method={method}
+          onCancel={() => {
+            // Handle logout and redirect to login
+            localStorage.removeItem('auth-token');
+            localStorage.removeItem('refresh-token');
+            window.location.href = '/auth/login';
+          }}
+        />
       </div>
     </div>
   );

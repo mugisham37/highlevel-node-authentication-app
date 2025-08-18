@@ -41,7 +41,7 @@ export function LoginForm({ className, onSuccess, redirectTo = '/dashboard' }: L
 
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: data => {
-      if (data.success) {
+      if (data.success && data.data) {
         // Store tokens in localStorage (in production, consider more secure storage)
         localStorage.setItem('auth-token', data.data.tokens.accessToken);
         localStorage.setItem('refresh-token', data.data.tokens.refreshToken);

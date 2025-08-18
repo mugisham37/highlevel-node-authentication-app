@@ -17,7 +17,7 @@ interface PasswordResetFormProps {
   className?: string;
 }
 
-export function PasswordResetForm({ className }: PasswordResetFormProps) {
+function PasswordResetFormContent({ className }: PasswordResetFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
@@ -79,15 +79,10 @@ export function PasswordResetForm({ className }: PasswordResetFormProps) {
       }
     },
     onError: error => {
-      if (error.data?.code === 'INVALID_TOKEN') {
-        setErrorReset('token', { message: 'Invalid or expired reset token' });
-      } else if (error.data?.code === 'VALIDATION_ERROR') {
-        setErrorReset('root', { message: 'Please check your password and try again' });
-      } else {
-        setErrorReset('root', {
-          message: error.message || 'Failed to reset password. Please try again.',
-        });
-      }
+      console.error('Password reset error:', error);
+      setErrorReset('root', {
+        message: error.message || 'Failed to reset password. Please try again.',
+      });
     },
   });
 
@@ -365,4 +360,24 @@ function getPasswordStrength(password: string): number {
   if (/[@$!%*?&]/.test(password)) strength++;
 
   return Math.min(strength, 4);
+}
+export function PasswordResetForm({ className }: PasswordResetFormProps) {
+  return (
+    <Suspense
+      fallback={
+        <div className={cn('w-full max-w-md space-y-6', className)}>
+          <div className="animate-pulse">
+            <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto mb-4"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto mb-8"></div>
+            <div className="space-y-4">
+              <div className="h-10 bg-gray-200 rounded"></div>
+              <div className="h-10 bg-gray-200 rounded"></div>
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <PasswordResetFormContent className={className} />
+    </Suspense>
+  );
 }
