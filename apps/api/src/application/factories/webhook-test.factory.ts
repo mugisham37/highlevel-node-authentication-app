@@ -3,29 +3,29 @@
  * Creates webhook-related services with mocked dependencies for testing
  */
 
+import { RedisCache } from '@company/cache';
 import { PrismaClient } from '../../generated/prisma';
-import { RedisCache } from '../../infrastructure/cache/redis-cache';
 
 // Interfaces
 import {
-  IWebhookService,
-  IEventPublisher,
-  IWebhookDeliveryService,
-  IWebhookRepository,
-  IWebhookEventRepository,
-  IWebhookDeliveryRepository,
-  IWebhookSignatureService,
   IDeadLetterQueue,
+  IEventPublisher,
+  IWebhookDeliveryRepository,
+  IWebhookDeliveryService,
+  IWebhookEventRepository,
+  IWebhookRepository,
+  IWebhookService,
+  IWebhookSignatureService,
 } from '../interfaces/webhook.interface';
 
 // Services
-import { WebhookService } from '../services/webhook.service';
 import { EventPublisherService } from '../services/event-publisher.service';
 import { WebhookDeliveryService } from '../services/webhook-delivery.service';
+import { WebhookService } from '../services/webhook.service';
 
 // Controllers
-import { WebhookController } from '../../presentation/controllers/webhook.controller';
 import { WebhookWebSocketController } from '../../presentation/controllers/webhook-websocket.controller';
+import { WebhookController } from '../../presentation/controllers/webhook.controller';
 
 export interface WebhookTestFactoryResult {
   // Services
@@ -65,7 +65,9 @@ export class WebhookTestFactory {
   ): WebhookTestFactoryResult {
     // Only import jest when in test environment
     if (typeof jest === 'undefined') {
-      throw new Error('WebhookTestFactory.createForTesting() can only be used in test environment');
+      throw new Error(
+        'WebhookTestFactory.createForTesting() can only be used in test environment'
+      );
     }
 
     const mockPrisma = {} as PrismaClient;
@@ -150,9 +152,7 @@ export class WebhookTestFactory {
       eventPublisher
     );
 
-    const websocketController = new WebhookWebSocketController(
-      eventPublisher
-    );
+    const websocketController = new WebhookWebSocketController(eventPublisher);
 
     const result: WebhookTestFactoryResult = {
       // Services
@@ -165,7 +165,8 @@ export class WebhookTestFactory {
       // Repositories
       webhookRepository: overrides.webhookRepository || mockWebhookRepository,
       eventRepository: overrides.eventRepository || mockEventRepository,
-      deliveryRepository: overrides.deliveryRepository || mockDeliveryRepository,
+      deliveryRepository:
+        overrides.deliveryRepository || mockDeliveryRepository,
 
       // Controllers
       webhookController: overrides.webhookController || webhookController,

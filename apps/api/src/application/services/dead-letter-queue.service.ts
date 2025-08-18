@@ -9,7 +9,7 @@ import {
 } from '../interfaces/webhook.interface';
 import { WebhookDeliveryAttempt } from "@company/shared"entities/webhook';
 import { logger } from '../../infrastructure/logging/winston-logger';
-import { RedisCache } from '../../infrastructure/cache/redis-cache';
+import { RedisCache } from '@company/cache';
 
 export interface DeadLetterQueueConfig {
   maxRetentionDays: number;

@@ -57,7 +57,7 @@ import {
 import { monitoringSystem } from './infrastructure/monitoring';
 
 // Database and Caching
-import { createCacheSystem } from './infrastructure/cache';
+import { createCacheSystem } from '@company/cache';
 import { createDatabaseModule } from './infrastructure/database';
 
 // Security and Performance

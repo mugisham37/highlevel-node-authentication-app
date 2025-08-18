@@ -3,36 +3,36 @@
  * Creates and configures webhook-related services and dependencies
  */
 
+import { RedisCache } from '@company/cache';
 import { PrismaClient } from '../../generated/prisma';
-import { RedisCache } from '../../infrastructure/cache/redis-cache';
 
 // Interfaces
 import {
-  IWebhookService,
-  IEventPublisher,
-  IWebhookDeliveryService,
-  IWebhookRepository,
-  IWebhookEventRepository,
-  IWebhookDeliveryRepository,
-  IWebhookSignatureService,
   IDeadLetterQueue,
+  IEventPublisher,
+  IWebhookDeliveryRepository,
+  IWebhookDeliveryService,
+  IWebhookEventRepository,
+  IWebhookRepository,
+  IWebhookService,
+  IWebhookSignatureService,
 } from '../interfaces/webhook.interface';
 
 // Services
-import { WebhookService } from '../services/webhook.service';
+import { DeadLetterQueueService } from '../services/dead-letter-queue.service';
 import { EventPublisherService } from '../services/event-publisher.service';
 import { WebhookDeliveryService } from '../services/webhook-delivery.service';
-import { DeadLetterQueueService } from '../services/dead-letter-queue.service';
+import { WebhookService } from '../services/webhook.service';
 
 // Infrastructure
-import { WebhookSignatureService } from '../../infrastructure/security/webhook-signature.service';
-import { WebhookRepository } from '../../infrastructure/database/repositories/webhook.repository';
-import { WebhookEventRepository } from '../../infrastructure/database/repositories/webhook-event.repository';
 import { WebhookDeliveryRepository } from '../../infrastructure/database/repositories/webhook-delivery.repository';
+import { WebhookEventRepository } from '../../infrastructure/database/repositories/webhook-event.repository';
+import { WebhookRepository } from '../../infrastructure/database/repositories/webhook.repository';
+import { WebhookSignatureService } from '../../infrastructure/security/webhook-signature.service';
 
 // Controllers
-import { WebhookController } from '../../presentation/controllers/webhook.controller';
 import { WebhookWebSocketController } from '../../presentation/controllers/webhook-websocket.controller';
+import { WebhookController } from '../../presentation/controllers/webhook.controller';
 
 import { logger } from '../../infrastructure/logging/winston-logger';
 
@@ -85,15 +85,12 @@ export class WebhookFactory {
     const signatureService = new WebhookSignatureService();
 
     // Create dead letter queue
-    const deadLetterQueue = new DeadLetterQueueService(
-      redisCache,
-      {
-        maxRetentionDays: 7,
-        maxRetryAttempts: 5,
-        batchSize: 10,
-        processingInterval: 300000, // 5 minutes
-      }
-    );
+    const deadLetterQueue = new DeadLetterQueueService(redisCache, {
+      maxRetentionDays: 7,
+      maxRetryAttempts: 5,
+      batchSize: 10,
+      processingInterval: 300000, // 5 minutes
+    });
 
     // Create delivery service
     const deliveryService = new WebhookDeliveryService(
@@ -180,7 +177,7 @@ export class WebhookFactory {
   ): WebhookFactoryResult {
     throw new Error(
       'createForTesting has been moved to WebhookTestFactory. ' +
-      'Import WebhookTestFactory from "./webhook-test.factory" and use WebhookTestFactory.createForTesting() instead.'
+        'Import WebhookTestFactory from "./webhook-test.factory" and use WebhookTestFactory.createForTesting() instead.'
     );
   }
 
