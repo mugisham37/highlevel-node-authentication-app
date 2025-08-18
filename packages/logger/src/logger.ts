@@ -1,5 +1,5 @@
 import winston from 'winston';
-import { logger } from './winston-logger';
+import { createLogger as factoryCreateLogger, createLoggerWithCorrelation as factoryCreateLoggerWithCorrelation, getLoggerFactory } from './logger-factory';
 
 /**
  * Creates a logger instance with a specific service name
@@ -7,7 +7,7 @@ import { logger } from './winston-logger';
  * @returns A winston logger instance
  */
 export function createLogger(serviceName: string): winston.Logger {
-  return logger.child({ service: serviceName });
+  return factoryCreateLogger(serviceName);
 }
 
 /**
@@ -17,12 +17,21 @@ export function createLogger(serviceName: string): winston.Logger {
  * @returns A winston logger instance
  */
 export function createLoggerWithCorrelation(serviceName: string, correlationId: string): winston.Logger {
-  return logger.child({ service: serviceName, correlationId });
+  return factoryCreateLoggerWithCorrelation(serviceName, correlationId);
 }
 
-// Re-export main logger and child logger creator for convenience
-export { logger, createChildLogger } from './winston-logger';
-export type { Logger } from './winston-logger';
+/**
+ * Create child logger with correlation ID support
+ */
+export const createChildLogger = (correlationId: string): winston.Logger => {
+  return getLoggerFactory().getRootLogger().child({ correlationId });
+};
+
+// Get the root logger instance
+export const logger = getLoggerFactory().getRootLogger();
+
+// Export logger types for TypeScript
+export type Logger = winston.Logger;
 
 // Export the logger instance as default
 export default logger;

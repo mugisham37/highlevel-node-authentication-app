@@ -5,41 +5,41 @@
 
 import { FastifyInstance } from 'fastify';
 import { AuthenticationService } from '../../application/services/authentication.service';
-import { MFAService } from '../../application/services/mfa.service';
-import { SessionManagementService } from '../../application/services/session-management.service';
-import { OAuthService } from '../../application/services/oauth.service';
-import { OAuthServerService } from '../../application/services/oauth-server.service';
-import { UserManagementService } from '../../application/services/user-management.service';
 import { AuthorizationService } from '../../application/services/authorization.service';
-import { PasswordlessAuthService } from '../../application/services/passwordless-auth.service';
 import { DeviceManagementService } from '../../application/services/device-management.service';
 import { FallbackAuthService } from '../../application/services/fallback-auth.service';
+import { MFAService } from '../../application/services/mfa.service';
+import { OAuthServerService } from '../../application/services/oauth-server.service';
+import { OAuthService } from '../../application/services/oauth.service';
+import { PasswordlessAuthService } from '../../application/services/passwordless-auth.service';
 import { RoleManagementService } from '../../application/services/role-management.service';
+import { SessionManagementService } from '../../application/services/session-management.service';
+import { UserManagementService } from '../../application/services/user-management.service';
 
 // Infrastructure
-import { logger } from '../../infrastructure/logging/winston-logger';
+import { logger } from '@company/logger';
 
 // Controllers
+import { AdminController } from '../controllers/admin.controller';
 import { AuthenticationController } from '../controllers/authentication.controller';
 import { OAuthController } from '../controllers/oauth.controller';
-import { AdminController } from '../controllers/admin.controller';
 import { PasswordlessAuthController } from '../controllers/passwordless-auth.controller';
 import { RoleManagementController } from '../controllers/role-management.controller';
 
 // Routes
+import { adminRoutes } from './admin.routes';
 import { authenticationRoutes } from './authentication.routes';
 import { oauthRoutes } from './oauth.routes';
-import { userManagementRoutes } from './user-management.routes';
-import { adminRoutes } from './admin.routes';
 import { passwordlessAuthRoutes } from './passwordless-auth.routes';
 import { roleManagementRoutes } from './role-management.routes';
 import { securityComplianceRoutes } from './security-compliance.routes';
+import { userManagementRoutes } from './user-management.routes';
 
 // Middleware
 import { validationPlugin } from '../middleware/validation.middleware';
 import {
-  versioningPlugin,
   registerVersionedRoutes,
+  versioningPlugin,
 } from '../middleware/versioning.middleware';
 
 export interface RouteRegistrationOptions {

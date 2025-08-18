@@ -50,10 +50,7 @@ import { configManager } from '@company/config';
 import { createServer } from './infrastructure/server/fastify-server';
 
 // Logging and Monitoring
-import {
-  configureLogger,
-  logger,
-} from './infrastructure/logging/winston-logger';
+import { logger } from '@company/logger';
 import { monitoringSystem } from './infrastructure/monitoring';
 
 // Database and Caching

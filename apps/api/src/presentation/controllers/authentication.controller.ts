@@ -4,22 +4,22 @@
  * password reset, and MFA operations
  */
 
-import { FastifyRequest, FastifyReply } from 'fastify';
+import { logger } from '@company/logger';
+import { FastifyReply, FastifyRequest } from 'fastify';
 import { AuthenticationService } from '../../application/services/authentication.service';
 import { MFAService } from '../../application/services/mfa.service';
 import { SessionManagementService } from '../../application/services/session-management.service';
-import { logger } from '../../infrastructure/logging/winston-logger';
 import {
-  LoginRequest,
-  RefreshTokenRequest,
-  LogoutRequest,
-  PasswordResetRequest,
-  PasswordResetConfirm,
+  AuthResponse,
   ChangePassword,
+  LoginRequest,
+  LogoutRequest,
+  MFAChallengeRequest,
   MFASetupRequest,
   MFAVerifyRequest,
-  MFAChallengeRequest,
-  AuthResponse,
+  PasswordResetConfirm,
+  PasswordResetRequest,
+  RefreshTokenRequest,
 } from '../schemas/auth.schemas';
 
 export class AuthenticationController {
@@ -32,7 +32,9 @@ export class AuthenticationController {
   /**
    * Ensure DeviceInfo has required platform field
    */
-  private ensureDeviceInfo(deviceInfo: any): import('../../domain/entities/user').DeviceInfo {
+  private ensureDeviceInfo(
+    deviceInfo: any
+  ): import('../../domain/entities/user').DeviceInfo {
     return {
       ...deviceInfo,
       platform: deviceInfo.platform || 'unknown',
