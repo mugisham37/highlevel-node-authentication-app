@@ -264,15 +264,16 @@
     after refactoring
   - _Requirements: 3.1, 3.4_
 
-- [-] 4. Create tRPC API Contracts Package
+- [x] 4. Create tRPC API Contracts Package
 
 - [x] 4.1 Setup tRPC infrastructure and contracts
   - Use PowerShell: `New-Item -ItemType Directory -Path /
   - Add accessibility utilities and testing helpers
   - _Requirements: 6.4, 6.5_
 
-- [ ] 6. Create web frontend application
-- [ ] 6.1 Setup Next.js web application structure
+- [-] 6. Create web frontend application
+
+- [x] 6.1 Setup Next.js web application structure
   - Create apps/web with Next.js, TypeScript, and Tailwind CSS configuration
   - Setup React Query for state management and API caching
   - Configure Next.js with proper API proxy configuration in next.config.js
